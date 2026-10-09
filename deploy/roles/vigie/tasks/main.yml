@@ -68,15 +68,17 @@
     - "{{ vigie_dist_dir }}/*.whl"
     - "{{ vigie_dist_dir }}/requirements.txt"
 
+# umask explicite : celui de root (login.defs, durcissement) rendrait le venv illisible
+# pour les comptes vigie-*.
 - name: Environnement virtuel
-  ansible.builtin.command:
-    cmd: python3 -m venv {{ vigie_release_dir }}
+  ansible.builtin.shell:
+    cmd: umask 022 && python3 -m venv {{ vigie_release_dir }}
     creates: "{{ vigie_release_dir }}/bin/python"
 
 - name: Dépendances (empreintes vérifiées)
   ansible.builtin.shell:
     cmd: >-
-      {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
+      umask 022 && {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
       --require-hashes -r {{ vigie_release_dir }}/requirements.txt
       && touch {{ vigie_release_dir }}/.deps-ok
     creates: "{{ vigie_release_dir }}/.deps-ok"
@@ -84,9 +86,23 @@
 - name: Application (wheel construit localement, sans dépendance supplémentaire)
   ansible.builtin.shell:
     cmd: >-
-      {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
+      umask 022 && {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
       --no-deps {{ vigie_release_dir }}/vigie-*.whl
     creates: "{{ vigie_release_dir }}/bin/vigie"
+
+- name: Fichiers de la version illisibles par les comptes vigie-*
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : version pas encore installée
+  ansible.builtin.command:
+    cmd: find {{ vigie_release_dir }} ! -perm -o=r -print -quit
+  register: vigie_unreadable
+  changed_when: false
+  check_mode: false
+
+- name: Lecture rétablie pour toute la version (avant la bascule du lien)
+  ansible.builtin.command:
+    cmd: chmod -R go+rX,go-w {{ vigie_release_dir }}
+  when: vigie_unreadable.stdout | length > 0
+  changed_when: true
 
 - name: Version courante
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : la version n'est pas encore installée
