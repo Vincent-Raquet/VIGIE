@@ -15,17 +15,30 @@
   become: true
   become_user: postgres
 
-- name: Base vigie, propriété de vigie_migrate (jamais d'un rôle d'exécution)
+- name: Base vigie
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
-  community.postgresql.postgresql_db:
-    name: vigie
-    owner: vigie_migrate
-    encoding: UTF8
-    lc_collate: fr_BE.UTF-8
-    lc_ctype: fr_BE.UTF-8
-    template: template0
-  become: true
-  become_user: postgres
+  block:
+    - name: Base vigie, propriété de vigie_migrate (jamais d'un rôle d'exécution)
+      community.postgresql.postgresql_db: &vigie_db
+        name: vigie
+        owner: vigie_migrate
+        encoding: UTF8
+        lc_collate: fr_BE.UTF-8
+        lc_ctype: fr_BE.UTF-8
+        template: template0
+      become: true
+      become_user: postgres
+  rescue:
+    # Locale générée après le démarrage de PostgreSQL (rôle base) : invisible tant que le
+    # serveur n'a pas redémarré.
+    - name: Redémarrage de PostgreSQL pour la locale fr_BE.UTF-8
+      ansible.builtin.systemd_service:
+        name: postgresql
+        state: restarted
+    - name: Base vigie, seconde tentative
+      community.postgresql.postgresql_db: *vigie_db
+      become: true
+      become_user: postgres
 
 - name: Connexion à la base pour les rôles d'exécution
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
