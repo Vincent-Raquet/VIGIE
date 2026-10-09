@@ -89,3 +89,7 @@
     regexp: '^#?listen_addresses'
     line: "listen_addresses = 'localhost'"
   notify: Redémarrer PostgreSQL
+
+# pg_hba / pg_ident / listen_addresses doivent être actifs avant les migrations (rôle vigie).
+- name: Prise en compte de la configuration PostgreSQL
+  ansible.builtin.meta: flush_handlers
