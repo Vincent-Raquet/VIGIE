@@ -91,8 +91,20 @@ class PlansConfig(_Strict):
 
 
 class NotifyConfig(_Strict):
-    mail_sender: str = ""
+    """Diffusion des plans (SPEC F9, SECURITY.md C13). Secrets : `graph_certificate` (PEM :
+    clé privée + certificat de l'application « Vigie Mail ») et `teams_webhook_url`."""
+
+    mail_enabled: bool = False
+    mail_sender: str = Field("", pattern=r"^([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$")
+    # ID d'objet Entra de la boîte d'envoi (chemin Graph /users/{id}/sendMail, sans « @ »).
+    mail_sender_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    graph_tenant_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    graph_client_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
     teams_enabled: bool = False
+    # Proxy de sortie explicite (Squid, phase 8) ; aucun proxy implicite de l'environnement.
+    proxy: str | None = Field(None, pattern=r"^https?://[^\s/]+(:[0-9]{1,5})?/?$")
+    # Rodage (phase 9) : tout est envoyé au seul coordinateur.
+    draft_only: bool = True
 
 
 class TLSConfig(_Strict):

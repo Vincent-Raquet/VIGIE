@@ -1,4 +1,4 @@
-"""Lectures en base pour les écrans des plans (aucune écriture ici)."""
+"""Lecture des plans pour l'interface et les notifications (aucune écriture ici)."""
 
 from __future__ import annotations
 

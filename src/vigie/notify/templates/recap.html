@@ -1,0 +1,14 @@
+{% extends "_frame.html" %}
+{% block body %}
+<p style="margin:0 0 12px;">Récapitulatif du plan {{ period }}{% if ai.get("by_llm") %}, affiné par l'IA et validé automatiquement{% else %}, généré sans IA{% endif %}.</p>
+{% if ai.get("summary_exec") %}<div style="margin:0 0 12px;padding:10px 12px;background:#e2f0f5;border-radius:6px;">{% for line in ai["summary_exec"].splitlines() if line.strip() %}<p style="margin:0 0 6px;">{{ line|plain(600) }}</p>{% endfor %}</div>{% endif %}
+<table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+<tr><th align="left" style="border-bottom:1px solid #dde2e8;">Personne</th><th align="right" style="border-bottom:1px solid #dde2e8;">Tâches</th><th align="right" style="border-bottom:1px solid #dde2e8;">Charge</th></tr>
+{% for c in view.people %}<tr><td style="border-bottom:1px solid #dde2e8;">{{ c.person.name }}</td><td align="right" style="border-bottom:1px solid #dde2e8;">{{ c.tasks|length }}</td><td align="right" style="border-bottom:1px solid #dde2e8;{% if c.over %}color:#c26a0e;{% endif %}">{{ c.load_h|num }} / {{ c.capacity_h|num }} h</td></tr>{% endfor %}
+</table>
+<p style="margin:12px 0 0;"><strong>{{ p1 }}</strong> tâche(s) P1 · <strong>{{ escalations|length }}</strong> escalade(s) · <strong>{{ view.backlog|length }}</strong> non planifiée(s){% if sources_down %} · sources en panne : {{ sources_down|join(", ") }}{% endif %}</p>
+{% if escalations %}<h3 style="margin:16px 0 4px;font-size:15px;">Escalades</h3><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{% for t in escalations %}{% include "_task.html" %}{% endfor %}</table>{% endif %}
+{% if ai.get("risks") %}<h3 style="margin:16px 0 4px;font-size:15px;">Risques signalés par l'IA</h3><ul style="margin:0;padding-left:18px;">{% for r in ai["risks"] %}<li>[{{ r["severity"] }}] {{ r["text"]|plain(300) }}</li>{% endfor %}</ul>{% endif %}
+{% if ai.get("escalations") %}<h3 style="margin:16px 0 4px;font-size:15px;">Escalades proposées par l'IA</h3><ul style="margin:0;padding-left:18px;">{% for e in ai["escalations"] %}<li>{{ e["text"]|plain(300) }}</li>{% endfor %}</ul>{% endif %}
+<p style="margin:16px 0 0;"><a href="{{ plan_url }}" style="background:#1f6f8b;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;display:inline-block;">{% if draft %}Relire et valider dans Vigie{% else %}Ouvrir le plan dans Vigie{% endif %}</a></p>
+{% endblock %}

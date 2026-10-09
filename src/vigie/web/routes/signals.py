@@ -10,9 +10,9 @@ from sqlalchemy import func, select
 
 from vigie.db import models
 from vigie.db.enums import IncidentStatus, Priority
+from vigie.links import source_link
 from vigie.web.auth import User, require_role
 from vigie.web.deps import DB, STAFF, render
-from vigie.web.links import source_link
 
 router = APIRouter()
 Staff = Annotated[User, Depends(require_role(*STAFF))]

@@ -59,6 +59,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - Graph `sendMail` (certificat), webhook Teams, gabarits HTML + texte, allowlist destinataires.
 - `vigie notify --plan <id> --dry-run` (écrit les messages dans un dossier au lieu d'envoyer).
 - **Acceptation** : rendu vérifié dans Outlook et Teams ; aucun lien non construit par l'application.
+- Réalisé : `vigie notify --plan <id|latest-daily|latest-weekly> [--dry-run --out DIR] [--force]` ; un e-mail par personne (tâches, actions, liens Vigie) et un récapitulatif au coordinateur (synthèse IA, escalades, risques) ; carte Teams sans détail ; Graph par certificat (MSAL) et webhook via `SafeClient` (un seul appel autorisé chacun) ; destinataires = personnes actives ; mode rodage `draft_only` ; publication du plan à la diffusion, idempotence ; pause respectée.
 
 ## Phase 8 — Déploiement Debian (1–2 jours)
 - Suivre le skill `debian-deploy` : Ansible (rôles `base`, `hardening`, `nftables`, `squid`, `postgresql`, `caddy`, `vigie`, `zabbix_agent`, `backup`).

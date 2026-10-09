@@ -102,8 +102,12 @@ Voir SPEC §7.6. En plus :
 - Garde-fou applicatif avant chaque appel (SPEC §7.6), maximum 3 appels LLM par génération de plan (1 + 2 tentatives).
 
 ### C13 — Notifications
-- Graph : application avec `Mail.Send` application **limitée** à la boîte `itbot@…` via RBAC for Applications d'Exchange Online (ou Application Access Policy). Secret client → certificat de préférence.
-- Webhook Teams : secret ; le message ne contient que le résumé et un lien vers Vigie.
+- Graph : application avec `Mail.Send` application **limitée** à la boîte `itbot@…` via RBAC for Applications d'Exchange Online (ou Application Access Policy). Authentification par **certificat** (MSAL), secret `graph_certificate`.
+- Envoi par `SafeClient` : Graph n'autorise que `POST /v1.0/users/{id de la boîte}/sendMail` (un destinataire, HTML, schéma strict) ; Teams n'autorise que le chemin exact du webhook et ses paramètres `api-version`, `sp`, `sv`, `sig`. Tout autre appel est refusé avant émission (tests).
+- Webhook Teams : secret ; le message ne contient que le résumé chiffré et **un seul** lien vers Vigie, aucun détail de tâche.
+- Destinataires : personnes **actives** de la table `person` uniquement ; mode rodage `draft_only` (défaut) : tout part au coordinateur.
+- Textes des sources et de l'IA dans les messages : échappés et URL désarmées (`https[:]//`, `www[.]`) pour qu'aucun client de messagerie n'en fasse un lien ; les seuls liens sont construits par l'application (`vigie.links`).
+- Journal `notify_sent` : canaux, nombres et issue, jamais d'adresse ni de contenu.
 
 ## 3. Pendant le développement avec Claude Code
 

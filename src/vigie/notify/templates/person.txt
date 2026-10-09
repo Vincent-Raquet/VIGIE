@@ -1,0 +1,28 @@
+Bonjour {{ card.person.name }},
+
+{% if draft %}PLAN NON VALIDÉ : publié automatiquement, il peut encore être ajusté.
+
+{% endif %}
+Voici tes tâches {{ period }} ({{ card.load_h|num }} h planifiées sur {{ card.capacity_h|num }} h).
+{% if card.summary %}
+
+{{ card.summary|plain }}
+{% endif %}
+{% for day, tasks in days %}
+{% if weekly and day %}
+
+== {{ DAY_NAMES_FR[day.weekday()]|capitalize }} {{ day.strftime("%d/%m") }} ==
+{% endif %}
+{% for t in tasks %}
+
+[{{ t.task.priority.value }}] {{ t.task.title|plain(120) }} ({{ t.task.estimate_h|num }} h)
+{% for a in t.task.actions %}
+  {{ loop.index }}. {{ a|plain(200) }}
+{% endfor %}
+  {{ t.task.rationale|plain(300) }}
+{% endfor %}
+{% endfor %}
+
+Ouvrir le plan : {{ plan_url }}
+--
+Message automatique de Vigie. Ne pas répondre.

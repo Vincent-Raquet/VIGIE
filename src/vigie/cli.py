@@ -343,15 +343,81 @@ def plan(
 
 @app.command()
 def notify(
+    ctx: typer.Context,
     plan_ref: Annotated[
         str, typer.Option("--plan", help="Identifiant du plan, latest-daily ou latest-weekly.")
     ],
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Écrit les messages dans un dossier sans envoyer.")
     ] = False,
+    out: Annotated[Path, typer.Option("--out", help="Dossier des messages en simulation.")] = Path(
+        "notify-out"
+    ),
+    force: Annotated[bool, typer.Option("--force", help="Renvoie un plan déjà diffusé.")] = False,
 ) -> None:
-    """Diffuse un plan par mail et Teams."""
-    _not_implemented(7)
+    """Diffuse un plan par e-mail (Graph) et Teams ; le plan est alors publié."""
+    from vigie.notify.dispatch import NotifyError, dispatch, select_plan
+
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            if not dry_run and is_paused(session, "plan", config_paused=cfg.general.paused):
+                typer.echo("Diffusion en pause (interface ou [general] paused).")
+                return
+            plan = select_plan(session, plan_ref)
+            mailer, teams = (None, None) if dry_run else _notifiers(cfg)
+            report = dispatch(
+                session,
+                plan,
+                cfg,
+                mailer=mailer,
+                teams=teams,
+                out_dir=out if dry_run else None,
+                force=force,
+            )
+            session.commit()
+    except (NotifyError, SecretError, ValueError) as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    mode = " (rodage : tout au coordinateur)" if cfg.notify.draft_only else ""
+    if dry_run:
+        typer.echo(
+            f"Simulation{mode} : {report.mails} message(s) écrit(s) dans {out}/, teams.json."
+        )
+        return
+    typer.echo(
+        f"Plan {report.plan_id}{mode} : {report.mails} e-mail(s) envoyé(s), Teams : {report.teams}"
+        + (" ; plan publié." if report.published else ".")
+    )
+    for error in report.mail_errors:
+        typer.echo(f"ERREUR e-mail {error}", err=True)
+    if not report.ok:
+        raise typer.Exit(code=1)
+
+
+def _notifiers(cfg: VigieConfig) -> tuple[Any, Any]:
+    from vigie.notify.graph_mail import GraphMailer, msal_token_provider
+    from vigie.notify.teams_webhook import TeamsWebhook
+
+    n = cfg.notify
+    mailer = None
+    if n.mail_enabled:
+        if not (n.graph_tenant_id and n.graph_client_id and n.mail_sender_id):
+            raise ValueError("[notify] graph_tenant_id, graph_client_id et mail_sender_id requis")
+        token = msal_token_provider(
+            n.graph_tenant_id, n.graph_client_id, get_secret("graph_certificate"), n.proxy
+        )
+        mailer = GraphMailer(n.mail_sender_id, token, proxy=n.proxy)
+    teams = (
+        TeamsWebhook(get_secret("teams_webhook_url"), proxy=n.proxy) if n.teams_enabled else None
+    )
+    return mailer, teams
 
 
 def _check_source(name: str, cfg: VigieConfig) -> bool:

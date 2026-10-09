@@ -110,3 +110,16 @@ Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer d
 2. `config/vigie.toml` : `[web] dev_login = true` et, pour Entra, `[web.oidc]` (tenant, client, groupes). L'URI de redirection `http://localhost:8000/auth/callback` doit être déclarée dans l'application Entra (plus `https://vigie.local.wallindustries.be/auth/callback` pour la prod).
 3. `uv run vigie web --reload`, puis http://localhost:8000. La connexion de développement n'existe que si `VIGIE_ENV=dev`, `dev_login = true` et écoute sur 127.0.0.1.
 4. « Tester la connexion » d'une source dépose une demande : `uv run vigie jobs --run-pending` l'exécute (rôle du worker).
+
+## Diffusion (e-mail Graph et Teams)
+1. **Application Entra « Vigie Mail »** (distincte de l'application de connexion) : permission **application** `Microsoft Graph › Mail.Send`, consentement administrateur ; **certificat** (pas de secret client) :
+   `openssl req -x509 -newkey rsa:3072 -nodes -days 730 -subj "/CN=vigie-mail" -keyout key.pem -out cert.pem`,
+   téléverser `cert.pem` dans l'application, puis `cat key.pem cert.pem` → secret `graph_certificate` (`.env.local` : `VIGIE_SECRET_GRAPH_CERTIFICATE`, sur une seule ligne avec `\n`, ou systemd-creds en prod) ; détruire les fichiers.
+2. **Limiter l'application à la boîte `itbot@…`** (Exchange Online, RBAC for Applications) :
+   `New-ServicePrincipal -AppId <client_id> -ObjectId <id du principal de service> -DisplayName "Vigie Mail"`,
+   `New-ManagementScope -Name "Vigie itbot" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'itbot@…'"`,
+   `New-ManagementRoleAssignment -App <client_id> -Role "Application Mail.Send" -CustomResourceScope "Vigie itbot"`,
+   puis `Test-ServicePrincipalAuthorization -Identity <client_id> -Resource itbot@…` (InScope = True) et un refus sur une autre boîte.
+3. `[notify]` : `graph_tenant_id`, `graph_client_id`, `mail_sender`, `mail_sender_id` (ID d'objet de l'utilisateur itbot).
+4. **Teams** : canal → Workflows → « Publier dans un canal lorsqu'une requête webhook est reçue » ; URL → secret `teams_webhook_url`.
+5. Essai : `uv run vigie notify --plan latest-daily --dry-run --out /tmp/vigie-mails` (fichiers `.eml` à ouvrir dans Outlook, `teams.json` à coller dans le concepteur de cartes adaptatives), puis envoi réel avec `draft_only = true` (tout au coordinateur).
