@@ -1,6 +1,6 @@
 """Garde-fou : aucun test ne peut ouvrir de connexion réseau (CLAUDE.md, SECURITY.md §3)."""
 
-import socket  # noqa: TID251 - on vérifie justement que le réseau est bloqué
+import socket
 
 import pytest
 from pytest_socket import SocketBlockedError

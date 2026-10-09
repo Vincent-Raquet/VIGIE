@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Annotated, NoReturn
 
@@ -15,6 +16,7 @@ from vigie.connectors import registry
 from vigie.db.enums import PlanKind
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
+from vigie.logs import configure_logging
 from vigie.seed import SeedError, apply_seed, load_seed_data
 
 EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
@@ -62,6 +64,7 @@ def main(
         typer.Option("--version", callback=_version, is_eager=True, help="Affiche la version."),
     ] = False,
 ) -> None:
+    configure_logging(os.environ.get("VIGIE_LOG_LEVEL", "INFO"))
     ctx.obj = {"config": config}
 
 

@@ -16,14 +16,17 @@ Un connecteur transforme l'état d'un système supervisé en `Signal` normalisé
 3. **Écrire l'allowlist d'abord** dans `src/vigie/connectors/<name>.py` :
    ```python
    ALLOWLIST = [
-       AllowedCall(method="GET", path=r"^/api/v1/jobs/states$"),
-       # POST de lecture : justification obligatoire en commentaire
-       AllowedCall(method="POST", path=r"^/api/oauth2/token$", body_schema=TokenRequest),  # auth
+       AllowedCall(method="GET", path=r"^/api/v1/jobs/states$", query={"limit", "skip"}),
+       # POST de lecture : schéma strict (extra="forbid") et justification obligatoires
+       AllowedCall(method="POST", path=r"^/api/oauth2/token$", body_schema=TokenRequest,
+                   reason="authentification OAuth2, sans effet sur la configuration"),
+       AllowedCall(jsonrpc="problem.get", endpoint="/api_jsonrpc.php",
+                   params_schema=ProblemGetParams),
    ]
    ```
-   Chemins ancrés (`^…$`), aucun joker large, chaque `POST`/`PUT` justifié et accompagné d'un schéma de corps. Pour JSON-RPC : `AllowedCall(jsonrpc="problem.get")`.
+   `AllowedCall` refuse à la définition : chemin non ancré (`^/…$`) ou joker large, PUT/PATCH/DELETE, POST sans `body_schema` ou sans `reason`, verbe JSON-RPC d'action sans `override_reason`. Forme complète : `docs/CONNECTORS.md`.
 
-4. **Écrire les tests de sécurité** dans `tests/security/test_<name>_allowlist.py` :
+4. **Écrire les tests de sécurité** dans `tests/security/test_<name>_allowlist.py`, avec `tests/security/helpers.py` (`trapped_client`, `assert_forbidden`). Les tests génériques de `test_registered_connectors.py` s'appliquent en plus automatiquement dès l'enregistrement de l'entry point :
    - un appel représentatif d'une action destructrice de ce système (ex. `jobs/{id}/stop`, `host.delete`, `tickets PUT`) lève `ForbiddenCallError` **sans** requête émise (transport simulé qui échoue si appelé) ;
    - les appels de l'allowlist passent.
 

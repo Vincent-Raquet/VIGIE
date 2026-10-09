@@ -30,6 +30,9 @@ Si une API exige un rôle plus large que la lecture (cas à vérifier : tickets 
 - JSON-RPC (Zabbix, FortiAnalyzer) : seule la méthode explicitement listée est acceptée ; pour Zabbix, uniquement des `*.get` + `apiinfo.version`.
 - Les quelques POST de lecture nécessaires (authentification OAuth/JWT, recherche Wazuh Indexer `_search`, exécution de board NinjaOne, logsearch FortiAnalyzer) sont listés nommément avec justification en commentaire, et leurs corps sont validés par schéma.
 - Appel refusé → `ForbiddenCallError`, journalisé en `CRITICAL`, signal `monitoring` P1 « Tentative d'appel non autorisé ».
+- Contrôles de l'allowlist dès sa définition (`AllowedCall`) : chemins ancrés `^/…$` sans joker large (`.*`, `.+`) ; seules les méthodes HTTP `GET` et `POST` existent (PUT/PATCH/DELETE impossibles à déclarer) ; tout `POST` exige un schéma de corps strict (`extra="forbid"`) **et** une justification (`reason`) ; les méthodes JSON-RPC portant un verbe d'action (`create`, `update`, `delete`, `set`, `add`, `exec`, `acknowledge`, `mass*`…) exigent un `override_reason`.
+- Contrôles à l'appel : chemin relatif sans `..`, `//`, encodage `%`, requête ou fragment ; noms de paramètres de requête listés ; le corps envoyé est celui **re-sérialisé par le schéma**, pas celui de l'appelant.
+- Transport : HTTPS obligatoire et TLS non désactivable (CA interne configurable) ; **redirections refusées** (une redirection contournerait l'allowlist) ; environnement ignoré (`trust_env=False` : ni proxy ni `.netrc` implicites, proxy uniquement explicite) ; réponse bornée à 20 Mo ; journaux limités à source, méthode, chemin, noms de paramètres, statut et durée.
 
 ### C3 — LLM sans capacité d'action
 - Un seul outil exposé au modèle : `submit_plan`, purement déclaratif. Pas de MCP, pas d'outil bash, web ou fichier, pas d'Agent SDK en production.

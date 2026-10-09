@@ -18,6 +18,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - `connectors/base.py` : `SafeClient`, `AllowedCall`, `ForbiddenCallError`, retries, timeouts, pagination bornée, logs masqués.
 - `tests/security/` : tests statiques (imports interdits), test allowlist générique, masquage des secrets.
 - **Acceptation** : tous les tests de sécurité de `SECURITY.md C10` applicables à ce stade passent.
+- Réalisé : `SafeClient`/`AllowedCall` (contrôles à la définition et à l'appel, redirections refusées), `vigie.redact` (masquage), journaux JSON masqués (`vigie.logs`), tests statiques AST, tests appliqués automatiquement à chaque connecteur enregistré.
 
 ## Phase 3 — Connecteurs (3–4 jours)
 Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnalyzer → Wazuh → squelette Veezo) sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`). Pour chacun, suivre le skill `add-connector` :
