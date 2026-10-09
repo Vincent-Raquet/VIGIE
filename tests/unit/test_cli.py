@@ -41,7 +41,6 @@ def test_version() -> None:
         ["collect", "--source", "zabbix", "--dry-run"],
         ["plan", "--kind", "daily", "--dry-run", "--no-llm"],
         ["notify", "--plan", "latest-daily", "--dry-run"],
-        ["seed"],
         ["budget"],
         ["web", "--reload"],
         ["housekeeping"],
@@ -61,15 +60,24 @@ def test_plan_rejects_unknown_kind() -> None:
     assert "non implémentée" not in result.output
 
 
-def test_check_valid_example_config() -> None:
+def test_check_lists_sources_then_checks_database() -> None:
+    # La base « vigie » de la config d'exemple n'existe pas en dev : erreur attendue.
     result = runner.invoke(app, ["--config", str(EXAMPLE_CONFIG), "check"])
-    assert result.exit_code == 0, result.output
     assert "Configuration valide" in result.output
     assert "source zabbix : activée" in result.output
     assert "source wazuh : désactivée" in result.output
+    assert result.exit_code == 1
+    assert "base injoignable" in result.output
 
 
 def test_check_missing_config(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--config", str(tmp_path / "absent.toml"), "check"])
     assert result.exit_code == 1
     assert "introuvable" in result.output
+
+
+def test_commands_never_fall_back_to_dev_config_in_tests() -> None:
+    # Garde-fou : sans --config, les tests ne doivent jamais toucher vigie_dev.
+    result = runner.invoke(app, ["seed", "--dry-run"])
+    assert result.exit_code == 1
+    assert "absent-vigie.toml" in result.output

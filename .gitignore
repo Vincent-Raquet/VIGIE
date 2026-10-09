@@ -15,6 +15,9 @@ build/
 !.env.example
 config/*.toml
 !config/*.example.toml
+# Données d'amorçage réelles (e-mails, noms) : seuls les *.example.yaml sont versionnés
+config/*.yaml
+!config/*.example.yaml
 *.key
 *.pem
 *.p12

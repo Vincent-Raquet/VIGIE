@@ -152,6 +152,11 @@ Composants :
 | `llm_call` | id, at, model, input_tokens, cached_tokens, output_tokens, cost_usd, prompt_hash, outcome, error |
 | `audit_log` | id, at, actor, action, object, details (JSON) — append-only (trigger DB interdisant UPDATE/DELETE) |
 | `setting` | key, value (JSON) |
+| `role_skill_version` | role_skill_id, version, description, body_md, updated_by, updated_at (historique F4) |
+| `task_comment` | task_id, author_id, at, body (F10) |
+| `job_request` | kind (liste fermée), payload (JSON strict par kind, sans secret, ≤ 4 Ko), requested_by, requested_at, status, result, done_at — demandes du web exécutées par le worker |
+
+Les listes de références sont des tables d'association avec clés étrangères : `incident_signal`, `task_incident` (une tâche peut couvrir plusieurs incidents), `project_company`, `project_axis`, `milestone_dependency`. `task.status` inclut `pending_done` (« done? ») et `task.status_reason` porte le motif de `wont_do`. `audit_log` : UPDATE et TRUNCATE interdits, DELETE uniquement au-delà de 365 jours, `at` forcé à `now()`.
 
 ### 5.2 Rétention
 Signaux résolus : 90 jours. Plans et tâches : 2 ans. `llm_call` et `audit_log` : 1 an. Purge par timer hebdomadaire.

@@ -5,7 +5,11 @@ description = "Veille des systèmes de supervision IT et planification des tâch
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.0",
+    "psycopg[binary]>=3.2",
     "pydantic>=2.8",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.0",
     "typer>=0.12",
 ]
 
@@ -26,6 +30,7 @@ dev = [
     "pytest-cov>=5.0",
     "pytest-socket>=0.7",
     "ruff>=0.6",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [build-system]
