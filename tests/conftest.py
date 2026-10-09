@@ -55,3 +55,21 @@ def db_conn(db_engine: Engine) -> Iterator[Connection]:
 def db_session(db_conn: Connection) -> Iterator[Session]:
     with Session(bind=db_conn, join_transaction_mode="create_savepoint") as session:
         yield session
+
+
+ZABBIX_FIXTURES_NOW = 1791563400  # heure de référence des fixtures Zabbix (README du dossier)
+
+
+@pytest.fixture
+def frozen_zabbix_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fige l'horloge du connecteur Zabbix : l'âge des proxys des fixtures ne dérive pas."""
+    from datetime import UTC, datetime
+
+    import vigie.connectors.zabbix as zabbix
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz: object = None) -> "Frozen":  # type: ignore[override]
+            return cls.fromtimestamp(ZABBIX_FIXTURES_NOW, UTC)
+
+    monkeypatch.setattr(zabbix, "datetime", Frozen)

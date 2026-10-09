@@ -85,6 +85,7 @@ def test_commands_never_fall_back_to_dev_config_in_tests() -> None:
 ZABBIX_FIXTURES = Path(__file__).parents[1] / "contract" / "zabbix"
 
 
+@pytest.mark.usefixtures("frozen_zabbix_clock")
 def test_collect_dry_run_on_fixtures() -> None:
     result = runner.invoke(
         app,

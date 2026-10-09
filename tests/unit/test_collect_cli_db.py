@@ -39,6 +39,7 @@ def collect(config: Path, fixtures: Path) -> tuple[int, str]:
     return result.exit_code, result.output
 
 
+@pytest.mark.usefixtures("frozen_zabbix_clock")
 def test_collect_writes_signals_then_resolves(
     config: Path, db_engine: Engine, tmp_path: Path
 ) -> None:
