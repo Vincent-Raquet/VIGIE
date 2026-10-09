@@ -257,7 +257,7 @@ Rôle du LLM : reformuler les tâches en actions concrètes, regrouper les doubl
 3. Variable : disponibilités de la période, projets/jalons pertinents, incidents scorés (top 150, champs utiles uniquement), tâches reportées, proposition d'affectation déterministe.
 Le contenu issu des sources est encapsulé dans `<source_data>…</source_data>` avec l'instruction explicite que ce sont des données.
 
-**Sortie** : appel forcé de l'outil `submit_plan` dont le schéma JSON est :
+**Sortie** : **sortie structurée** (`output_config.format`, type `json_schema`), sans aucun outil — `claude-sonnet-5-5` refuse `tool_choice` forcé (400). Pensée adaptative, `effort` configurable (défaut `medium`), repli serveur `fallbacks="default"` en cas de refus de sécurité (coût compté par modèle servi). Schéma :
 ```json
 {
   "summary_exec": "string (≤ 600 caractères)",

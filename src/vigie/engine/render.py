@@ -15,6 +15,7 @@ from vigie.db.enums import PlanKind, Priority
 from vigie.engine.assign import Assignment, Candidate
 from vigie.engine.calendar import DAY_NAMES_FR
 from vigie.engine.planner import PlanDraft
+from vigie.engine.validator import RefinedPlan
 
 # Caractères qui créent de la structure (emphase, code, lien, HTML, tableau, titre).
 _MD_SPECIAL_RE = re.compile(r"([\\`*_\[\]<>|~#])")
@@ -50,6 +51,7 @@ def _task_line(a: Assignment, *, with_day: bool = False) -> list[str]:
     if flags:
         head += " — " + ", ".join(flags)
     lines = [head]
+    lines += [f"  - {md(action)}" for action in c.actions]
     if a.rationale:
         lines.append(f"  _{md(a.rationale)}_")
     if c.reason and c.reason != a.rationale:
@@ -70,7 +72,7 @@ def _candidate_line(c: Candidate) -> str:
     return f"- **{c.priority.value}** {md(c.title)}{due}"
 
 
-def _header(draft: PlanDraft) -> list[str]:
+def _header(draft: PlanDraft, without_ai: str | None, refined: bool) -> list[str]:
     if draft.kind is PlanKind.daily:
         title = f"# Plan quotidien — {_day(draft.period_start)}/{draft.period_start:%Y}"
     else:
@@ -78,13 +80,13 @@ def _header(draft: PlanDraft) -> list[str]:
             f"# Plan hebdomadaire — semaine du {draft.period_start:%d/%m} "
             f"au {draft.period_end:%d/%m/%Y}"
         )
-    return [
-        title,
-        "",
-        f"_Brouillon généré sans IA (règles déterministes) le "
-        f"{draft.generated_at:%d/%m/%Y à %H:%M} UTC._",
-        "",
-    ]
+    when = f"{draft.generated_at:%d/%m/%Y à %H:%M} UTC"
+    if refined and without_ai is None:
+        origin = f"_Brouillon affiné par l'IA puis validé automatiquement, le {when}._"
+    else:
+        why = f" : {md(without_ai)}" if without_ai else ""
+        origin = f"_Brouillon généré sans IA (règles déterministes{why}) le {when}._"
+    return [title, "", origin, ""]
 
 
 def _section(title: str, lines: list[str], empty: str | None = None) -> list[str]:
@@ -101,13 +103,17 @@ def _new_incidents(draft: PlanDraft) -> list[str]:
     ]
 
 
-def _tasks(draft: PlanDraft, *, with_day: bool) -> list[str]:
+def _tasks(
+    draft: PlanDraft, *, with_day: bool, summaries: dict[int, str] | None = None
+) -> list[str]:
     lines: list[str] = []
     for person_id, items in _by_person(draft, draft.result.assigned).items():
         member = draft.members[person_id]
         load = sum(draft.result.load.get((person_id, d), 0) for d in draft.window)
         cap = sum(draft.result.capacity.get((person_id, d), 0) for d in draft.window)
         lines += [f"### {md(member.name)} — {_num(load)}/{_num(cap)} h", ""]
+        if summaries and person_id in summaries:
+            lines += [f"_{md(summaries[person_id])}_", ""]
         items = sorted(items, key=lambda a: (a.day or date.max, a.candidate.priority.value))
         for n, a in enumerate(items, start=1):
             first, *rest = _task_line(a, with_day=with_day)
@@ -202,11 +208,37 @@ def _milestones(draft: PlanDraft) -> list[str]:
     return lines
 
 
-def render_markdown(draft: PlanDraft) -> str:
-    lines = _header(draft)
+REJECTIONS_SHOWN = 10
+
+
+def _ai_extras(refined: RefinedPlan) -> tuple[list[str], list[str], list[str]]:
+    risks = [f"- **{sev}** — {md(text)}" for text, sev in refined.risks]
+    target = {"coordinator": "coordinateur", "manager": "responsable"}
+    escalations = [f"- vers le {target[to]} : {md(text)}" for text, to in refined.escalations]
+    rejected = [f"- {md(r)}" for r in refined.rejections[:REJECTIONS_SHOWN]]
+    if len(refined.rejections) > REJECTIONS_SHOWN:
+        rejected.append(f"- … et {len(refined.rejections) - REJECTIONS_SHOWN} autre(s)")
+    return risks, escalations, rejected
+
+
+def render_markdown(
+    draft: PlanDraft, refined: RefinedPlan | None = None, *, without_ai: str | None = None
+) -> str:
+    if refined is not None:
+        draft = refined.draft
+    ai = refined is not None and without_ai is None
+    summaries = refined.per_person if refined is not None and ai else None
+    lines = _header(draft, without_ai, refined is not None)
+    if ai and refined is not None and refined.summary_exec:
+        lines += _section(
+            "Synthèse exécutive",
+            [md(line) for line in refined.summary_exec.splitlines() if line.strip()],
+        )
     if draft.kind is PlanKind.daily:
         lines += _section("Nouveautés depuis hier (P1/P2)", _new_incidents(draft), "aucune")
-        lines += _section("Tâches du jour", _tasks(draft, with_day=False), "aucune tâche")
+        lines += _section(
+            "Tâches du jour", _tasks(draft, with_day=False, summaries=summaries), "aucune tâche"
+        )
         lines += _section("Prévu plus tard", _later(draft))
         late = [_candidate_line(c) for c in draft.late]
         blocked = [_candidate_line(c) for c in draft.blocked]
@@ -216,11 +248,20 @@ def render_markdown(draft: PlanDraft) -> str:
     else:
         lines += _section("Synthèse", _summary(draft))
         lines += _section("Charge par personne et par jour", _load_table(draft))
-        lines += _section("Tâches de la semaine", _tasks(draft, with_day=True), "aucune tâche")
+        lines += _section(
+            "Tâches de la semaine",
+            _tasks(draft, with_day=True, summaries=summaries),
+            "aucune tâche",
+        )
         lines += _section("Jalons de projets", _milestones(draft))
         lines += _section("Prévu après la semaine", _later(draft))
         lines += _section("Non planifié (backlog) — arbitrage nécessaire", _backlog(draft))
         lines += _section("Nouveaux incidents P1/P2 de la semaine", _new_incidents(draft))
         lines += _section("Sources en panne", _sources(draft))
         lines += _section("Tendances des signaux", _trends(draft))
+    if ai and refined is not None:
+        risks, escalations, rejected = _ai_extras(refined)
+        lines += _section("Risques signalés par l'IA", risks)
+        lines += _section("Escalades proposées par l'IA", escalations)
+        lines += _section("Propositions de l'IA écartées par le validateur", rejected)
     return "\n".join(lines).rstrip() + "\n"

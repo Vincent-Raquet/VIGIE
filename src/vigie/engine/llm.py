@@ -75,20 +75,12 @@ def usage_cost(model: str, usage: Any) -> Decimal:
     return (total / Decimal(1_000_000)).quantize(Decimal("0.0001"))
 
 
-class MessagesAPI(Protocol):
-    def create(self, **kwargs: Any) -> Any: ...
-
-
-class BetaAPI(Protocol):
-    @property
-    def messages(self) -> MessagesAPI: ...
-
-
 class LLMClient(Protocol):
-    """Sous-ensemble du client `anthropic.Anthropic` utilisé ici (injectable en test)."""
+    """Sous-ensemble du client `anthropic.Anthropic` utilisé ici (injectable en test) :
+    seul `client.beta.messages.create(**kwargs)` est appelé."""
 
     @property
-    def beta(self) -> BetaAPI: ...
+    def beta(self) -> Any: ...
 
 
 @dataclass(frozen=True)

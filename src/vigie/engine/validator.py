@@ -14,7 +14,6 @@ Règles :
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
 
@@ -326,9 +325,3 @@ def validate(
     draft: PlanDraft, plan: LLMPlan, *, max_tasks_per_day: int = 5, country: str = "BE"
 ) -> RefinedPlan:
     return Validator(draft, max_tasks_per_day=max_tasks_per_day, country=country).run(plan)
-
-
-def unknown_people(plan: LLMPlan, members: Sequence[int]) -> list[int]:
-    return sorted(
-        {t.assignee_id for t in plan.tasks if t.assignee_id and t.assignee_id not in members}
-    )
