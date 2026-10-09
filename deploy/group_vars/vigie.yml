@@ -13,6 +13,7 @@ vigie_ip: 192.168.10.17
 admin_networks:
   - 192.168.48.11/32
   - 192.168.10.0/24
+    192.168.250.0/24
 # HTTPS de Vigie : LAN et pool VPN (à compléter avec le pool VPN).
 lan_vpn_networks:
   - 192.168.0.0/16
@@ -54,9 +55,13 @@ vigie_llm_budget_usd: 30
 vigie_notify_mail_enabled: false
 vigie_notify_teams_enabled: false
 vigie_oidc:
-  tenant_id: ""                 # à reprendre de config/vigie.toml (non secret)
-  client_id: ""
-  groups: {}                    # "<id d'objet>": admin|manager|tech|viewer
+  tenant_id: "6f5991ec-d614-41e6-92a6-dd77a108b727"                 # à reprendre de config/vigie.toml (non secret)
+  client_id: "5cd2e503-e88b-4a02-b23e-36e1e487fffd"   # gitleaks:allow (identifiant public d'app Entra, non secret)
+  groups:
+    "751fe482-0213-4440-ac04-3f3e0daef900": admin
+    "3e3a7eb9-298d-418b-84cd-f6b1e508d8f0": manager
+    "5898ac98-7eba-4df8-b575-4477f68ea045": tech
+    "8d4efea4-3944-4f37-985c-237bd3166c2d": viewer
 vigie_run_seed: false           # true au premier déploiement (fichiers dans /etc/vigie/seed)
 
 # --- Supervision et sauvegarde -----------------------------------------------------------
