@@ -2,6 +2,25 @@
 
 Chaque connecteur respecte le contrat de `SPEC.md §6.1` et l'allowlist de `SECURITY.md C2`.
 
+## Forme d'une allowlist (`vigie.connectors.base.AllowedCall`)
+```python
+ALLOWLIST = [
+    # REST en lecture ; `query` liste les noms de paramètres acceptés (aucun par défaut)
+    AllowedCall(method="GET", path=r"^/api/v1/jobs/states$", query={"limit", "skip"}),
+    # POST de lecture : schéma de corps strict (extra="forbid") ET justification obligatoires
+    AllowedCall(method="POST", path=r"^/api/oauth2/token$", body_schema=TokenRequest,
+                reason="authentification OAuth2, sans effet sur la configuration"),
+    # JSON-RPC : nom exact, point d'entrée littéral, schéma des paramètres strict
+    AllowedCall(jsonrpc="problem.get", endpoint="/api_jsonrpc.php",
+                params_schema=ProblemGetParams),
+    # Verbe d'action JSON-RPC : refusé sauf exception documentée
+    AllowedCall(jsonrpc="add", endpoint="/jsonrpc", params_schema=LogSearchParams,
+                override_reason="logsearch FAZ : crée une tâche de recherche, sans effet de config"),
+]
+```
+Le `SafeClient` refuse les redirections : si une source redirige (HTTP → HTTPS, sous-chemin), corriger `base_url` dans la configuration. Pour un `params_schema` sous forme de liste (FortiAnalyzer), utiliser un `RootModel[list[Item]]` dont `Item` est strict.
+Les tests de `tests/security/test_registered_connectors.py` s'appliquent automatiquement à tout connecteur enregistré ; les tests propres à un connecteur utilisent `tests/security/helpers.py` (`trapped_client`, `assert_forbidden`).
+
 > **Règle de vérification** : les endpoints ci-dessous sont la cible fonctionnelle. Avant d'implémenter, Claude Code vérifie chaque endpoint, chaque scope et chaque rôle dans la documentation officielle **de la version installée** et marque `# TODO verify` ce qui ne peut pas être confirmé. Les points d'incertitude connus sont signalés par ⚠️.
 
 ## Sévérité normalisée (0–5)

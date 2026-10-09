@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.0",
+    "httpx>=0.28",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
     "pyyaml>=6.0.3",
@@ -55,7 +56,8 @@ exclude = ["*.md"]
 select = ["E", "F", "W", "I", "N", "B", "UP", "S", "SIM", "PTH", "RUF", "TID"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106"]
+# Les tests simulent le réseau (transports httpx factices, socket bloqué).
+"tests/**" = ["S101", "S105", "S106", "TID251"]
 # Seul SafeClient a le droit de parler au réseau (CLAUDE.md règle 1).
 "src/vigie/connectors/base.py" = ["TID251"]
 
