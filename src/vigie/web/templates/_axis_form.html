@@ -1,0 +1,11 @@
+<form class="fields" method="post" action="/politique/axes">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="axis_id" value="{{ axis.id if axis else 0 }}">
+  <label class="f">Titre <input name="title" required minlength="3" maxlength="200" value="{{ axis.title if axis else '' }}"></label>
+  <label class="f">Poids (1–5) <input type="number" name="weight" min="1" max="5" value="{{ axis.weight if axis else 3 }}" required></label>
+  <label class="f">Mots-clés (séparés par des virgules) <input name="keywords" maxlength="600" value="{{ axis.keywords|join(', ') if axis else '' }}"></label>
+  <label class="f">Du <input type="date" name="valid_from" value="{{ axis.valid_from if axis and axis.valid_from else '' }}"></label>
+  <label class="f">Au <input type="date" name="valid_to" value="{{ axis.valid_to if axis and axis.valid_to else '' }}"></label>
+  <fieldset class="f"><legend>Catégories</legend>{% for c in categories %}<label class="toggle"><input type="checkbox" name="categories" value="{{ c }}"{% if axis and c in axis.categories %} checked{% endif %}> {{ c }}</label>{% endfor %}</fieldset>
+  <label class="f">Description <input name="description" maxlength="1000" value="{{ axis.description if axis else '' }}"></label>
+  <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+</form>

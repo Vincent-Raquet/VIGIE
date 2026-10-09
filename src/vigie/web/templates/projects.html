@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Projets{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Projets</h1><div class="sub">Le planificateur réserve de la capacité pour les jalons des 21 prochains jours.</div></div></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  {% for p in projects %}
+  <article class="panel stack">
+    <header class="page"><div><h2>{{ p.name }}</h2><div class="sub"><span class="tag">{{ p.status.value }}</span> priorité {{ p.priority.value }}{% for c in all_companies if (p.id, c) in project_companies %} · {{ c }}{% endfor %}</div></div></header>
+    {% if p.description %}<p>{{ p.description }}</p>{% endif %}
+    <ol class="tasks">
+    {% for m in by_project.get(p.id, []) %}{% set risk = risks.get(m.id) %}
+      <li class="{{ 'p2' if risk else ('p4' if m.status.value in ('done', 'cancelled') else 'p3') }}">
+        <span class="pill {{ 'P2' if risk else 'P4' }}">{{ m.due.strftime("%d/%m") }}</span>
+        <span class="t-title">{{ m.title }}{% if m.due < today and m.status.value not in ("done", "cancelled") %} <span class="esc">en retard</span>{% endif %}</span>
+        <span class="t-h">{{ m.remaining_h|fr_num }}/{{ m.effort_h|fr_num }} h</span>
+        <span class="t-why"><meter min="0" max="{{ [m.effort_h, 0.01]|max }}" value="{{ m.effort_h - m.remaining_h }}" aria-label="Avancement">{{ m.effort_h - m.remaining_h }}</meter>
+          {{ m.status.value }}{% if m.skill_tags %} · {{ m.skill_tags|join(", ") }}{% endif %}{% if risk %} · <strong>à risque</strong> : {{ risk.remaining_h|fr_num }} h restantes pour {{ risk.capacity_h|fr_num }} h de capacité compétente{% endif %}</span>
+        <details class="t-status"><summary class="muted">modifier</summary>{% with milestone = m, project = p %}{% include "_milestone_form.html" %}{% endwith %}</details>
+      </li>
+    {% else %}<li><span></span><span class="muted">Aucun jalon.</span><span></span></li>{% endfor %}
+    </ol>
+    <details><summary>Ajouter un jalon</summary>{% with milestone = none, project = p %}{% include "_milestone_form.html" %}{% endwith %}</details>
+    <details><summary>Modifier le projet</summary>{% with project = p %}{% include "_project_form.html" %}{% endwith %}</details>
+  </article>
+  {% else %}<div class="panel"><p class="muted">Aucun projet.</p></div>{% endfor %}
+  <details class="panel"><summary>Nouveau projet</summary>{% with project = none %}{% include "_project_form.html" %}{% endwith %}</details>
+</section>
+{% endblock %}

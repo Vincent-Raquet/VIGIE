@@ -53,6 +53,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - OIDC Entra, RBAC, CSRF, pages de SPEC §9, éditeur des skills de rôle, validation/publication des plans, mise à jour des tâches.
 - Tailwind compilé au build ; aucun asset externe.
 - **Acceptation** : tests d'autorisation par route et par rôle ; parcours complet sur données de seed ; CSP sans violation dans la console.
+- Réalisé : socle FastAPI sécurisé (CSP stricte, CSRF global, session 8 h, en-têtes), connexion Entra (groupes → rôle, refus si aucun groupe ou dépassement), connexion de développement, bris de glace à usage unique ; 10 écrans de SPEC §9 et API §10 ; `job_request` exécutées par `vigie jobs --run-pending` ; pause globale ; htmx et polices vendorisés avec intégrité vérifiée. Connexion Entra réelle et console sans violation CSP confirmées par le coordinateur (2026-10-09).
 
 ## Phase 7 — Notifications (½–1 jour)
 - Graph `sendMail` (certificat), webhook Teams, gabarits HTML + texte, allowlist destinataires.

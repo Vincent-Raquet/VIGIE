@@ -13,7 +13,7 @@ Vigie collecte l'état et les alertes de systèmes de supervision IT, les normal
 
 ## Stack
 - Python 3.12+, gestion par `uv` ; FastAPI ; SQLAlchemy 2 + Alembic ; PostgreSQL 17 ; Pydantic v2.
-- UI : Jinja2 + HTMX + Alpine.js + Tailwind (compilé au build, aucun CDN au runtime). Utiliser le skill `frontend-design` pour la phase UI.
+- UI : Jinja2 (autoescape) + htmx vendorisé (`web/static/VENDOR.md`) + feuille CSS de la maquette validée (`docs/ui/maquette.html`) ; ni Tailwind, ni Alpine (qui exigerait `unsafe-eval`), aucun CDN, aucun script ou style inline (CSP stricte, testé).
 - LLM : SDK `anthropic` Python, modèle par défaut `claude-sonnet-5-5`, sortie structurée via `output_config.format` (aucun outil), prompt caching sur les blocs stables, repli serveur `fallbacks="default"`.
 - Auth : OIDC Entra ID (authlib), rôles mappés depuis des groupes Entra.
 - Déploiement : Ansible (dossier `deploy/`) vers Debian 13 ; Caddy en reverse proxy ; systemd timers pour l'ordonnancement.
@@ -38,7 +38,7 @@ tests/ (unit/, contract/ avec fixtures JSON anonymisées, security/)
 - Installer : `uv sync`
 - Tests : `uv run pytest` (tous) ; `uv run pytest tests/security` (garde-fous)
 - Lint/format/typage : `uv run ruff check . && uv run ruff format --check . && uv run mypy src`
-- Dev web : `uv run vigie web --reload`
+- Dev web : `uv run vigie web --reload` (clé `VIGIE_SECRET_WEB_SESSION_KEY` dans `.env.local`, `[web] dev_login = true` pour la connexion de développement)
 - Collecte à blanc sur fixtures : `uv run vigie collect --source zabbix --dry-run --fixtures tests/contract/zabbix`
 - Plan à blanc : `uv run vigie plan --kind daily --dry-run --no-llm`
 

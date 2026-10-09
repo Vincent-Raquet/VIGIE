@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Skills de rôle{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Skills de rôle</h1><div class="sub">Injectés dans le contexte de l'IA (blocs mis en cache) et exportables pour Claude.</div></div></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel table-wrap"><table><thead><tr><th>Skill</th><th>Description</th><th>Version</th><th>Modifié</th><th></th></tr></thead><tbody>
+  {% for s in skills %}<tr><td><strong>{{ s.name }}</strong>{% if users.get(s.id) %}<br><span class="muted">utilisé par {{ users[s.id] }}</span>{% endif %}</td><td class="sub">{{ s.description }}</td><td class="num">{{ s.version }}</td><td class="mono">{{ s.updated_at.strftime("%d/%m/%Y") }} · {{ s.updated_by }}</td>
+    <td class="row"><a class="btn" href="/skills/{{ s.id }}">Modifier</a><a class="btn" href="/skills/{{ s.id }}/export">Exporter</a></td></tr>{% else %}<tr><td colspan="5" class="muted">Aucun skill (vigie seed).</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

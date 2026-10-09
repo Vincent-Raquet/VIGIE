@@ -1,0 +1,10 @@
+{% if is_lead and view %}
+<div class="row">
+  {% if view.plan.status.value == "draft" %}
+  <form method="post" action="/plans/{{ view.plan.id }}/valider"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path }}"><button class="btn primary" type="submit">Valider le plan</button></form>
+  {% endif %}
+  {% if view.plan.status.value != "published" %}
+  <form method="post" action="/plans/{{ view.plan.id }}/publier"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path }}"><button class="btn" type="submit">Publier</button></form>
+  {% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Incident {{ incident.id }}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page">
+    <div><h1><span class="pill {{ incident.priority.value }}">{{ incident.priority.value }}</span> {{ incident.asset or "Incident " ~ incident.id }}</h1>
+      <div class="sub">{{ incident.category.value }} · {{ incident.company_code or "sans société" }} · {{ "ouvert" if incident.status.value == "open" else "résolu" }} · score {{ incident.score|fr_num }}</div></div>
+    <a class="btn" href="/signaux">Retour à la liste</a>
+  </header>
+  <div class="panel"><h2>Raison de la priorité</h2><p class="formula">{{ incident.priority_reason }}</p></div>
+  <div class="panel table-wrap"><h2>Signaux</h2>
+    <table><thead><tr><th>Source</th><th>Sév.</th><th>Titre</th><th>Vu</th><th>État</th><th>Console</th></tr></thead><tbody>
+    {% for s in signals %}
+      <tr><td>{{ s.source }}</td><td class="num">{{ s.severity }}</td><td>{{ s.title }}{% if s.details %}<details><summary class="muted">détail</summary><p class="mono">{{ s.details }}</p></details>{% endif %}</td>
+        <td class="mono">{{ s.first_seen.strftime("%d/%m %H:%M") }} → {{ s.last_seen.strftime("%d/%m %H:%M") }}{% if s.occurrences > 1 %} ×{{ s.occurrences }}{% endif %}</td>
+        <td>{{ "résolu" if s.resolved_at else "ouvert" }}</td>
+        <td>{% if links[s.id] %}<a href="{{ links[s.id] }}" rel="noopener noreferrer" target="_blank">ouvrir</a>{% else %}<span class="muted">—</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% if tasks %}<div class="panel"><h2>Tâches liées</h2><ul>{% for t in tasks %}<li><span class="pill {{ t.priority.value }}">{{ t.priority.value }}</span> {{ t.title }} — <span class="muted">{{ t.status.value }}</span></li>{% endfor %}</ul></div>{% endif %}
+</section>
+{% endblock %}

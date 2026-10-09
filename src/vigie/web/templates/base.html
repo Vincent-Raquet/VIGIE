@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="app">
+  <nav class="rail" aria-label="Navigation">
+    <div class="brand">Vigie<small>Pilotage IT · WI SPL WG CC FWD</small></div>
+    {% set ns = namespace(section="") %}
+    {% for item in nav %}
+      {% if item.section != ns.section %}<h6>{{ item.section }}</h6>{% set ns.section = item.section %}{% endif %}
+      <a href="{{ item.path }}"{% if path.startswith(item.path) %} aria-current="page"{% endif %}>{{ item.label }}{% if item.path == "/aujourdhui" and p1_count %} <span class="count">{{ p1_count }} P1</span>{% endif %}</a>
+    {% endfor %}
+    {% if user %}
+    <div class="whoami">Connecté : {{ user.name }}<br><span class="muted">rôle {{ user.role.value }} · {{ {"entra": "Entra ID", "dev": "développement", "breakglass": "bris de glace"}[user.via] }}</span>
+      <form method="post" action="/logout" class="row">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <button class="btn" type="submit">Se déconnecter</button>
+        <button class="btn" type="button" data-theme-toggle>Thème</button>
+      </form>
+    </div>
+    {% endif %}
+  </nav>
+  <main>
+    {% if user and user.via == "breakglass" %}<div class="flash error" role="alert"><strong>Session de secours</strong> : utilisez-la seulement pour rétablir l'accès normal.</div>{% endif %}
+    {% if user and user.via == "dev" %}<div class="banner">Connexion de <strong>développement</strong> : jamais disponible en production.</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

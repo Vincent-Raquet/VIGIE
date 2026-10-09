@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name if person else "Nouvelle personne" }}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><h1>{{ person.name if person else "Nouvelle personne" }}</h1><a class="btn" href="/equipe">Retour</a></header>
+  <form class="stack" method="post" action="/equipe/{{ person.id if person else 0 }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="panel stack"><h2>Fiche</h2>
+      <div class="fields">
+        <label class="f">Nom <input name="name" required maxlength="100" value="{{ person.name if person else '' }}"></label>
+        <label class="f">E-mail (identifiant Entra) <input type="email" name="email" required maxlength="254" value="{{ person.email if person else '' }}"></label>
+        <label class="f">Fonction <input name="job_role" maxlength="200" value="{{ person.job_role if person else '' }}"></label>
+        <label class="f">Rôle applicatif <select name="app_role">{% for r in roles %}<option value="{{ r.value }}"{% if person and person.app_role == r %} selected{% endif %}>{{ r.value }}</option>{% endfor %}</select></label>
+        <label class="f">Skill de rôle <select name="role_skill_id"><option value="">aucun</option>{% for rs in role_skills %}<option value="{{ rs.id }}"{% if person and person.role_skill_id == rs.id %} selected{% endif %}>{{ rs.name }}</option>{% endfor %}</select></label>
+        <label class="f">Taux planifiable (0–1) <input name="planning_rate" inputmode="decimal" required value="{{ person.planning_rate if person else 0.8 }}"></label>
+        <label class="toggle"><input type="checkbox" name="active"{% if not person or person.active %} checked{% endif %}> Active</label>
+      </div>
+      <label class="f">Consignes (transmises au moteur et à l'IA) <textarea name="notes" maxlength="2000">{{ person.notes if person else "" }}</textarea></label>
+    </div>
+    <div class="panel stack"><h2>Présence hebdomadaire (heures)</h2>
+      <div class="fields">{% for d, label in weekdays %}<label class="f">{{ label }} <input name="wp_{{ d }}" inputmode="decimal" maxlength="5" value="{{ person.weekly_pattern.get(d, '') if person else '' }}"></label>{% endfor %}</div>
+    </div>
+    <div class="panel stack"><h2>Compétences</h2>
+      <div class="table-wrap"><table><thead><tr><th>Compétence</th><th>Niveau</th><th>Préférence</th></tr></thead><tbody>
+      {% for t in tags %}{% set s = current.get(t) %}
+        <tr><td>{{ t }}</td>
+          <td><select name="skill_{{ t }}" aria-label="Niveau {{ t }}">{% for lv in range(4) %}<option value="{{ lv }}"{% if (s.level if s else 0) == lv %} selected{% endif %}>{{ ["—", "1 notions", "2 autonome", "3 expert"][lv] }}</option>{% endfor %}</select></td>
+          <td><select name="pref_{{ t }}" aria-label="Préférence {{ t }}">{% for pr in preferences %}<option value="{{ pr.value }}"{% if s and s.preference == pr %} selected{% endif %}>{{ {"likes": "aime", "neutral": "neutre", "avoid": "à éviter"}[pr.value] }}</option>{% endfor %}</select></td></tr>
+      {% endfor %}
+      </tbody></table></div>
+      <label class="f">Ajouter une compétence (niveau 1) <input name="new_tag" maxlength="50" pattern="[a-z][a-z0-9_-]*"></label>
+    </div>
+    <div><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
+</section>
+{% endblock %}

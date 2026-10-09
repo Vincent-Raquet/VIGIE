@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sources{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Sources</h1><div class="sub">Collecte en lecture seule. Le test de connexion est exécuté par le worker, jamais par l'interface.</div></div></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel table-wrap">
+    <table><thead><tr><th>Source</th><th>État</th><th>Dernière collecte réussie</th><th>Dernière erreur</th><th>Signaux ouverts</th><th>Dernier test</th><th></th></tr></thead><tbody>
+    {% for s in sources %}
+      {% set failing = s.last_error_at and (not s.last_ok_at or s.last_error_at > s.last_ok_at) %}
+      {% set job = jobs.get(s.name) %}
+      <tr><td><strong>{{ s.name }}</strong><br><span class="muted">{{ s.kind }}{% if not s.enabled %} · désactivée{% endif %}</span></td>
+        <td><span class="dot {{ 'ko' if failing else ('ok' if s.last_ok_at else '') }}"></span>{{ "en panne" if failing else ("OK" if s.last_ok_at else "jamais collectée") }}</td>
+        <td class="mono">{{ s.last_ok_at.strftime("%d/%m %H:%M") if s.last_ok_at else "—" }}</td>
+        <td class="sub">{% if s.last_error %}{{ s.last_error_at.strftime("%d/%m %H:%M") }} — {{ s.last_error }}{% else %}—{% endif %}</td>
+        <td class="num">{{ open_signals.get(s.name, 0) }}</td>
+        <td class="sub">{% if job %}{{ job.requested_at.strftime("%d/%m %H:%M") }} : {{ job.status.value }}{% if job.result %} — {{ job.result.get("detail") or ("OK, version " ~ job.result.get("version")) }}{% endif %}{% else %}—{% endif %}</td>
+        <td>{% if s.name in configured %}<form method="post" action="/sources/{{ s.name }}/tester"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Tester la connexion</button></form>{% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">Aucune source collectée pour l'instant.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+{% endblock %}

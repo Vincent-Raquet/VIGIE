@@ -104,3 +104,9 @@ Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer d
 2. Écrire un fichier de correspondance (vrais noms → noms génériques, domaines internes), lui aussi hors du dépôt.
 3. `uv run python scripts/anonymize_fixtures.py BRUT/ tests/contract/<source>/ --map correspondance.json` (échoue si un nom réel subsiste).
 4. Relire les chaînes produites (hôtes, titres, tags), documenter les modifications synthétiques dans le `README.md` du dossier, puis `gitleaks` avant commit.
+
+## Interface web en développement
+1. `.env.local` : `VIGIE_SECRET_WEB_SESSION_KEY=<python -c "import secrets; print(secrets.token_urlsafe(48))">` ; pour Entra, `VIGIE_SECRET_ENTRA_CLIENT_SECRET=…`.
+2. `config/vigie.toml` : `[web] dev_login = true` et, pour Entra, `[web.oidc]` (tenant, client, groupes). L'URI de redirection `http://localhost:8000/auth/callback` doit être déclarée dans l'application Entra (plus `https://vigie.local.wallindustries.be/auth/callback` pour la prod).
+3. `uv run vigie web --reload`, puis http://localhost:8000. La connexion de développement n'existe que si `VIGIE_ENV=dev`, `dev_login = true` et écoute sur 127.0.0.1.
+4. « Tester la connexion » d'une source dépose une demande : `uv run vigie jobs --run-pending` l'exécute (rôle du worker).

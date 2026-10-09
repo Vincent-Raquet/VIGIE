@@ -1,0 +1,36 @@
+{# Une tâche : remplacée telle quelle par htmx après un changement de statut ou un commentaire. #}
+{% set task = t.task %}
+<li class="{{ task.priority.value|lower }}" id="task-{{ task.id }}">
+  <span class="pill {{ task.priority.value }}">{{ task.priority.value }}</span>
+  <span class="t-title">{{ task.title }}{% if task.status.value in ("done", "wont_do") %} <span class="tag">{{ STATUS_LABELS[task.status] }}</span>{% endif %}</span>
+  <span class="t-h">{{ task.estimate_h|fr_num(2) }} h</span>
+  {% if task.actions %}<ol class="t-actions">{% for a in task.actions %}<li>{{ a }}</li>{% endfor %}</ol>{% endif %}
+  <span class="t-why">{% if "Escalade" in task.rationale or "escalade" in task.rationale %}<span class="esc">Escalade</span> · {% endif %}{{ task.rationale }}{% if task.carry_count %} · reportée ×{{ task.carry_count }}{% endif %}{% if t.incident_ids %} · <a href="/signaux/incidents/{{ t.incident_ids[0] }}">incident{{ "s" if t.incident_ids|length > 1 }} {{ t.incident_ids|join(", ") }}</a>{% endif %}</span>
+  <div class="t-status">
+    {% if can_edit(task) %}
+    <form class="inline" hx-post="/taches/{{ task.id }}/statut" hx-target="#task-{{ task.id }}" hx-swap="outerHTML" method="post" action="/taches/{{ task.id }}/statut">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ path }}">
+      <label class="sr-only" for="st-{{ task.id }}">Statut</label>
+      <select id="st-{{ task.id }}" name="status">
+        {% for s in SETTABLE %}<option value="{{ s.value }}"{% if s == task.status %} selected{% endif %}>{{ STATUS_LABELS[s] }}</option>{% endfor %}
+        {% if task.status.value == "pending_done" %}<option value="pending_done" selected disabled>{{ STATUS_LABELS[task.status] }}</option>{% endif %}
+      </select>
+      <input name="reason" maxlength="300" placeholder="motif si abandon" value="{{ task.status_reason }}" aria-label="Motif">
+      <button class="btn" type="submit">Enregistrer</button>
+    </form>
+    {% else %}<span class="muted">{{ STATUS_LABELS[task.status] }}</span>{% endif %}
+    <details>
+      <summary class="muted">{{ t.comments|length }} commentaire(s)</summary>
+      {% for author, at, body in t.comments %}<p><strong>{{ author }}</strong> <span class="muted mono">{{ at.strftime("%d/%m %H:%M") }}</span> — {{ body }}</p>{% endfor %}
+      {% if user.person_id %}
+      <form class="inline" hx-post="/taches/{{ task.id }}/commentaires" hx-target="#task-{{ task.id }}" hx-swap="outerHTML" method="post" action="/taches/{{ task.id }}/commentaires">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="next" value="{{ path }}">
+        <input name="body" required maxlength="2000" placeholder="Ajouter un commentaire" aria-label="Commentaire">
+        <button class="btn" type="submit">Envoyer</button>
+      </form>
+      {% endif %}
+    </details>
+  </div>
+</li>

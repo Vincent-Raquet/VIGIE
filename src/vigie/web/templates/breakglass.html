@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block title %}Accès de secours{% endblock %}
+{% block body %}
+<main class="login stack">
+  <form class="panel stack" method="post" action="/breakglass" autocomplete="off">
+    <h1>Accès de secours</h1>
+    <p class="sub">Mot de passe à usage unique créé sur le serveur (<span class="mono">vigie breakglass --enable</span>). Toute tentative est journalisée.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="f">Mot de passe <input type="password" name="password" required maxlength="200"></label>
+    <button class="btn primary" type="submit">Entrer</button>
+  </form>
+</main>
+{% endblock %}

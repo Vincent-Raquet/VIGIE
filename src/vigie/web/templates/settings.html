@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Paramètres{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Paramètres</h1><div class="sub">La configuration du worker est lue dans <span class="mono">/etc/vigie/vigie.toml</span> ; l'interface ne la modifie pas.</div></div></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <form class="panel stack" method="post" action="/parametres/pause">
+    <h2>Pause globale</h2>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    {% if cfg.general.paused %}<div class="flash error">Pause forcée par la configuration (<span class="mono">[general] paused = true</span>).</div>{% endif %}
+    <label class="toggle"><input type="checkbox" name="collect"{% if pause.collect %} checked{% endif %}> Suspendre la collecte des sources</label>
+    <label class="toggle"><input type="checkbox" name="plan"{% if pause.plan %} checked{% endif %}> Suspendre la génération des plans</label>
+    <div><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
+  <div class="grid2">
+    <div class="panel"><h2>Plans</h2><table><tbody>
+      <tr><td>Plan quotidien</td><td class="mono">{{ cfg.plans.daily_at.strftime("%H:%M") }}, publié à {{ cfg.plans.daily_publish_at.strftime("%H:%M") }}</td></tr>
+      <tr><td>Plan hebdomadaire</td><td class="mono">{{ cfg.plans.weekly_day }} {{ cfg.plans.weekly_at.strftime("%H:%M") }}, publication auto à {{ cfg.plans.weekly_auto_publish_at.strftime("%H:%M") }}</td></tr>
+      <tr><td>Tâches par personne et par jour</td><td class="mono">{{ cfg.plans.max_tasks_per_person_per_day }}</td></tr>
+      <tr><td>Escalade après reports</td><td class="mono">{{ cfg.plans.carry_over_escalation_after }}</td></tr>
+      <tr><td>Fenêtre des jalons</td><td class="mono">{{ cfg.plans.milestone_window_days }} jours</td></tr>
+    </tbody></table></div>
+    <div class="panel"><h2>IA</h2><table><tbody>
+      <tr><td>Activée</td><td class="mono">{{ "oui" if cfg.llm.enabled else "non" }}</td></tr>
+      <tr><td>Modèle</td><td class="mono">{{ cfg.llm.model }} · effort {{ cfg.llm.effort }}</td></tr>
+      <tr><td>Budget mensuel</td><td class="mono">{{ "%.2f"|format(cfg.llm.monthly_budget_usd) }} $</td></tr>
+      <tr><td>Repli en cas de refus</td><td class="mono">{{ "oui" if cfg.llm.fallback else "non" }}</td></tr>
+      <tr><td>Texte des tickets envoyé</td><td class="mono">{{ "oui" if cfg.llm.send_ticket_text else "non" }}</td></tr>
+    </tbody></table></div>
+    <div class="panel"><h2>Sources</h2><ul>{% for name, enabled in sources.items() %}<li><span class="dot {{ 'ok' if enabled else '' }}"></span>{{ name }} — {{ "activée" if enabled else "désactivée" }}</li>{% endfor %}</ul></div>
+    <div class="panel"><h2>Diffusion</h2><table><tbody>
+      <tr><td>Expéditeur</td><td class="mono">{{ cfg.notify.mail_sender or "—" }}</td></tr>
+      <tr><td>Teams</td><td class="mono">{{ "oui" if cfg.notify.teams_enabled else "non" }}</td></tr>
+      <tr><td>Destinataires</td><td>les personnes actives de l'équipe (allowlist)</td></tr>
+    </tbody></table></div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Erreur {{ status }}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><h1>Erreur {{ status }}</h1></header>
+  <div class="panel stack"><p>{{ detail }}</p><a class="btn" href="{{ '/' if user else '/login' }}">Retour</a></div>
+</section>
+{% endblock %}

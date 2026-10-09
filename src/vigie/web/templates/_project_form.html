@@ -1,0 +1,14 @@
+<form class="fields" method="post" action="/projets">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="project_id" value="{{ project.id if project else 0 }}">
+  <label class="f">Nom <input name="name" required minlength="3" maxlength="200" value="{{ project.name if project else '' }}"></label>
+  <label class="f">Statut <select name="status">{% for s in statuses %}<option value="{{ s.value }}"{% if project and project.status == s %} selected{% endif %}>{{ s.value }}</option>{% endfor %}</select></label>
+  <label class="f">Priorité <select name="priority">{% for s in priorities %}<option value="{{ s.value }}"{% if (project and project.priority == s) or (not project and s.value == "medium") %} selected{% endif %}>{{ s.value }}</option>{% endfor %}</select></label>
+  <label class="f">Responsable <select name="owner_id"><option value="">—</option>{% for pe in people %}<option value="{{ pe.id }}"{% if project and project.owner_id == pe.id %} selected{% endif %}>{{ pe.name }}</option>{% endfor %}</select></label>
+  <label class="f">Sponsor <input name="sponsor" maxlength="100" value="{{ project.sponsor if project else '' }}"></label>
+  <label class="f">Début <input type="date" name="start" value="{{ project.start if project and project.start else '' }}"></label>
+  <label class="f">Fin <input type="date" name="end" value="{{ project.end if project and project.end else '' }}"></label>
+  <fieldset class="f"><legend>Sociétés</legend>{% for c in all_companies %}<label class="toggle"><input type="checkbox" name="companies" value="{{ c }}"{% if project and (project.id, c) in project_companies %} checked{% endif %}> {{ c }}</label>{% endfor %}</fieldset>
+  <fieldset class="f"><legend>Axes</legend>{% for a in all_axes %}<label class="toggle"><input type="checkbox" name="axes" value="{{ a.id }}"{% if project and (project.id, a.id) in project_axes %} checked{% endif %}> {{ a.title }}</label>{% endfor %}</fieldset>
+  <label class="f">Description <input name="description" maxlength="2000" value="{{ project.description if project else '' }}"></label>
+  <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+</form>

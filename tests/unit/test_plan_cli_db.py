@@ -121,3 +121,21 @@ def test_budget_without_calls(config: Path) -> None:
     assert code == 0, output
     assert "0.0000 $ dépensés sur 30.00 $" in output
     assert "Appels : 0 (aucun)" in output
+
+
+def test_pause_is_respected_by_the_worker(config: Path, db_engine: Engine) -> None:
+    from vigie.pause import set_pause
+
+    with Session(db_engine) as session:
+        set_pause(session, collect=True, plan=True)
+        session.commit()
+    try:
+        code, output = run(config, "plan", "--kind", "daily", "--no-llm")
+        assert code == 0 and "en pause" in output and "enregistré" not in output
+        # La simulation reste possible pendant la pause.
+        code, output = run(config, "plan", "--kind", "daily", "--no-llm", "--dry-run")
+        assert code == 0 and "Simulation" in output
+    finally:
+        with Session(db_engine) as session:
+            session.execute(delete(models.Setting).where(models.Setting.key == "pause"))
+            session.commit()

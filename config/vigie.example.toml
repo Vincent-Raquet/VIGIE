@@ -79,5 +79,23 @@ interval_min = 15
 [sources.veezo]
 enabled = false   # produit à identifier
 
+[web]
+host = "127.0.0.1"         # derrière Caddy (TLS), jamais exposé directement
+port = 8000
+session_hours = 8
+dev_login = false          # true seulement en dev (exige aussi VIGIE_ENV=dev)
+# database_url = "postgresql+psycopg:///vigie?user=vigie_web"   # rôle vigie_web en prod
+
+[web.oidc]
+# Application Entra ID (non secret) ; secret client : « entra_client_secret ».
+tenant_id = ""
+client_id = ""
+# ID d'objet des groupes → rôle applicatif (SPEC §2). N'émettre que les groupes assignés (point M).
+[web.oidc.groups]
+# "00000000-0000-0000-0000-000000000001" = "admin"     # SG-Vigie-Admin
+# "00000000-0000-0000-0000-000000000002" = "manager"   # SG-Vigie-Manager
+# "00000000-0000-0000-0000-000000000003" = "tech"      # SG-Vigie-Tech
+# "00000000-0000-0000-0000-000000000004" = "viewer"    # SG-Vigie-Viewer
+
 [tls]
 ca_bundle = "/etc/ssl/certs/internal-ca.pem"

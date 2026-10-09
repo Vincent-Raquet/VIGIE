@@ -318,9 +318,11 @@ Pages (FR, responsive, utilisable sur mobile) :
 
 Accessibilité : contrastes AA, navigation clavier. Aucun script ou police chargés depuis un CDN.
 
+Droits par écran (testés) : Aujourd'hui et Signaux — admin, manager, tech ; Semaine — tous (viewer : plans hebdomadaires seulement) ; Politique et Projets — admin, manager ; Équipe, Skills, Sources, Paramètres, Audit — admin. Un `tech` ne modifie que le statut de ses propres tâches ; tout membre de l'équipe peut commenter. Paramètres : configuration du worker en lecture seule, seule la pause globale est modifiable.
+
 ## 10. API interne (JSON, sous `/api`, session OIDC + CSRF)
 `GET /api/plans?kind=&date=`, `GET /api/plans/{id}`, `POST /api/plans/{id}/validate`, `PATCH /api/tasks/{id}` (statut, commentaire), `CRUD /api/people|absences|axes|rules|projects|milestones|role-skills|companies|asset-rules`, `GET /api/signals`, `GET /api/incidents`, `GET /api/sources`, `POST /api/sources/{name}/test`, `GET /api/costs`, `GET /healthz` (sans auth, sans détail).
-Aucun endpoint ne déclenche d'appel en écriture vers une source (il n'en existe pas).
+Aucun endpoint ne déclenche d'appel en écriture vers une source (il n'en existe pas). Le CRUD de la configuration passe par les formulaires de l'interface (même couche, mêmes contrôles) ; les endpoints JSON correspondants seront ajoutés si un besoin d'intégration apparaît.
 
 ## 11. Configuration et secrets
 - `/etc/vigie/vigie.toml` (non secret) : URLs des sources, fréquences, filtres, fuseau, modèle, budgets.

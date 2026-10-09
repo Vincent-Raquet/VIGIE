@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Semaine{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page">
+    <div>
+      <h1>{% if view %}Semaine du {{ view.plan.period_start.strftime("%d/%m") }} au {{ view.plan.period_end.strftime("%d/%m/%Y") }}{% else %}Semaine{% endif %}</h1>
+      {% if view %}{% include "_plan_header.html" %}{% endif %}
+    </div>
+    {% include "_plan_actions.html" %}
+  </header>
+  {% if not view %}
+  <div class="panel"><p>Aucun plan hebdomadaire pour cette semaine (<span class="mono">vigie plan --kind weekly</span>, le lundi à 06:30).</p></div>
+  {% else %}
+  {% include "_ai.html" %}
+  <div class="panel table-wrap">
+    <div class="week" role="table" aria-label="Tâches par personne et par jour">
+      <div class="hd" role="columnheader">Personne</div>{% for d in view.days %}<div class="hd" role="columnheader">{{ DAY_NAMES_FR[d.weekday()] }} {{ d.strftime("%d/%m") }}</div>{% endfor %}
+      {% for card in view.people %}
+        <div class="who" role="rowheader">{{ card.person.name }}<br><span class="muted mono">{{ card.load_h|fr_num }}/{{ card.capacity_h|fr_num }} h</span></div>
+        {% for d in view.days %}
+          {% set cap = view.capacity.get((card.person.id, d), 0) %}
+          <div class="{{ 'off' if cap == 0 else '' }}" role="cell">
+            {% if cap == 0 %}absent{% else %}<span class="muted mono">{{ view.load.get((card.person.id, d), 0)|fr_num }}/{{ cap|fr_num }} h</span>{% endif %}
+            {% for t in view.by_cell.get((card.person.id, d), []) %}<span class="chip {{ 'ms' if t.task.milestone_id else t.task.priority.value|lower }}" title="{{ t.task.rationale }}">{{ t.task.priority.value }} · {{ t.task.title }}</span>{% endfor %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  {% set risks = view.plan.data.get("milestones_at_risk", []) %}
+  <div class="grid2">
+    <div class="panel"><h2>Jalons de la semaine</h2>
+      <ul>{% for card in view.people %}{% for t in card.tasks if t.task.milestone_id %}<li>{{ t.task.title }} — {{ card.person.name }}{% if t.day %}, {{ t.day|fr_date }}{% endif %}</li>{% endfor %}{% endfor %}</ul>
+      {% for r in risks %}<p><span class="pill P2">à risque</span> {{ r.title }} : {{ r.remaining_h|fr_num }} h restantes pour {{ r.capacity_h|fr_num }} h de capacité d'ici le {{ r.due }}</p>{% endfor %}
+    </div>
+    <div class="panel"><h2>Non planifié — arbitrage</h2>
+      {% if view.backlog %}<ul>{% for t in view.backlog %}<li><span class="pill {{ t.task.priority.value }}">{{ t.task.priority.value }}</span> {{ t.task.title }}</li>{% endfor %}</ul>{% else %}<p class="muted">Tout est planifié.</p>{% endif %}
+    </div>
+  </div>
+  <div class="people">
+    {% for card in view.people %}
+    <article class="person">
+      <header><div><h3>{{ card.person.name }}</h3></div><span class="t-h">{{ card.load_h|fr_num }} / {{ card.capacity_h|fr_num }} h</span></header>
+      {% if card.summary %}<p class="sub md t-why">{{ card.summary }}</p>{% endif %}
+      <ol class="tasks">{% for t in card.tasks %}{% include "_task.html" %}{% endfor %}</ol>
+    </article>
+    {% endfor %}
+  </div>
+  {% if is_lead %}
+  <form class="panel stack" method="post" action="/plans/{{ view.plan.id }}/taches">
+    <h2>Ajouter une tâche</h2>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path }}">
+    <div class="fields">
+      <label class="f">Titre <input name="title" required minlength="3" maxlength="120"></label>
+      <label class="f">Catégorie <select name="category">{% for c in categories %}<option value="{{ c.value }}">{{ c.value }}</option>{% endfor %}</select></label>
+      <label class="f">Priorité <select name="priority">{% for p in priorities %}<option value="{{ p.value }}"{% if p.value == "P3" %} selected{% endif %}>{{ p.value }}</option>{% endfor %}</select></label>
+      <label class="f">Personne <select name="assignee_id"><option value="">non affectée</option>{% for p in people %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+      <label class="f">Jour <input type="date" name="day" min="{{ view.plan.period_start }}" max="{{ view.plan.period_end }}"></label>
+      <label class="f">Estimation (h) <input type="number" name="estimate_h" value="1" min="0.25" max="16" step="0.25" required></label>
+    </div>
+    <div><button class="btn primary" type="submit">Ajouter</button></div>
+  </form>
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

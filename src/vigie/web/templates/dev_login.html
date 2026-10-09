@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}Connexion de développement{% endblock %}
+{% block body %}
+<main class="login stack">
+  <form class="panel stack" method="post" action="/dev-login">
+    <h1>Développement</h1>
+    <p class="sub">Disponible seulement avec <span class="mono">VIGIE_ENV=dev</span> sur 127.0.0.1.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="f">Personne
+      <select name="person_id" required>{% for p in people %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label class="f">Rôle
+      <select name="role" required>{% for r in roles %}<option value="{{ r.value }}">{{ r.value }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn primary" type="submit">Se connecter</button>
+  </form>
+</main>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Équipe{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Équipe</h1><div class="sub">Compétences (1 notions, 2 autonome, 3 expert), présence hebdomadaire et absences.</div></div>
+    <a class="btn primary" href="/equipe/0">Ajouter une personne</a></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel table-wrap"><h2>Matrice de compétences</h2>
+    <table class="matrix"><thead><tr><th>Personne</th>{% for t in tags %}<th>{{ t }}</th>{% endfor %}<th>Présence</th><th>Taux</th><th></th></tr></thead><tbody>
+    {% for p in people %}
+      <tr><td><strong>{{ p.name }}</strong>{% if not p.active %} <span class="tag">inactive</span>{% endif %}<br><span class="muted">{{ p.app_role.value }} · {{ p.job_role }}</span></td>
+      {% for t in tags %}{% set s = skills.get((p.id, t)) %}<td class="lv{% if s %} lv{{ s.level }}{% endif %}">{{ s.level if s else "" }}{% if s and s.preference.value == "avoid" %}↓{% elif s and s.preference.value == "likes" %}↑{% endif %}</td>{% endfor %}
+      <td class="mono">{% for d, label in weekdays if p.weekly_pattern.get(d) %}{{ label[:3] }} {{ p.weekly_pattern[d]|fr_num }} h{% if not loop.last %}, {% endif %}{% endfor %}</td>
+      <td class="num">{{ (p.planning_rate * 100)|round|int }} %</td>
+      <td><a href="/equipe/{{ p.id }}">modifier</a></td></tr>
+    {% endfor %}
+    </tbody></table>
+    <p class="muted">↑ aime · ↓ à éviter</p>
+  </div>
+  <div class="panel stack"><h2>Absences et jours supplémentaires à venir</h2>
+    <div class="table-wrap"><table><thead><tr><th>Personne</th><th>Du</th><th>Au</th><th>Type</th><th>Note</th><th></th></tr></thead><tbody>
+    {% for a, name in absences %}<tr><td>{{ name }}</td><td class="mono">{{ a.start.strftime("%d/%m/%Y") }}</td><td class="mono">{{ a.end.strftime("%d/%m/%Y") }}</td><td>{{ a.kind.value }}{% if a.hours %} ({{ a.hours|fr_num }} h){% endif %}</td><td>{{ a.note }}</td>
+      <td><form method="post" action="/equipe/absences/{{ a.id }}/supprimer"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Supprimer</button></form></td></tr>
+    {% else %}<tr><td colspan="6" class="muted">Aucune absence à venir.</td></tr>{% endfor %}
+    </tbody></table></div>
+    <form class="fields" method="post" action="/equipe/absences">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label class="f">Personne <select name="person_id">{% for p in people if p.active %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+      <label class="f">Du <input type="date" name="start" required></label>
+      <label class="f">Au <input type="date" name="end" required></label>
+      <label class="f">Type <select name="kind">{% for k in kinds %}<option value="{{ k.value }}">{{ {"leave": "congé", "sick": "maladie", "training": "formation", "other": "autre", "extra_day": "jour supplémentaire"}[k.value] }}</option>{% endfor %}</select></label>
+      <label class="f">Heures (jour suppl.) <input name="hours" inputmode="decimal" maxlength="5"></label>
+      <label class="f">Note <input name="note" maxlength="300"></label>
+      <div class="row"><button class="btn primary" type="submit">Ajouter</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

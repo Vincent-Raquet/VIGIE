@@ -1,0 +1,11 @@
+{% set ai = view.ai %}
+{% if ai.by_llm and ai.summary_exec %}
+<div class="panel"><h2>Synthèse de l'IA</h2>{% for line in ai.summary_exec.splitlines() if line.strip() %}<p class="md">{{ line }}</p>{% endfor %}</div>
+{% endif %}
+{% if ai.risks or ai.escalations %}
+<div class="grid2">
+  {% if ai.risks %}<div class="panel"><h2>Risques signalés</h2><ul>{% for r in ai.risks %}<li><span class="pill {{ {'high': 'P1', 'medium': 'P2', 'low': 'P4'}[r.severity] }}">{{ r.severity }}</span> {{ r.text }}</li>{% endfor %}</ul></div>{% endif %}
+  {% if ai.escalations %}<div class="panel"><h2>Escalades proposées</h2><ul>{% for e in ai.escalations %}<li>vers le {{ {"coordinator": "coordinateur", "manager": "responsable"}[e.to] }} : {{ e.text }}</li>{% endfor %}</ul></div>{% endif %}
+</div>
+{% endif %}
+{% if ai.rejections %}<details class="panel"><summary>{{ ai.rejections|length }} proposition(s) de l'IA écartée(s) par le validateur</summary><ul>{% for r in ai.rejections %}<li class="mono">{{ r }}</li>{% endfor %}</ul></details>{% endif %}
