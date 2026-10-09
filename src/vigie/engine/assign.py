@@ -69,6 +69,8 @@ class Candidate:
     reason: str = ""
     follow_up: bool = False
     not_before: date | None = None  # suivi prévu chez un spécialiste un jour donné
+    actions: list[str] = field(default_factory=list)  # étapes rédigées par le LLM (validées)
+    by_llm: bool = False  # titre, actions ou affectation retenus depuis la proposition du LLM
 
 
 @dataclass

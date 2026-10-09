@@ -71,6 +71,10 @@ class LLMConfig(_Strict):
     max_tokens_weekly: int = Field(16000, gt=0)
     monthly_budget_usd: float = Field(30, ge=0)
     send_ticket_text: bool = False
+    effort: Literal["low", "medium", "high"] = "medium"
+    # Repli serveur si le modèle refuse pour raison de sécurité (fallbacks="default").
+    fallback: bool = True
+    timeout_s: float = Field(120, gt=0, le=600)
 
 
 class PlansConfig(_Strict):
