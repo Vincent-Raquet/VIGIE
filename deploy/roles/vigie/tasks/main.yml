@@ -266,6 +266,29 @@
     state: started
   when: vigie_secrets_ok
 
+# Filet de sécurité : un passage interrompu perd le redémarrage notifié ; le processus
+# garderait alors l'ancienne version (Python résout le lien `current` au démarrage).
+- name: Version chargée par vigie-web
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      pid=$(systemctl show -p MainPID --value vigie-web.service);
+      [ "$pid" -gt 0 ] && grep -qF "$(readlink -f {{ vigie_root }}/current)/" /proc/$pid/maps
+      && echo current || echo stale
+    executable: /bin/bash
+  register: vigie_web_release
+  changed_when: false
+  check_mode: false
+  when: vigie_secrets_ok and not ansible_check_mode
+
+- name: Redémarrage de vigie-web sur la version courante
+  ansible.builtin.systemd_service:
+    name: vigie-web.service
+    state: restarted
+  when:
+    - vigie_web_release.stdout is defined
+    - vigie_web_release.stdout == "stale"
+
 - name: Timers de collecte actifs
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
