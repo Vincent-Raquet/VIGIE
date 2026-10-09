@@ -26,6 +26,8 @@ sudo apt install -y pipx gitleaks postgresql-17
 sudo -u postgres createuser nadmin
 sudo -u postgres createdb -O nadmin vigie_dev
 sudo -u postgres createdb -O nadmin vigie_test
+# Rôles d'exécution (phase 1), sans login ; nadmin membre pour tester les droits en SET ROLE
+sudo -u postgres psql -c "CREATE ROLE vigie_web NOLOGIN; CREATE ROLE vigie_worker NOLOGIN; CREATE ROLE vigie_migrate NOLOGIN; GRANT vigie_web, vigie_worker TO nadmin;"
 ```
 
 Utilisateur `nadmin` (sans sudo) :
@@ -36,7 +38,19 @@ uv sync                    # Python 3.13 système (.python-version), identique �
 uv run pre-commit install
 cp config/vigie.example.toml config/vigie.toml   # puis database.url = postgresql+psycopg:///vigie_dev
 cp .env.example .env.local                       # valeurs factices uniquement
+uv run alembic upgrade head                      # schéma dans vigie_dev
+uv run vigie seed                                # amorçage depuis config/ et roles/
 ```
+
+## Base de données
+- Migrations : `uv run alembic upgrade head` (URL : `-x url=…`, sinon `database.url` de la config). Nouvelle migration : `uv run alembic revision --autogenerate -m "…"`, puis **ajouter les droits** des nouvelles tables (un test vérifie que chaque table est lisible par `vigie_web` et `vigie_worker`).
+- Les tests utilisent `vigie_test` (ou `$VIGIE_TEST_DATABASE_URL`) : schéma supprimé puis recréé à chaque session, chaque test dans une transaction annulée.
+- Seed : `vigie seed` lit `config/<nom>.yaml`, sinon `<nom>.example.yaml` (avertissement). Il crée ce qui manque sans jamais modifier l'existant ; `--update` écrase depuis les fichiers, `--dry-run` valide sans écrire. Les vrais `config/*.yaml` sont ignorés par Git.
+
+### Propriétaire du schéma
+`audit_log` est append-only par triggers, ce qui ne tient **que contre les rôles qui ne possèdent pas la table** : un propriétaire peut désactiver ou supprimer un trigger.
+- **En prod, le propriétaire du schéma et de toutes les tables est `vigie_migrate`** (utilisé uniquement par les migrations au déploiement), **jamais un rôle d'exécution** (`vigie_web`, `vigie_worker`). Des tests le vérifient (`tests/security/test_db_grants.py`).
+- En dev, `nadmin` possède `vigie_dev` et `vigie_test` : acceptable car aucune donnée réelle n'y est stockée.
 
 Dans `~/.bashrc` :
 ```bash
@@ -66,6 +80,7 @@ ssh -L 8000:127.0.0.1:8000 nadmin@192.168.10.17
 | Paquets `pipx`, `gitleaks`, `postgresql-17` installés à la main | `base`, `postgresql` |
 | Cluster PostgreSQL `17/main` par défaut, rôle `nadmin`, bases `vigie_dev` et `vigie_test` | `postgresql` (adopter le cluster existant sans le recréer) |
 | `uv` installé via pipx pour `nadmin` | `vigie` (installation de `uv` pour le déploiement) |
+| Rôles `vigie_web`, `vigie_worker`, `vigie_migrate` (NOLOGIN) ; `nadmin` membre de `vigie_web` et `vigie_worker` | `postgresql` : passer les rôles en LOGIN (peer + `pg_ident`), **retirer l'appartenance de `nadmin`** (sinon il lit la base de prod en `SET ROLE`) |
 
 Contraintes de la cohabitation à traiter en phase 8 :
 - SSH : `AllowUsers` doit inclure `nadmin` (pas seulement `deploy`).

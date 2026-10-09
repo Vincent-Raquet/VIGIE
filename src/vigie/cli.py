@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, NoReturn
 
 import typer
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from vigie import __version__
-from vigie.config import ConfigError, load_config, resolve_config_path
+from vigie.config import ConfigError, VigieConfig, load_config, resolve_config_path
 from vigie.connectors import registry
+from vigie.db.enums import PlanKind
+from vigie.db.migrate import current_revision, head_revision
+from vigie.db.session import make_engine
+from vigie.seed import SeedError, apply_seed, load_seed_data
 
 EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
 
@@ -22,14 +27,18 @@ app = typer.Typer(
 )
 
 
-class PlanKind(StrEnum):
-    daily = "daily"
-    weekly = "weekly"
-
-
 def _not_implemented(phase: int) -> NoReturn:
     typer.echo(f"Commande non implémentée (phase {phase} de la roadmap).", err=True)
     raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+
+
+def _config(ctx: typer.Context) -> tuple[Path, VigieConfig]:
+    path = resolve_config_path(ctx.obj["config"])
+    try:
+        return path, load_config(path)
+    except ConfigError as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
 
 
 def _version(value: bool) -> None:
@@ -98,13 +107,8 @@ def notify(
 
 @app.command()
 def check(ctx: typer.Context) -> None:
-    """Vérifie la configuration (base et sources : phases suivantes)."""
-    path = resolve_config_path(ctx.obj["config"])
-    try:
-        cfg = load_config(path)
-    except ConfigError as exc:
-        typer.echo(f"ERREUR {exc}", err=True)
-        raise typer.Exit(code=1) from exc
+    """Vérifie la configuration et la base (sources : phase 3)."""
+    path, cfg = _config(ctx)
     typer.echo(f"Configuration valide : {path}")
     installed = set(registry.available())
     for name in sorted(cfg.sources):
@@ -112,15 +116,70 @@ def check(ctx: typer.Context) -> None:
         connector = "connecteur installé" if name in installed else "connecteur absent"
         typer.echo(f"  source {name} : {state}, {connector}")
 
+    engine = make_engine(cfg.database.url)
+    try:
+        current = current_revision(engine)
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base injoignable : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    head = head_revision()
+    if current != head:
+        typer.echo(
+            f"ERREUR base en révision {current}, attendue {head} : uv run alembic upgrade head",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.echo(f"Base : OK (révision {current}, à jour)")
+
+
+OUTCOME_LABELS = {"created": "créé(s)", "existing": "existant(s)", "updated": "mis à jour"}
+
 
 @app.command()
 def seed(
+    ctx: typer.Context,
     from_dir: Annotated[
         Path, typer.Option("--from", help="Dossier des fichiers d'amorçage.")
     ] = Path("config"),
+    roles_dir: Annotated[Path, typer.Option("--roles", help="Dossier des skills de rôle.")] = Path(
+        "roles"
+    ),
+    update: Annotated[
+        bool, typer.Option("--update", help="Écrase l'existant depuis les fichiers.")
+    ] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Valide sans rien écrire.")] = False,
 ) -> None:
     """Importe équipe, sociétés, politique, projets et skills de rôle (idempotent)."""
-    _not_implemented(1)
+    _, cfg = _config(ctx)
+    try:
+        data = load_seed_data(from_dir, roles_dir)
+    except SeedError as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    for name in data.example_files:
+        typer.echo(f"Attention : données d'exemple utilisées ({name}).")
+
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            report = apply_seed(session, data, update=update)
+            if dry_run:
+                session.rollback()
+            else:
+                session.commit()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+
+    for entity, counts in sorted(report.counts.items()):
+        parts = ", ".join(f"{counts[k]} {label}" for k, label in OUTCOME_LABELS.items())
+        typer.echo(f"  {entity} : {parts}")
+    if dry_run:
+        typer.echo("Simulation : rien n'a été écrit.")
 
 
 @app.command()
