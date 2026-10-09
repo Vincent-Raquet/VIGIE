@@ -87,3 +87,12 @@ Contraintes de la cohabitation à traiter en phase 8 :
 - nftables, sortie par défaut `drop` : Claude Code (utilisateur `nadmin`) doit pouvoir joindre `api.anthropic.com`, PyPI et le dépôt Git via Squid.
 - Ansible s'exécute sur la VM elle-même (`connection: local`) ou depuis le poste admin.
 - Décider du sort des bases `vigie_dev` et `vigie_test` (conservées, pas exposées).
+
+## MCP de développement (Claude Code)
+Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer des fixtures (phase 3). Les droits sont limités côté serveur MCP ; Claude Code n'appelle que des outils de lecture, et chaque appel reste soumis aux permissions Claude Code.
+
+- `.mcp.json` (racine, **ignoré par Git** : adresses internes) déclare les deux serveurs en transport HTTP natif, sans `npx` ni `mcp-remote`. Les jetons y sont référencés par `${ZABBIX_MCP_TOKEN}` et `${VEEAM_MCP_TOKEN}`.
+- Jetons : `~/.config/vigie/mcp-tokens.sh` (droits 600, dossier 700), chargé par `~/.bashrc`. Y coller les valeurs **sans** le préfixe `Bearer `, puis relancer Claude Code depuis un nouveau shell et approuver les serveurs du projet.
+- Rotation : régénérer le jeton côté serveur MCP, remplacer la valeur dans le fichier, relancer Claude Code.
+- Les jetons sont présents dans l'environnement du shell de Claude Code : `.claude/settings.json` doit interdire `Read(~/.config/vigie/**)` et toute commande les mentionnant.
+- ⚠️ Les deux MCP sont en **HTTP clair** : jetons et données circulent en clair sur le LAN. Mettre un reverse proxy TLS devant avant tout usage par Vigie en production (SafeClient impose HTTPS).

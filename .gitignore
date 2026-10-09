@@ -30,7 +30,8 @@ deploy/**/vault*.yml
 !deploy/**/vault*.example.yml
 *.retry
 
-# Claude Code (préférences locales)
+# Claude Code (préférences locales, MCP de dev : adresses internes)
+.mcp.json
 .claude/settings.local.json
 
 # Divers
