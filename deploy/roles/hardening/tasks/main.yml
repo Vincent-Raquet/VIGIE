@@ -1,7 +1,20 @@
 ---
 - name: Paquets de durcissement
   ansible.builtin.apt:
-    name: [auditd, audispd-plugins, apparmor, apparmor-utils, sshguard]
+    name:
+      - auditd
+      - audispd-plugins
+      - apparmor
+      - apparmor-utils
+      - sshguard
+      - acct                  # comptabilité des processus
+      - sysstat
+      - debsums
+      - apt-show-versions
+      - needrestart
+      - libpam-tmpdir
+      - libpam-passwdqc
+      - rkhunter              # en attendant l'agent Wazuh (FIM, détection)
     state: present
 
 - name: Paramètres noyau
@@ -11,6 +24,54 @@
     sysctl_file: /etc/sysctl.d/90-vigie.conf
     reload: true
   loop: "{{ hardening_sysctl | dict2items }}"
+
+- name: Modules noyau inutiles désactivés
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/vigie-blacklist.conf
+    content: |
+      # {{ ansible_managed }}
+      {% for m in hardening_blacklisted_modules %}
+      install {{ m }} /bin/false
+      blacklist {{ m }}
+      {% endfor %}
+    mode: "0644"
+
+- name: Politique de mots de passe et umask par défaut (login.defs)
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^#?\s*{{ item.key }}\s'
+    line: "{{ item.key }}\t{{ item.value }}"
+  loop: "{{ hardening_login_defs | dict2items }}"
+
+- name: Mode liste pour needrestart (aucun redémarrage de service sans décision)
+  ansible.builtin.copy:
+    dest: /etc/needrestart/conf.d/vigie.conf
+    content: |
+      # {{ ansible_managed }}
+      $nrconf{restart} = 'l';
+    mode: "0644"
+
+- name: Collecte sysstat activée
+  ansible.builtin.lineinfile:
+    path: /etc/default/sysstat
+    regexp: '^ENABLED='
+    line: 'ENABLED="true"'
+  notify: Redémarrer sysstat
+
+- name: Bannière légale (console et SSH)
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    content: |
+      Système privé de WallIndustries. Accès réservé aux personnes autorisées ;
+      les connexions et actions sont journalisées.
+    mode: "0644"
+  loop: [/etc/issue, /etc/issue.net]
+
+- name: Paquet remplacé encore configuré (systemd-timesyncd, remplacé par chrony)
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: absent
+    purge: true
 
 - name: Règles auditd de Vigie
   ansible.builtin.copy:
@@ -25,7 +86,7 @@
     name: "{{ item }}"
     enabled: true
     state: started
-  loop: [auditd, apparmor, sshguard]
+  loop: [auditd, apparmor, sshguard, acct, sysstat]
 
 - name: "SSH durci (prudent : aucune méthode d'authentification retirée sans variable)"
   ansible.builtin.template:

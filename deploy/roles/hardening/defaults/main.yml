@@ -17,3 +17,25 @@ hardening_sysctl:
   fs.protected_hardlinks: 1
   fs.protected_symlinks: 1
   fs.suid_dumpable: 0
+  fs.protected_fifos: 2
+  fs.protected_regular: 2
+  kernel.sysrq: 0
+  kernel.core_uses_pid: 1
+  kernel.perf_event_paranoid: 3
+  dev.tty.ldisc_autoload: 0
+  net.core.bpf_jit_harden: 2
+  net.ipv4.conf.default.accept_source_route: 0
+  net.ipv4.conf.default.log_martians: 1
+  net.ipv6.conf.all.accept_source_route: 0
+  net.ipv6.conf.default.accept_source_route: 0
+
+# Modules inutiles sur une VM serveur (Lynis USB-1000, STRG-1846, NETW-3200).
+hardening_blacklisted_modules: [usb-storage, firewire-core, dccp, sctp, rds, tipc]
+
+# Politique de mots de passe des comptes locaux (/etc/login.defs, comptes créés ensuite).
+hardening_login_defs:
+  UMASK: "027"
+  PASS_MIN_DAYS: "1"
+  PASS_MAX_DAYS: "365"
+  SHA_CRYPT_MIN_ROUNDS: "5000"
+  SHA_CRYPT_MAX_ROUNDS: "50000"

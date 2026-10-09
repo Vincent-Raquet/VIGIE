@@ -4,6 +4,12 @@
   ansible.builtin.command: augenrules --load
   changed_when: true
 
+- name: Redémarrer sysstat
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: sysstat
+    state: restarted
+
 - name: Recharger sshd
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:

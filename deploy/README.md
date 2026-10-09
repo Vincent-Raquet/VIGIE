@@ -164,3 +164,25 @@ Passer `vigie_dev_on_host: false` : la sortie réseau passe en `drop` pour tous 
 (seuls restent DNS, NTP, apt en root, Squid et l'agent Zabbix). Supprimer ensuite
 `~/projets/vigie`, `.env.local` et les bases `vigie_dev` / `vigie_test`, et envisager
 `ssh_disable_password_auth: true` après avoir vérifié l'accès par clé.
+
+## 9. Lynis : suggestions volontairement écartées
+
+Indice après le premier déploiement : 70 ; les corrections suivantes sont dans les rôles
+(`hardening`, `squid`) : modules noyau inutiles bloqués, sysctl du profil Lynis, login.defs
+(umask 027, âge et hachage des mots de passe), passwdqc, pam-tmpdir, comptabilité des
+processus, sysstat, debsums, needrestart (liste seule), rkhunter, bannières, SSH
+(`MaxAuthTries 3`, `LogLevel VERBOSE`), Squid (`Safe_ports`, `reply_body_max_size`,
+`squid.conf` en 0640).
+
+Écartées, avec la raison :
+| Suggestion | Raison |
+|---|---|
+| Permissions 600 sur `postgresql.conf`, `pg_ctl.conf`, `start.conf` (DBS-1828) | `pg_wrapper` (psql, pg_dump) lit ces fichiers pour trouver le cluster : la sauvegarde en `vigie-migrate` casserait. Aucun secret dedans (authentification peer). |
+| `AllowTcpForwarding no`, `MaxSessions 2` | Tunnel SSH du développement ; appliqués automatiquement avec `vigie_dev_on_host: false`. |
+| Port SSH non standard | Sécurité par l'obscurité ; SSH déjà limité à `admin_networks` par nftables. |
+| Mot de passe GRUB (BOOT-5122) | Console de la VM protégée par l'hyperviseur. |
+| `/home`, `/var`, `/tmp` sur partitions séparées | Partitionnement fixé à l'installation de la VM. |
+| fail2ban | sshguard en place. |
+| apt-listbugs | Peut bloquer les mises à jour non interactives. |
+| Journaux vers un hôte externe, AIDE | Prévu avec l'agent Wazuh (connecteur à venir). |
+

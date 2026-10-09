@@ -9,7 +9,9 @@
   ansible.builtin.template:
     src: squid.conf.j2
     dest: /etc/squid/squid.conf
-    mode: "0644"
+    owner: root
+    group: proxy
+    mode: "0640"
     validate: /usr/sbin/squid -k parse -f %s
   notify: Redémarrer Squid
 
