@@ -1,59 +1,18 @@
 """Écrans des plans, suivi des tâches, validation : rôles et contenus."""
 
 from datetime import date
-from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from tests.unit.engine.test_pipeline_db import NOW, load_zabbix
-from tests.webfixtures import login, person_id
-from vigie.config import PlansConfig
+from tests.webfixtures import login, person_id, tasks_of
 from vigie.db import models
-from vigie.db.enums import AppRole, PlanKind, PlanStatus, TaskOrigin, TaskStatus
-from vigie.engine.planner import build_plan, run_engine, save_plan
+from vigie.db.enums import AppRole, PlanStatus, TaskOrigin, TaskStatus
 from vigie.web.routes.plans import safe_next
 
 pytestmark = pytest.mark.db
-
-TZ = ZoneInfo("Europe/Brussels")
-FRIDAY = date(2026, 10, 9)
-AI = {
-    "by_llm": True,
-    "summary_exec": "Deux urgences réseau.\nProxys à rétablir.",
-    "per_person": {},
-    "risks": [{"text": "Capacité système faible.", "severity": "medium"}],
-    "escalations": [{"text": "Arbitrer le backlog.", "to": "manager"}],
-    "rejections": ["incident:77 : référence inconnue ignorée"],
-}
-
-
-@pytest.fixture
-def plans(seeded: Session) -> dict[str, models.Plan]:
-    load_zabbix(seeded)
-    run_engine(seeded, NOW)
-    daily = build_plan(seeded, PlanKind.daily, FRIDAY, NOW, PlansConfig(), tz=TZ)
-    weekly = build_plan(seeded, PlanKind.weekly, date(2026, 10, 13), NOW, PlansConfig(), tz=TZ)
-    saved = {
-        "daily": save_plan(seeded, daily, "", ai=AI),
-        "weekly": save_plan(
-            seeded, weekly, "", ai={"by_llm": False, "without_ai_reason": "option --no-llm"}
-        ),
-    }
-    seeded.commit()
-    return saved
-
-
-def tasks_of(session: Session, name: str, plan: models.Plan) -> list[models.Task]:
-    return list(
-        session.scalars(
-            select(models.Task).where(
-                models.Task.plan_id == plan.id, models.Task.assignee_id == person_id(session, name)
-            )
-        )
-    )
 
 
 @pytest.mark.parametrize(

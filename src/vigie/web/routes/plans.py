@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from vigie.db import models
 from vigie.db.enums import AppRole, Category, PlanKind, PlanStatus, Priority, TaskOrigin, TaskStatus
@@ -135,6 +136,42 @@ def week(
 # --- Tâches -----------------------------------------------------------------------------
 
 
+def apply_status(
+    session: Session, user: User, task: models.Task, status: TaskStatus, reason: str
+) -> None:
+    """Changement de statut d'une tâche (F10) : partagé par l'UI et l'API."""
+    if not can_edit(user, task):
+        raise HTTPException(
+            status_code=403, detail="Vous ne pouvez modifier que vos propres tâches."
+        )
+    if status not in SETTABLE:
+        raise HTTPException(status_code=422, detail="Statut non modifiable.")
+    if status is TaskStatus.wont_do and not reason.strip():
+        raise HTTPException(status_code=422, detail="Motif obligatoire pour abandonner une tâche.")
+    previous = task.status
+    task.status = status
+    task.status_reason = reason.strip() if status is TaskStatus.wont_do else ""
+    audit(
+        session,
+        user.email,
+        "task_status",
+        f"task:{task.id}",
+        before=previous.value,
+        after=status.value,
+    )
+    session.commit()
+
+
+def apply_validate(session: Session, user: User, plan: models.Plan) -> None:
+    if plan.status is not PlanStatus.draft:
+        raise HTTPException(status_code=409, detail="Ce plan n'est plus un brouillon.")
+    plan.status = PlanStatus.validated
+    plan.validated_by = user.person_id
+    plan.validated_at = datetime.now(UTC)
+    audit(session, user.email, "plan_validate", f"plan:{plan.id}")
+    session.commit()
+
+
 def _task_or_404(session: DB, task_id: int) -> models.Task:
     task = session.get(models.Task, task_id)
     if task is None:
@@ -163,26 +200,7 @@ def set_status(
     next_url: Annotated[str | None, Form(alias="next")] = None,
 ) -> Response:
     task = _task_or_404(session, task_id)
-    if not can_edit(user, task):
-        raise HTTPException(
-            status_code=403, detail="Vous ne pouvez modifier que vos propres tâches."
-        )
-    if status not in SETTABLE:
-        raise HTTPException(status_code=422, detail="Statut non modifiable.")
-    if status is TaskStatus.wont_do and not reason.strip():
-        raise HTTPException(status_code=422, detail="Motif obligatoire pour abandonner une tâche.")
-    previous = task.status
-    task.status = status
-    task.status_reason = reason.strip() if status is TaskStatus.wont_do else ""
-    audit(
-        session,
-        user.email,
-        "task_status",
-        f"task:{task.id}",
-        before=previous.value,
-        after=status.value,
-    )
-    session.commit()
+    apply_status(session, user, task, status, reason)
     if request.headers.get("hx-request"):
         return _task_fragment(request, user, session, task)
     return RedirectResponse(safe_next(next_url, "/aujourdhui"), status_code=303)
@@ -226,14 +244,7 @@ def validate_plan(
     plan_id: int,
     next_url: Annotated[str | None, Form(alias="next")] = None,
 ) -> Response:
-    plan = _plan_or_404(session, plan_id)
-    if plan.status is not PlanStatus.draft:
-        raise HTTPException(status_code=409, detail="Ce plan n'est plus un brouillon.")
-    plan.status = PlanStatus.validated
-    plan.validated_by = user.person_id
-    plan.validated_at = datetime.now(UTC)
-    audit(session, user.email, "plan_validate", f"plan:{plan.id}")
-    session.commit()
+    apply_validate(session, user, _plan_or_404(session, plan_id))
     return RedirectResponse(safe_next(next_url, "/semaine"), status_code=303)
 
 
