@@ -30,7 +30,9 @@
       "Bash(docker *)",
       "Bash(uv run vigie collect*)",
       "Bash(uv run vigie notify*)",
-      "Bash(uv run scripts/record_fixtures.py*)"
+      "Bash(uv run scripts/record_fixtures.py*)",
+      "Edit(./CLAUDE.md)",
+      "Edit(./.claude/**)"
     ],
     "allow": [
       "Bash(uv sync*)",

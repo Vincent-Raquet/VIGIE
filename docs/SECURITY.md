@@ -101,6 +101,13 @@ Voir SPEC §7.6. En plus :
 - Webhook Teams : secret ; le message ne contient que le résumé et un lien vers Vigie.
 
 ## 3. Pendant le développement avec Claude Code
+
+> **Situation actuelle (décision du 2026-10-09)** : le développement se fait **sur la VM cible elle-même** (WI-SRV-VIGIE-01), sous le compte `nadmin` (sudo). Conséquences :
+> - aucun secret de production n'est déposé sur la VM tant que Claude Code y travaille ; une clé Anthropic de dev (workspace séparé, faible plafond) sert à la phase 5 ;
+> - `.claude/settings.json` doit interdire en plus le déchiffrement des credentials (`systemd-creds decrypt`) et demander confirmation pour `sudo` ;
+> - dev (`~/projets/vigie`, bases `vigie_dev`/`vigie_test`, port 8000) et prod (`/opt/vigie`, base `vigie`, port 8080) sont cloisonnés ; voir `docs/DEV.md` ;
+> - la phase 8 doit en tenir compte (SSH pour `nadmin`, sortie Internet de Claude Code via Squid, Ansible en `connection: local`) : à revoir explicitement avant d'y déposer les secrets réels.
+
 - `.claude/settings.json` interdit la lecture des fichiers de secrets et demande confirmation pour `ssh`, `ansible-playbook`, `git push`, `scp`, `curl`/`wget`.
 - Les tests n'appellent jamais les vraies sources : fixtures anonymisées uniquement.
 - Les comptes de service de production ne sont pas utilisés depuis le poste de développement. Pour enregistrer des fixtures, utiliser un script dédié lancé manuellement par l'humain (`scripts/record_fixtures.py`, passant lui aussi par SafeClient), puis anonymiser.
