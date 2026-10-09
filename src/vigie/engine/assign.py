@@ -19,7 +19,7 @@ Sans candidat :
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 from vigie.db.enums import Category, Priority, SkillPreference
@@ -68,6 +68,7 @@ class Candidate:
     carry_count: int = 0
     reason: str = ""
     follow_up: bool = False
+    not_before: date | None = None  # suivi prévu chez un spécialiste un jour donné
 
 
 @dataclass
@@ -168,17 +169,36 @@ class Assigner:
     def run(self, tasks: Sequence[Candidate]) -> AssignmentResult:
         ordered = sorted(
             tasks,
-            key=lambda t: (PRIORITY_RANK[t.priority], -t.score, t.due or date.max, t.ref),
+            # Jalons d'abord à priorité égale : capacité réservée (SPEC F3).
+            key=lambda t: (
+                PRIORITY_RANK[t.priority],
+                t.milestone_id is None,
+                -t.score,
+                t.due or date.max,
+                t.ref,
+            ),
         )
         for task in ordered:
             self.place(task)
         return self.result
 
     def place(self, task: Candidate) -> None:
+        if task.not_before is not None and self.window and self.window[-1] < task.not_before:
+            # Pas encore son jour : reste prévue, sans recours au coordinateur.
+            why = task.reason or f"Prévue à partir du {task.not_before:%d/%m}"
+            self.result.later.append(Assignment(task, task.preferred_id, task.not_before, why))
+            return
         qualified = self._qualified(task)
         ordinary = [m for m in qualified if not m.is_coordinator or m.id == task.preferred_id]
-        # Jamais après l'échéance SLA : un P1 n'attend pas le jour du spécialiste.
-        allowed = [d for d in self.window if task.due is None or d <= task.due]
+        # P1/P2 : jamais après l'échéance SLA (un P1 n'attend pas le jour du spécialiste).
+        # P3/P4 : l'échéance est une cible ; en retard, mieux vaut plus tard que le backlog.
+        hard_due = task.due if task.priority in (Priority.P1, Priority.P2) else None
+        allowed = [
+            d
+            for d in self.window
+            if (hard_due is None or d <= hard_due)
+            and (task.not_before is None or d >= task.not_before)
+        ]
         options = [(m, d) for m in ordinary for d in allowed if self._fits(m, d, task.estimate_h)]
         if options:
             member, day = min(
@@ -248,7 +268,8 @@ class Assigner:
                         f"Prévue le {DAY_NAMES_FR[nxt.weekday()]} {nxt:%d/%m} chez "
                         f"{specialist.name} (prochain jour de présence, dans le délai SLA)"
                     )
-                    self.result.later.append(Assignment(task, specialist.id, nxt, why))
+                    postponed = replace(task, not_before=nxt, preferred_id=specialist.id)
+                    self.result.later.append(Assignment(postponed, specialist.id, nxt, why))
                     return
         if c is not None and c.level(task.skills) >= min_level(task.priority):
             day = self._coordinator_day(task.estimate_h, over_capacity=False)
@@ -285,6 +306,7 @@ class Assigner:
                 preferred_id=specialist.id,
                 reason=f"Suivi de l'escalade du {escalated_on:%d/%m}",
                 follow_up=True,
+                not_before=nxt,
             )
             why = (
                 f"Suivi chez {specialist.name}, spécialiste, au prochain jour de présence "

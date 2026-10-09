@@ -38,7 +38,7 @@ def test_version() -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        ["plan", "--kind", "daily", "--dry-run", "--no-llm"],
+        ["plan", "--kind", "daily", "--dry-run"],  # IA : phase 5
         ["notify", "--plan", "latest-daily", "--dry-run"],
         ["budget"],
         ["web", "--reload"],

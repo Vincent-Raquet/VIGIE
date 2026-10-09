@@ -422,6 +422,7 @@ class Task(Base):
     estimate_h: Mapped[float] = mapped_column(Float, default=1)
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"))
     due: Mapped[date | None] = mapped_column(Date)
+    not_before: Mapped[date | None] = mapped_column(Date)
     status: Mapped[enums.TaskStatus] = mapped_column(
         _enum(enums.TaskStatus, "status"), default=enums.TaskStatus.todo
     )

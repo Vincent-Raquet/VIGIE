@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
+from zoneinfo import ZoneInfo
 
 import typer
 from pydantic import SecretStr
@@ -34,6 +35,9 @@ from vigie.connectors.base import (
 from vigie.db.enums import PlanKind
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
+from vigie.engine.calendar import CalendarError
+from vigie.engine.planner import build_plan, run_engine, save_plan
+from vigie.engine.render import render_markdown
 from vigie.logs import configure_logging
 from vigie.mapping import RuleMapper
 from vigie.seed import SeedError, apply_seed, load_seed_data
@@ -215,14 +219,61 @@ def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None
 
 @app.command()
 def plan(
+    ctx: typer.Context,
     kind: Annotated[PlanKind, typer.Option("--kind", help="Plan quotidien ou hebdomadaire.")],
     dry_run: Annotated[bool, typer.Option("--dry-run", help="N'enregistre pas le plan.")] = False,
     no_llm: Annotated[
         bool, typer.Option("--no-llm", help="Plan déterministe seul, sans appel au LLM.")
     ] = False,
+    day: Annotated[
+        str | None,
+        typer.Option("--date", help="Jour du plan (AAAA-MM-JJ) ; défaut : aujourd'hui."),
+    ] = None,
 ) -> None:
-    """Génère un plan de tâches."""
-    _not_implemented(4)
+    """Génère un plan de tâches (brouillon) et l'affiche en Markdown."""
+    if not no_llm:
+        typer.echo("Raffinement par IA non implémentée (phase 5) : utiliser --no-llm.", err=True)
+        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    _, cfg = _config(ctx)
+    tz = ZoneInfo(cfg.general.timezone)
+    now = datetime.now(UTC)
+    try:
+        target = date.fromisoformat(day) if day else now.astimezone(tz).date()
+    except ValueError as exc:
+        raise typer.BadParameter("date attendue au format AAAA-MM-JJ", param_hint="--date") from exc
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            run_engine(session, now)
+            draft = build_plan(
+                session,
+                kind,
+                target,
+                now,
+                cfg.plans,
+                tz=tz,
+                country=cfg.general.holidays_country,
+            )
+            markdown = render_markdown(draft)
+            plan_id = None
+            if dry_run:
+                session.rollback()
+            else:
+                plan_id = save_plan(session, draft, markdown).id
+                session.commit()
+    except CalendarError as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    typer.echo(markdown)
+    if plan_id is None:
+        typer.echo("Simulation : rien n'a été écrit.")
+    else:
+        typer.echo(f"Plan {plan_id} enregistré en brouillon.")
 
 
 @app.command()

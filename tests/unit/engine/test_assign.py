@@ -164,3 +164,40 @@ def test_capacity_and_load_are_reported() -> None:
     result = assign([task("x", estimate_h=3)], [lone], [MONDAY])
     assert result.capacity[(9, MONDAY)] == 8
     assert result.load[(9, MONDAY)] == 3
+
+
+def test_not_before_keeps_task_for_its_day() -> None:
+    follow = task("f", skills=["reseau"], preferred_id=C.id, not_before=THURSDAY, reason="Suivi")
+    early = assign([follow], list(TEAM.values()), [TUESDAY])
+    assert not early.assigned and not early.backlog
+    assert [(a.person_id, a.day, a.rationale) for a in early.later] == [(C.id, THURSDAY, "Suivi")]
+    on_day = assign([follow], list(TEAM.values()), [THURSDAY])
+    assert [a.person_id for a in on_day.assigned] == [C.id]
+    week = assign([follow], list(TEAM.values()), WEEK)
+    assert [(a.person_id, a.day) for a in week.assigned] == [(C.id, THURSDAY)]
+
+
+def test_postponed_p2_and_follow_up_carry_their_day() -> None:
+    p2 = task("f", Priority.P2, skills=["fortinet"], due=THURSDAY)
+    [later] = assign([p2], list(TEAM.values()), [MONDAY]).later
+    assert (later.candidate.not_before, later.candidate.preferred_id) == (THURSDAY, C.id)
+    p1 = task("vpn", Priority.P1, skills=["reseau"])
+    [follow] = assign([p1], list(TEAM.values()), [TUESDAY]).later
+    assert follow.candidate.not_before == THURSDAY
+
+
+def test_due_is_a_target_for_p3_p4() -> None:
+    late_p3 = task("s", skills=["fortinet"], due=MONDAY, estimate_h=2)
+    result = assign([late_p3], list(TEAM.values()), WEEK)
+    # Cédric (jeudi) plutôt que le backlog ou le coordinateur.
+    assert [(a.person_id, a.day) for a in result.assigned] == [(C.id, THURSDAY)]
+
+
+def test_milestones_reserve_capacity_before_same_priority_incidents() -> None:
+    incident = task("i", skills=["fortinet"], score=30, estimate_h=4)
+    milestone = task(
+        "m", skills=["fortinet"], score=0, estimate_h=4, milestone_id=7, preferred_id=C.id
+    )
+    result = assign([incident, milestone], list(TEAM.values()), [THURSDAY])
+    assert result.assigned[0].candidate.ref == "m"
+    assert result.assigned[0].person_id == C.id

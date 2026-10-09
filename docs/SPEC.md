@@ -216,15 +216,15 @@ Regrouper en un incident les signaux de sources différentes portant sur le mêm
 ```
 score = W_sev[severity] × C_company × C_asset × F_age × F_recurrence × W_category + B_policy
 ```
-- `W_sev` = {0:1, 1:2, 2:4, 3:7, 4:10, 5:14}
+- `W_sev` = {0:1, 1:4, 2:10, 3:20, 4:35, 5:50} (calibrage 2026-10 : Zabbix *High* sur serveur de prod ≈ 45 → P2, *Average* ≈ 26 → P3, *Warning* ≈ 10 → P4)
 - `C_company` ∈ [0,5 ; 1,5], `C_asset` ∈ [0,5 ; 1,5] (prod, cœur réseau, firewall = 1,5 ; poste = 0,8)
 - `F_age` = 1 + 0,1 × min(jours ouverts, 10)
 - `F_recurrence` = 1 + 0,05 × min(occurrences sur 7 j, 10)
 - `W_category` : backup 1,3 ; security 1,3 ; firewall 1,2 ; autres 1,0
-- `B_policy` = Σ (poids de l'axe × 2) pour chaque axe actif correspondant (catégorie ou mot-clé)
+- `B_policy` = Σ (poids de l'axe × 2) pour chaque axe actif correspondant (catégorie ou mot-clé), **plafonné à 20**
 - Seuils : P1 ≥ 60 ; P2 ≥ 35 ; P3 ≥ 15 ; P4 sinon.
 
-**Règles d'override (forcent P1, avec raison affichée)** — configurables :
+**Règles d'override (relèvent la priorité, jamais ne l'abaissent ; raison affichée)** — configurables dans `scoring.yaml` sous forme **déclarative** : `{id, priority, reason, all: [{field, op, value}]}`, champs `source`, `category`, `severity`, `company`, `hours_open`, `attr.<clé>` (attributs fournis par le connecteur), opérateurs `eq ne gt ge lt le in`. Aucune expression n'est évaluée.
 - Aucune sauvegarde réussie depuis > 24 h pour un job marqué critique, ou 2 échecs consécutifs.
 - Repository de sauvegarde > 90 % (P2) / > 95 % (P1).
 - FortiGate hors ligne, HA dégradée, ou VPN site-à-site down > 30 min.
@@ -237,10 +237,10 @@ score = W_sev[severity] × C_company × C_asset × F_age × F_recurrence × W_ca
 Chaque incident stocke `priority_reason` (lisible : « Override : backup critique sans succès depuis 31 h »).
 
 ### 7.5 Affectation (déterministe, toujours exécutée)
-1. Compétence requise = taxonomie (§5.3) ; pour un jalon, ses `skill_tags`.
+1. Compétences requises = taxonomie (§5.3), **toutes** requises si plusieurs (`category_skill` en liste, `extra_skills` conditionnelles : `vulnerability` + `systeme` si `attr.asset_type = server`) ; pour un jalon, ses `skill_tags`.
 2. Candidats = personnes actives ayant la compétence (niveau ≥ 2 pour P1/P2, ≥ 1 sinon) **et** présentes dans la fenêtre (jour pour le plan quotidien, semaine pour l'hebdomadaire).
 3. Tri : niveau de compétence ↓, capacité restante ↓, préférence, équité (charge relative de la semaine).
-4. Si aucun candidat présent pour un **P1** : affectation au coordinateur (ingénieur système & réseau, polyvalent), marquée `escalade`. Pour un P2 : planifié au prochain jour de présence du spécialiste si l'échéance SLA le permet, sinon coordinateur.
+4. Le coordinateur n'est pas un candidat ordinaire mais le **recours** (sauf s'il est responsable désigné, ex. jalon). Échéance SLA stricte pour P1/P2 (jamais planifiés après), simple cible pour P3/P4. Jalons servis avant les incidents de même priorité (capacité réservée), par tranches de 4 h. Si aucun candidat présent pour un **P1** : affectation au coordinateur (ingénieur système & réseau, polyvalent), marquée `escalade`. Pour un P2 : planifié au prochain jour de présence du spécialiste si l'échéance SLA le permet, sinon coordinateur.
 5. Estimation par défaut par catégorie (configurable) ; les jalons utilisent `remaining_h`.
 6. Capacité : on n'affecte pas au-delà de la capacité planifiable ; le reste va au **backlog non planifié**, signalé au coordinateur.
 7. Exemples avec l'équipe actuelle :
