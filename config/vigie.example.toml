@@ -1,7 +1,7 @@
 # /etc/vigie/vigie.toml — configuration NON secrète. Les secrets passent par systemd-creds (docs/SECURITY.md C7).
 [general]
 timezone = "Europe/Brussels"
-base_url = "https://vigie.lan"
+base_url = "https://vigie.local.wallindustries.be"
 holidays_country = "BE"
 paused = false
 

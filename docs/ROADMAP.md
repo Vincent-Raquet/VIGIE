@@ -44,7 +44,8 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - **Acceptation** : un plan généré sur fixtures réelles anonymisées coûte < 0,40 $ ; tests d'injection verts.
 
 ## Phase 6 — Application web (3–4 jours)
-- Utiliser le skill `frontend-design` pour la direction visuelle (sobre, dense, lisible, mode sombre).
+- **Direction visuelle validée** (2026-10-09) : `docs/ui/maquette.html` (10 écrans, barre latérale, cartes par personne, priorités codées P1–P4, thèmes clair et sombre ; polices IBM Plex à auto-héberger : la maquette les charge depuis Google Fonts, mais aucun CDN n'est permis à l'exécution). La phase 6 l'implémente en Jinja2 + HTMX + Tailwind ; skill `frontend-design` pour les finitions.
+- URL : `https://vigie.local.wallindustries.be` (DNS interne, accès LAN/VPN).
 - OIDC Entra, RBAC, CSRF, pages de SPEC §9, éditeur des skills de rôle, validation/publication des plans, mise à jour des tâches.
 - Tailwind compilé au build ; aucun asset externe.
 - **Acceptation** : tests d'autorisation par route et par rôle ; parcours complet sur données de seed ; CSP sans violation dans la console.

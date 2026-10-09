@@ -302,6 +302,8 @@ Le contenu issu des sources est encapsulé dans `<source_data>…</source_data>`
 Jours fériés belges exclus du plan quotidien (paquet `holidays`, calendrier BE).
 
 ## 9. Interface web
+URL : `https://vigie.local.wallindustries.be` (LAN/VPN uniquement). Direction visuelle validée : `docs/ui/maquette.html`.
+
 Pages (FR, responsive, utilisable sur mobile) :
 1. **Aujourd'hui** — plan du jour : cartes par personne, P1 en tête, nouveautés, sources KO.
 2. **Semaine** — vue par personne × jour, jalons, backlog non planifié, bouton « Valider / Publier ».
@@ -345,4 +347,4 @@ Aucun endpoint ne déclenche d'appel en écriture vers une source (il n'en exist
 4. Versions installées : FortiAnalyzer, Veeam B&R (12.x / 13), Wazuh (4.x), région NinjaOne (eu/app/ca/oc/us2).
 5. NinjaOne Backup est-il utilisé en plus de Veeam ?
 6. Canal Teams cible et adresse de la boîte d'envoi (`itbot@…`).
-7. Certificat TLS : PKI interne existante ou ACME DNS-01 (fournisseur DNS) ?
+7. Certificat TLS pour `vigie.local.wallindustries.be` : PKI interne existante ou ACME DNS-01 (le domaine `wallindustries.be` est public : DNS-01 possible si le fournisseur DNS a une API) ?
