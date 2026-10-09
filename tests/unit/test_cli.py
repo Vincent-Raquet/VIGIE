@@ -4,7 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from tests.conftest import EXAMPLE_CONFIG
-from vigie.cli import EXIT_NOT_IMPLEMENTED, app
+from vigie.cli import app
 
 runner = CliRunner()
 
@@ -33,20 +33,6 @@ def test_version() -> None:
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert result.output.startswith("vigie ")
-
-
-@pytest.mark.parametrize(
-    "args",
-    [
-        ["housekeeping"],
-        ["selfcheck"],
-        ["breakglass", "--enable"],
-    ],
-)
-def test_stubs_exit_not_implemented(args: list[str]) -> None:
-    result = runner.invoke(app, args)
-    assert result.exit_code == EXIT_NOT_IMPLEMENTED
-    assert "non implémentée" in result.output
 
 
 def test_plan_rejects_unknown_kind() -> None:

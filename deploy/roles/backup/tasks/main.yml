@@ -1,0 +1,42 @@
+---
+# Sauvegarde quotidienne chiffrée (age, clé publique) emportée ensuite par Veeam.
+# La clé privée reste hors de la VM : une sauvegarde volée est illisible.
+- name: Clé publique age renseignée
+  ansible.builtin.assert:
+    that: backup_age_recipient is match('^age1[0-9a-z]{58}$')
+    fail_msg: >-
+      backup_age_recipient (group_vars/vigie.yml) : clé PUBLIQUE age attendue (age1…),
+      générée hors VM avec `age-keygen -o vigie-backup.key`.
+
+- name: Dossier des sauvegardes
+  ansible.builtin.file:
+    path: /var/backups/vigie
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Scripts de sauvegarde et de test de restauration
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /usr/local/sbin/{{ item }}
+    mode: "0750"
+  loop: [vigie-backup, vigie-restore-test]
+
+- name: Unités de sauvegarde
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/{{ item }}
+    mode: "0644"
+  loop: [vigie-backup.service, vigie-backup.timer]
+  notify: Recharger systemd (sauvegarde)
+
+- name: Prise en compte des unités de sauvegarde
+  ansible.builtin.meta: flush_handlers
+
+- name: Sauvegarde quotidienne active
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: vigie-backup.timer
+    enabled: true
+    state: started

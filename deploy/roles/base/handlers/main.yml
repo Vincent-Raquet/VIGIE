@@ -1,0 +1,11 @@
+---
+- name: Redémarrer chrony
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: chrony
+    state: restarted
+
+- name: Redémarrer journald
+  ansible.builtin.systemd_service:
+    name: systemd-journald
+    state: restarted

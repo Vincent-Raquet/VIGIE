@@ -1,0 +1,16 @@
+---
+# Déploiement de Vigie sur Debian 13 (docs/SECURITY.md, skill debian-deploy).
+# Toujours : `ansible-playbook site.yml --check --diff` avant d'appliquer.
+- name: Vigie
+  hosts: vigie
+  become: true
+  roles:
+    - base
+    - hardening
+    - postgresql
+    - squid
+    - nftables
+    - vigie
+    - caddy
+    - zabbix_agent
+    - backup

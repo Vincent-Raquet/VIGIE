@@ -1,0 +1,50 @@
+# {{ ansible_managed }}
+# Configuration NON secrète de la production. Les secrets : systemd-creds (vigie-secret).
+[general]
+timezone = "Europe/Brussels"
+base_url = "https://{{ vigie_domain }}"
+holidays_country = "BE"
+paused = false
+
+[database]
+# Peer + pg_ident : le compte système vigie-worker se connecte en vigie_worker.
+url = "postgresql+psycopg:///vigie?user=vigie_worker"
+
+[llm]
+enabled = {{ vigie_llm_enabled | lower }}
+model = "claude-sonnet-5-5"
+monthly_budget_usd = {{ vigie_llm_budget_usd }}
+effort = "medium"
+fallback = true
+
+[notify]
+mail_enabled = {{ vigie_notify_mail_enabled | lower }}
+teams_enabled = {{ vigie_notify_teams_enabled | lower }}
+proxy = "http://127.0.0.1:{{ squid_worker_port }}"
+draft_only = true
+
+[web]
+host = "127.0.0.1"
+port = {{ vigie_web_port }}
+database_url = "postgresql+psycopg:///vigie?user=vigie_web"
+dev_login = false
+
+[web.oidc]
+tenant_id = "{{ vigie_oidc.tenant_id }}"
+client_id = "{{ vigie_oidc.client_id }}"
+[web.oidc.groups]
+{% for gid, role in vigie_oidc.groups.items() %}
+"{{ gid }}" = "{{ role }}"
+{% endfor %}
+
+{% for s in vigie_sources_enabled %}
+[sources.{{ s.name }}]
+enabled = true
+interval_min = {{ s.interval_min }}
+{% for k, v in s.settings.items() %}
+{{ k }} = {{ v | to_json }}
+{% endfor %}
+
+{% endfor %}
+[tls]
+ca_bundle = "/etc/ssl/certs/ca-certificates.crt"

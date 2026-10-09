@@ -1,14 +1,15 @@
-"""Point d'entrée `vigie`. Les commandes non encore implémentées sortent avec le code 3."""
+"""Point d'entrée `vigie` : collecte, plans, diffusion, web, maintenance et administration."""
 
 from __future__ import annotations
 
 import os
+import re
 from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Annotated, Any, NoReturn
+from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
 import typer
@@ -50,19 +51,12 @@ from vigie.mapping import RuleMapper
 from vigie.pause import is_paused
 from vigie.seed import SeedError, apply_seed, load_seed_data
 
-EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
-
 app = typer.Typer(
     name="vigie",
     help="Vigie : veille des systèmes de supervision et plans de tâches de l'équipe IT.",
     no_args_is_help=True,
     add_completion=False,
 )
-
-
-def _not_implemented(phase: int) -> NoReturn:
-    typer.echo(f"Commande non implémentée (phase {phase} de la roadmap).", err=True)
-    raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
 
 
 def _config(ctx: typer.Context) -> tuple[Path, VigieConfig]:
@@ -618,21 +612,113 @@ def jobs(
 
 
 @app.command()
-def housekeeping() -> None:
-    """Purge selon la rétention (SPEC §5.2)."""
-    _not_implemented(8)
+def migrate(ctx: typer.Context) -> None:
+    """Applique les migrations de la base (en production : en tant que vigie-migrate,
+    propriétaire du schéma ; jamais avec un rôle d'exécution)."""
+    from alembic import command
+
+    from vigie.db.migrate import alembic_config
+
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        before = current_revision(engine)
+        with engine.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+        current = current_revision(engine)
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    if before == current:
+        typer.echo(f"Base déjà à jour (révision {current}).")
+    else:
+        # Repère lu par Ansible (changed_when).
+        typer.echo(f"Base migrée : {before or 'vide'} → {current}.")
 
 
 @app.command()
-def selfcheck() -> None:
+def housekeeping(ctx: typer.Context) -> None:
+    """Purge selon la rétention (SPEC §5.2)."""
+    from vigie.housekeeping import purge
+
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            counts = purge(session, datetime.now(UTC))
+            session.commit()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    typer.echo("Purge : " + ", ".join(f"{k} {v}" for k, v in counts.items()))
+
+
+@app.command()
+def selfcheck(
+    ctx: typer.Context,
+    out: Annotated[Path, typer.Option("--out", help="Dossier lu par zabbix-agent2.")] = Path(
+        "/var/lib/vigie/selfcheck"
+    ),
+) -> None:
     """Écrit l'état de santé lu par zabbix-agent2."""
-    _not_implemented(8)
+    from vigie.selfcheck import collect_metrics, write_metrics
+
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            metrics = collect_metrics(session, cfg, datetime.now(UTC))
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    write_metrics(out, metrics)
+    typer.echo(f"{len(metrics)} indicateur(s) écrit(s) dans {out}")
 
 
 @app.command()
 def breakglass(
+    ctx: typer.Context,
     enable: Annotated[bool, typer.Option("--enable/--disable", help="Active le compte local.")],
-    ttl: Annotated[str, typer.Option("--ttl", help="Durée de validité (ex. 1h).")] = "1h",
+    ttl: Annotated[
+        str, typer.Option("--ttl", help="Durée de validité (ex. 30m, 1h, max 8h).")
+    ] = "1h",
 ) -> None:
-    """Compte local de secours, désactivé par défaut (SECURITY.md C9)."""
-    _not_implemented(6)
+    """Compte local de secours, désactivé par défaut (SECURITY.md C9).
+
+    À lancer sur le serveur, en tant que vigie-web : le mot de passe (usage unique) n'est
+    affiché qu'ici, une seule fois.
+    """
+    from vigie.web.auth import audit, disable_breakglass, enable_breakglass
+
+    match = re.fullmatch(r"([0-9]{1,3})([mh])", ttl)
+    minutes = int(match.group(1)) * (60 if match.group(2) == "h" else 1) if match else 0
+    if enable and not 5 <= minutes <= 480:
+        raise typer.BadParameter("durée entre 5m et 8h (ex. 30m, 1h)", param_hint="--ttl")
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.web.database_url or cfg.database.url)
+    actor = f"cli:{os.environ.get('SUDO_USER') or os.environ.get('USER') or 'inconnu'}"
+    try:
+        with Session(engine) as session:
+            if enable:
+                password = enable_breakglass(session, timedelta(minutes=minutes), datetime.now(UTC))
+                audit(session, actor, "breakglass_enable", "setting:breakglass", minutes=minutes)
+            else:
+                existed = disable_breakglass(session)
+                audit(session, actor, "breakglass_disable", "setting:breakglass", existed=existed)
+            session.commit()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    if enable:
+        typer.echo(f"Accès de secours actif {minutes} min, usage unique : /breakglass")
+        typer.echo(f"Mot de passe : {password}")
+    else:
+        typer.echo("Accès de secours désactivé.")

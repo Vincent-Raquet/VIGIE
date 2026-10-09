@@ -1,0 +1,32 @@
+# {{ ansible_managed }}
+# Gabarit commun des tâches du worker : {{ unit_description }}
+[Unit]
+Description=Vigie — {{ unit_description }}
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=vigie-worker
+Group=vigie-worker
+SupplementaryGroups=vigie
+ExecStart={{ unit_exec }}
+TimeoutStartSec={{ unit_timeout | default('15min') }}
+{% for name in unit_credentials | default([]) %}
+LoadCredentialEncrypted={{ name }}:/etc/credstore.encrypted/vigie.{{ name }}
+{% endfor %}
+{% if unit_proxy | default(false) %}
+Environment=HTTPS_PROXY=http://127.0.0.1:{{ squid_worker_port }}
+Environment=NO_PROXY=127.0.0.1,localhost
+{% endif %}
+IPAddressDeny=any
+IPAddressAllow=localhost{% for ip in unit_ips | default([]) %} {{ ip }}{% endfor %}
+
+{% include 'units/_sandbox.j2' %}
+
+{% if unit_state_dir | default('') %}
+StateDirectory={{ unit_state_dir }}
+StateDirectoryMode=0755
+# Lu par l'agent Zabbix : fichiers lisibles par tous (aucune donnée sensible).
+UMask=0022
+{% endif %}

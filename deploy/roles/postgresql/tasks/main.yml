@@ -1,0 +1,133 @@
+---
+# Base de production « vigie » à côté des bases de dev (vigie_dev, vigie_test).
+# Aucun mot de passe : authentification peer sur le socket unix, comptes système mappés.
+- name: PostgreSQL 17
+  ansible.builtin.apt:
+    name: [postgresql-17]
+    state: present
+
+- name: Rôles applicatifs (LOGIN, sans mot de passe)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  community.postgresql.postgresql_user:
+    name: "{{ item }}"
+    role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOINHERIT
+  loop: [vigie_migrate, vigie_web, vigie_worker]
+  become: true
+  become_user: postgres
+
+- name: Base vigie
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  block:
+    - name: Base vigie, propriété de vigie_migrate (jamais d'un rôle d'exécution)
+      community.postgresql.postgresql_db: &vigie_db
+        name: vigie
+        owner: vigie_migrate
+        encoding: UTF8
+        lc_collate: fr_BE.UTF-8
+        lc_ctype: fr_BE.UTF-8
+        template: template0
+      become: true
+      become_user: postgres
+  rescue:
+    # Locale générée après le démarrage de PostgreSQL (rôle base) : invisible tant que le
+    # serveur n'a pas redémarré.
+    - name: Redémarrage de PostgreSQL pour la locale fr_BE.UTF-8
+      ansible.builtin.systemd_service:
+        name: postgresql
+        state: restarted
+    - name: Base vigie, seconde tentative
+      community.postgresql.postgresql_db: *vigie_db
+      become: true
+      become_user: postgres
+
+- name: Connexion à la base pour les rôles d'exécution
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  community.postgresql.postgresql_privs:
+    login_db: vigie
+    type: database
+    privs: CONNECT
+    roles: vigie_web,vigie_worker
+  become: true
+  become_user: postgres
+
+- name: Aucun accès par défaut à la base pour PUBLIC
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  community.postgresql.postgresql_privs:
+    login_db: vigie
+    type: database
+    privs: CONNECT,TEMPORARY
+    roles: PUBLIC
+    state: absent
+  become: true
+  become_user: postgres
+
+- name: Correspondance comptes système → rôles (pg_ident)
+  ansible.builtin.blockinfile:
+    path: /etc/postgresql/17/main/pg_ident.conf
+    marker: "# {mark} VIGIE"
+    block: |
+      vigie   vigie-web       vigie_web
+      vigie   vigie-worker    vigie_worker
+      vigie   vigie-migrate   vigie_migrate
+  notify: Recharger PostgreSQL
+
+- name: Accès à la base vigie, socket unix seulement, avant les règles générales
+  ansible.builtin.blockinfile:
+    path: /etc/postgresql/17/main/pg_hba.conf
+    marker: "# {mark} VIGIE"
+    insertbefore: '^local\s+all\s+all\s+peer'
+    block: |
+      local   vigie   vigie_web,vigie_worker,vigie_migrate   peer map=vigie
+      local   vigie   postgres                                peer
+      local   vigie   all                                     reject
+      host    vigie   all             all                     reject
+  notify: Recharger PostgreSQL
+
+- name: PostgreSQL n'écoute que localement
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/17/main/postgresql.conf
+    regexp: '^#?listen_addresses'
+    line: "listen_addresses = 'localhost'"
+  notify: Redémarrer PostgreSQL
+
+# pg_hba / pg_ident / listen_addresses doivent être actifs avant les migrations (rôle vigie).
+- name: Prise en compte de la configuration PostgreSQL
+  ansible.builtin.meta: flush_handlers
+
+# Filet de sécurité : un passage interrompu perd ses handlers. On compare donc les dates
+# des fichiers à celles du dernier chargement / démarrage du serveur.
+- name: Dates des fichiers de configuration PostgreSQL
+  ansible.builtin.stat:
+    path: /etc/postgresql/17/main/{{ item }}
+    get_checksum: false
+  loop: [pg_hba.conf, pg_ident.conf, postgresql.conf]
+  register: postgresql_conf_files
+
+- name: Dernier chargement et démarrage du serveur
+  community.postgresql.postgresql_query:
+    query: >-
+      SELECT extract(epoch FROM pg_conf_load_time()) AS loaded,
+             extract(epoch FROM pg_postmaster_start_time()) AS started
+  become: true
+  become_user: postgres
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  register: postgresql_times
+  changed_when: false
+
+- name: Redémarrage si postgresql.conf est plus récent que le serveur
+  ansible.builtin.systemd_service:
+    name: postgresql
+    state: restarted
+  when:
+    - postgresql_times.query_result is defined
+    - postgresql_conf_files.results[2].stat.mtime > postgresql_times.query_result[0].started | float
+
+- name: Rechargement si pg_hba ou pg_ident sont plus récents que la configuration chargée
+  ansible.builtin.systemd_service:
+    name: postgresql
+    state: reloaded
+  when:
+    - postgresql_times.query_result is defined
+    - postgresql_conf_files.results[2].stat.mtime <= postgresql_times.query_result[0].started | float
+    - (postgresql_conf_files.results[:2] | map(attribute='stat.mtime') | max)
+      > postgresql_times.query_result[0].loaded | float

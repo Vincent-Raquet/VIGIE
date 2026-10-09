@@ -1,0 +1,18 @@
+[Unit]
+Description=Vigie — sauvegarde chiffrée de la base
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/vigie-backup
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/backups/vigie
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX

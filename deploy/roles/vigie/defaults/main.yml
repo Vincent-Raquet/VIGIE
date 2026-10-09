@@ -1,0 +1,13 @@
+---
+vigie_root: /opt/vigie
+vigie_release_dir: "{{ vigie_root }}/releases/{{ vigie_release }}"
+vigie_bin: "{{ vigie_root }}/current/bin/vigie"
+vigie_keep_releases: 3
+
+# Horaires (heure locale de la VM, Europe/Brussels) — SPEC §8.
+vigie_schedule:
+  plan_daily: "Mon..Fri *-*-* 07:15:00"
+  plan_weekly: "Mon *-*-* 06:30:00"
+  notify_daily: "Mon..Fri *-*-* 07:30:00"
+  notify_weekly: "Mon *-*-* 09:00:00"
+  housekeeping: "*-*-* 02:30:00"

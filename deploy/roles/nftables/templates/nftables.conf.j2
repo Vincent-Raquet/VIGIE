@@ -1,0 +1,54 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# SECURITY.md C6. Mode cohabitation dev : {{ 'OUI (sortie libre hors comptes vigie-*)' if vigie_dev_on_host else 'NON (sortie en drop pour tous)' }}.
+flush ruleset
+
+table inet vigie {
+  set admin_networks { type ipv4_addr; flags interval; elements = { {{ admin_networks | join(', ') }} } }
+  set lan_vpn_networks { type ipv4_addr; flags interval; elements = { {{ lan_vpn_networks | join(', ') }} } }
+  set dns_servers { type ipv4_addr; elements = { {{ dns_servers | join(', ') }} } }
+
+  chain input {
+    type filter hook input priority filter; policy drop;
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+    meta l4proto { icmp, ipv6-icmp } accept
+    tcp dport 22 ip saddr @admin_networks accept
+    tcp dport 443 ip saddr @lan_vpn_networks accept
+    tcp dport 10050 ip saddr {{ zabbix_server }} accept
+    counter log prefix "nft-in-drop " level info limit rate 10/minute drop
+  }
+
+  chain output {
+    type filter hook output priority filter; policy {{ 'accept' if vigie_dev_on_host else 'drop' }};
+    # Boucle locale : chaque compte ne joint que son port Squid (PostgreSQL : socket unix).
+    meta skuid "vigie-web" oif lo ct state new tcp dport != {{ squid_web_port }} counter drop
+    meta skuid "vigie-worker" oif lo ct state new tcp dport != {{ squid_worker_port }} counter drop
+    meta skuid "vigie-migrate" oif lo ct state new counter drop
+    oif lo accept
+    ct state established,related accept
+    meta l4proto { icmp, ipv6-icmp } accept
+
+    # vigie-web : uniquement la boucle locale (Squid {{ squid_web_port }}, PostgreSQL par socket unix).
+    meta skuid "vigie-web" counter log prefix "nft-web-drop " limit rate 10/minute drop
+    # vigie-migrate : aucune sortie réseau.
+    meta skuid "vigie-migrate" counter drop
+    # vigie-worker : DNS, sources internes en direct, Internet via Squid seulement.
+    meta skuid "vigie-worker" ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
+{% for s in vigie_source_egress %}
+    meta skuid "vigie-worker" ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
+{% endfor %}
+    meta skuid "vigie-worker" counter log prefix "nft-worker-drop " limit rate 10/minute drop
+{% if not vigie_dev_on_host %}
+
+    # Hors cohabitation : sorties du système lui-même.
+    ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
+    meta skuid "proxy" tcp dport 443 accept comment "Squid vers Internet"
+    meta skuid { "root", "_apt" } tcp dport { 80, 443 } accept comment "mises à jour"
+    meta skuid "_chrony" udp dport 123 accept
+    meta skuid "zabbix" ip daddr {{ zabbix_server }} tcp dport 10051 accept
+    counter log prefix "nft-out-drop " limit rate 10/minute drop
+{% endif %}
+  }
+}

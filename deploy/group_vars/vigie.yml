@@ -1,0 +1,77 @@
+# Variables NON secrètes. Les secrets se déposent sur la VM avec `vigie-secret set <nom>`.
+
+# --- Cohabitation avec le développement -------------------------------------------------
+# true : le filtrage sortant ne vise que les comptes vigie-* (nadmin et Claude Code gardent
+# leur accès). Passer à false le jour où le développement quitte la VM : sortie en drop.
+vigie_dev_on_host: true
+
+# --- Réseau ------------------------------------------------------------------------------
+vigie_domain: vigie.local.wallindustries.be
+vigie_ip: 192.168.10.17
+# SSH : À RELIRE avant le premier passage (une erreur ici coupe votre accès).
+# 192.168.48.11 = poste d'où la session de développement est ouverte (2026-10-09).
+admin_networks:
+  - 192.168.48.11/32
+  - 192.168.10.0/24
+  - 192.168.250.0/24
+# HTTPS de Vigie : LAN et pool VPN (à compléter avec le pool VPN).
+lan_vpn_networks:
+  - 192.168.0.0/16
+dns_servers:
+  - 192.168.250.10
+  - 192.168.250.14
+ntp_servers: []                 # vide : pool Debian par défaut (via la sortie autorisée)
+zabbix_server: 192.168.250.49
+
+# Sorties directes du worker vers les sources internes (le reste passe par Squid).
+vigie_source_egress:
+  - {name: zabbix, ip: 192.168.250.49, port: 443}
+
+# --- Squid (sortie Internet) -------------------------------------------------------------
+squid_worker_port: 3128         # vigie-worker : IA, Graph, Teams
+squid_web_port: 3129            # vigie-web : connexion Entra seulement
+squid_worker_domains:
+  - api.anthropic.com
+  - login.microsoftonline.com
+  - graph.microsoft.com
+squid_teams_domains: []         # ex. .westeurope.logic.azure.com quand Teams sera activé
+squid_web_domains:
+  - login.microsoftonline.com
+
+# --- Application ------------------------------------------------------------------------
+vigie_release: "{{ lookup('file', playbook_dir + '/../dist/release.txt') }}"
+vigie_dist_dir: "{{ playbook_dir }}/../dist"
+vigie_roles_dir: "{{ playbook_dir }}/../roles"
+vigie_web_port: 8080
+vigie_sources_enabled:
+  - name: zabbix
+    interval_min: 15
+    secrets: [zabbix_api_token]
+    settings:
+      base_url: "https://zabbix.local.wallindustries.be/zabbix"
+      min_severity: 2
+vigie_llm_enabled: true
+vigie_llm_budget_usd: 30
+vigie_notify_mail_enabled: false
+vigie_notify_teams_enabled: false
+vigie_oidc:
+  tenant_id: "6f5991ec-d614-41e6-92a6-dd77a108b727"                 # à reprendre de config/vigie.toml (non secret)
+  client_id: "5cd2e503-e88b-4a02-b23e-36e1e487fffd"   # gitleaks:allow (identifiant public d'app Entra, non secret)
+  groups:
+    "751fe482-0213-4440-ac04-3f3e0daef900": admin
+    "3e3a7eb9-298d-418b-84cd-f6b1e508d8f0": manager
+    "5898ac98-7eba-4df8-b575-4477f68ea045": tech
+    "8d4efea4-3944-4f37-985c-237bd3166c2d": viewer
+vigie_run_seed: false           # true au premier déploiement (fichiers dans /etc/vigie/seed)
+
+# --- Supervision et sauvegarde -----------------------------------------------------------
+zabbix_agent_hostname: WI-SRV-VIGIE-01
+zabbix_agent_psk_identity: vigie-01
+# Clé PUBLIQUE age des sauvegardes (la clé privée reste hors VM) : `age-keygen -o vigie.key`.
+backup_age_recipient: "age19ws8qk2j62hshnygfgkpsevluaytpy0umgya4drnxt0d9zs7dgqstm3aq8"
+backup_retention_days: 14
+
+# --- Durcissement -----------------------------------------------------------------------
+# Ne désactive l'authentification SSH par mot de passe que si vous le demandez explicitement
+# (vérifiez d'abord que votre clé fonctionne).
+ssh_disable_password_auth: false

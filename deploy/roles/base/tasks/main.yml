@@ -1,0 +1,63 @@
+---
+- name: Paquets de base
+  ansible.builtin.apt:
+    name:
+      - acl
+      - age
+      - chrony
+      - curl
+      - jq
+      - locales
+      - python3-psycopg2
+      - python3-venv
+      - unattended-upgrades
+      - apt-listchanges
+      - lynis
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Locale fr_BE.UTF-8
+  community.general.locale_gen:
+    name: fr_BE.UTF-8
+    state: present
+
+- name: Fuseau horaire Europe/Brussels
+  community.general.timezone:
+    name: Europe/Brussels
+
+- name: Serveurs NTP (chrony)
+  ansible.builtin.copy:
+    dest: /etc/chrony/sources.d/vigie.sources
+    content: |
+      {% for s in ntp_servers %}
+      server {{ s }} iburst
+      {% endfor %}
+    mode: "0644"
+  when: ntp_servers | length > 0
+  notify: Redémarrer chrony
+
+- name: Dossier des compléments de journald (absent par défaut sur Debian 13)
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Journal systemd persistant et borné
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/vigie.conf
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=1G
+      MaxRetentionSec=1year
+    mode: "0644"
+  notify: Redémarrer journald
+
+- name: Mises à jour de sécurité automatiques
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: "0644"

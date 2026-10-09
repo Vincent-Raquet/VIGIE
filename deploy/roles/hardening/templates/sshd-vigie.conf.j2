@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+PermitRootLogin no
+MaxAuthTries 3
+LogLevel VERBOSE
+TCPKeepAlive no
+Banner /etc/issue.net
+LoginGraceTime 30
+X11Forwarding no
+AllowAgentForwarding no
+PermitUserEnvironment no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+{% if not vigie_dev_on_host %}
+# Le développement a quitté la VM : plus de tunnel ni de sessions multiples.
+AllowTcpForwarding no
+MaxSessions 2
+{% endif %}
+{% if ssh_disable_password_auth %}
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+{% endif %}

@@ -1,0 +1,61 @@
+---
+# Répartition des secrets par unité (SECURITY.md C7, C10) : chaque unité ne reçoit que
+# ce dont elle a besoin. tests/security/test_systemd_units.py vérifie cette répartition.
+vigie_source_secrets: "{{ vigie_sources_enabled | map(attribute='secrets') | flatten | unique }}"
+vigie_source_ips: "{{ vigie_source_egress | map(attribute='ip') | unique }}"
+vigie_web_credentials: >-
+  {{ ['web_session_key'] + (['entra_client_secret'] if vigie_oidc.client_id else []) }}
+vigie_plan_credentials: "{{ ['anthropic_api_key'] if vigie_llm_enabled else [] }}"
+vigie_notify_credentials: >-
+  {{ (['graph_certificate'] if vigie_notify_mail_enabled else [])
+     + (['teams_webhook_url'] if vigie_notify_teams_enabled else []) }}
+vigie_notify_enabled: "{{ vigie_notify_mail_enabled or vigie_notify_teams_enabled }}"
+vigie_required_secrets: >-
+  {{ (vigie_web_credentials + vigie_plan_credentials + vigie_notify_credentials
+      + vigie_source_secrets) | unique | sort }}
+
+vigie_worker_units:
+  - name: vigie-collect@.service
+    unit_description: collecte de la source %i (lecture seule)
+    unit_exec: "{{ vigie_bin }} collect --source %i --mapping /etc/vigie/seed"
+    unit_timeout: 10min
+  - name: vigie-plan@.service
+    unit_description: plan %i
+    unit_exec: "{{ vigie_bin }} plan --kind %i"
+    unit_credentials: "{{ vigie_plan_credentials }}"
+    unit_proxy: true
+    unit_timeout: 20min
+  - name: vigie-notify@.service
+    unit_description: diffusion du plan %i
+    unit_exec: "{{ vigie_bin }} notify --plan latest-%i"
+    unit_credentials: "{{ vigie_notify_credentials }}"
+    unit_proxy: true
+  - name: vigie-jobs.service
+    unit_description: demandes de l'interface web
+    unit_exec: "{{ vigie_bin }} jobs --run-pending"
+    unit_credentials: "{{ vigie_source_secrets }}"
+    unit_ips: "{{ dns_servers + vigie_source_ips }}"
+    unit_timeout: 5min
+  - name: vigie-housekeeping.service
+    unit_description: purge selon les durées de conservation
+    unit_exec: "{{ vigie_bin }} housekeeping"
+  - name: vigie-selfcheck.service
+    unit_description: état de Vigie pour l'agent Zabbix
+    unit_exec: "{{ vigie_bin }} selfcheck --out /var/lib/vigie/selfcheck"
+    unit_state_dir: vigie/selfcheck
+    unit_timeout: 2min
+
+vigie_timers:
+  - {name: vigie-plan@daily.timer, timer_unit: vigie-plan@daily.service,
+     timer_calendar: "{{ vigie_schedule.plan_daily }}", enabled: true}
+  - {name: vigie-plan@weekly.timer, timer_unit: vigie-plan@weekly.service,
+     timer_calendar: "{{ vigie_schedule.plan_weekly }}", enabled: true}
+  - {name: vigie-notify@daily.timer, timer_unit: vigie-notify@daily.service,
+     timer_calendar: "{{ vigie_schedule.notify_daily }}", enabled: "{{ vigie_notify_enabled }}"}
+  - {name: vigie-notify@weekly.timer, timer_unit: vigie-notify@weekly.service,
+     timer_calendar: "{{ vigie_schedule.notify_weekly }}", enabled: "{{ vigie_notify_enabled }}"}
+  - {name: vigie-jobs.timer, timer_unit: vigie-jobs.service, timer_every: 1min, enabled: true}
+  - {name: vigie-housekeeping.timer, timer_unit: vigie-housekeeping.service,
+     timer_calendar: "{{ vigie_schedule.housekeeping }}", timer_jitter: 10min, enabled: true}
+  - {name: vigie-selfcheck.timer, timer_unit: vigie-selfcheck.service, timer_every: 5min,
+     enabled: true}

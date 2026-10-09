@@ -97,10 +97,10 @@ h2 { font: 600 16px/1.2 var(--font-display); margin: 0 0 8px; letter-spacing: .0
 .cap i { display: block; height: 100%; background: var(--accent); }
 .cap i.over { background: var(--p2); }
 ol.tasks { list-style: none; margin: 0; padding: 4px 0; }
-ol.tasks li { display: grid; grid-template-columns: 34px 1fr auto; gap: 4px 8px; padding: 9px 14px; border-left: 3px solid transparent; }
-ol.tasks li + li { border-top: 1px solid var(--line); }
-ol.tasks li.p1 { border-left-color: var(--p1); } ol.tasks li.p2 { border-left-color: var(--p2); }
-ol.tasks li.p3 { border-left-color: var(--p3); } ol.tasks li.p4 { border-left-color: var(--p4); }
+ol.tasks > li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 4px 8px; padding: 9px 14px; border-left: 3px solid transparent; }
+ol.tasks > li + li { border-top: 1px solid var(--line); }
+ol.tasks > li.p1 { border-left-color: var(--p1); } ol.tasks > li.p2 { border-left-color: var(--p2); }
+ol.tasks > li.p3 { border-left-color: var(--p3); } ol.tasks > li.p4 { border-left-color: var(--p4); }
 .t-title { font-weight: 500; }
 .t-why { grid-column: 2 / 4; font-size: 12px; color: var(--ink-2); }
 .t-h { font: 12px var(--font-mono); color: var(--ink-2); }

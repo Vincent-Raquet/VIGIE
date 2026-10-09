@@ -1,0 +1,11 @@
+---
+- name: Recharger systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Redémarrer vigie-web
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: vigie-web.service
+    state: restarted
+  when: vigie_secrets_ok | default(false)

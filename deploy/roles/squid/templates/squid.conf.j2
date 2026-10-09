@@ -1,0 +1,32 @@
+# {{ ansible_managed }}
+# Proxy sortant de Vigie (SECURITY.md C6) : CONNECT 443 vers une allowlist de domaines.
+# Port {{ squid_worker_port }} : vigie-worker (IA, Graph, Teams). Port {{ squid_web_port }} : vigie-web (Entra seul).
+# nftables n'autorise chaque compte qu'à son port ; tout le reste est refusé et journalisé.
+
+http_port 127.0.0.1:{{ squid_worker_port }} name=worker
+http_port 127.0.0.1:{{ squid_web_port }} name=web
+
+acl worker_port myportname worker
+acl web_port myportname web
+acl SSL_ports port 443
+acl Safe_ports port 443
+acl CONNECT method CONNECT
+acl worker_domains dstdomain {{ (squid_worker_domains + squid_teams_domains) | join(' ') }}
+acl web_domains dstdomain {{ squid_web_domains | join(' ') }}
+
+http_access deny !CONNECT
+http_access deny !Safe_ports
+http_access deny !SSL_ports
+http_access allow worker_port worker_domains
+http_access allow web_port web_domains
+http_access deny all
+
+cache deny all
+reply_body_max_size 50 MB
+cache_mem 8 MB
+via off
+forwarded_for delete
+httpd_suppress_version_string on
+access_log daemon:/var/log/squid/access.log squid
+dns_nameservers {{ dns_servers | join(' ') }}
+coredump_dir /var/spool/squid
