@@ -3,20 +3,38 @@
 from __future__ import annotations
 
 import os
+from collections import Counter
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import Annotated, Any, NoReturn
 
 import typer
+from pydantic import SecretStr
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from vigie import __version__
-from vigie.config import ConfigError, VigieConfig, load_config, resolve_config_path
+from vigie.config import (
+    ConfigError,
+    SecretError,
+    VigieConfig,
+    get_secret,
+    load_config,
+    resolve_config_path,
+)
 from vigie.connectors import registry
+from vigie.connectors.base import (
+    ConnectorConfigError,
+    ConnectorContext,
+    Signal,
+    SourceCallError,
+    fixture_transport,
+)
 from vigie.db.enums import PlanKind
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
 from vigie.logs import configure_logging
+from vigie.mapping import RuleMapper
 from vigie.seed import SeedError, apply_seed, load_seed_data
 
 EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
@@ -68,8 +86,52 @@ def main(
     ctx.obj = {"config": config}
 
 
+FIXTURE_BASE_URL = "https://fixtures.invalid"
+
+
+def _build_connector(name: str, cfg: VigieConfig, fixtures: Path | None) -> Any:
+    settings: dict[str, Any] = {}
+    if name in cfg.sources:
+        settings = cfg.sources[name].model_dump()
+    elif fixtures is None:
+        raise ConnectorConfigError(f"section [sources.{name}] absente de la configuration")
+    if fixtures is not None:
+        # Rejeu : ni secret ni réseau ; l'allowlist du SafeClient s'applique quand même.
+        settings.setdefault("base_url", FIXTURE_BASE_URL)
+        context = ConnectorContext(
+            settings=settings,
+            secret=lambda _name: SecretStr("fixture"),
+            transport=fixture_transport(fixtures),
+        )
+    else:
+        context = ConnectorContext(
+            settings=settings, secret=get_secret, ca_bundle=cfg.tls.ca_bundle
+        )
+    connector_cls: Any = registry.load(name)
+    return connector_cls.from_context(context)
+
+
+def _print_signals(signals: list[Signal]) -> None:
+    signals = sorted(signals, key=lambda s: (-s.severity, s.company_code or "~", s.asset))
+    typer.echo(f"{'SÉV':<4}{'CATÉGORIE':<12}{'SOCIÉTÉ':<9}{'ACTIF':<28}TITRE")
+    for s in signals:
+        typer.echo(
+            f"{s.severity:<4}{s.category.value:<12}{s.company_code or '—':<9}"
+            f"{s.asset[:27]:<28}{s.title[:90]}"
+        )
+    by_severity = Counter(s.severity for s in signals)
+    by_company = Counter(s.company_code or "sans société" for s in signals)
+    typer.echo(f"\n{len(signals)} signal(s)")
+    typer.echo(
+        "Par sévérité : "
+        + ", ".join(f"{k}={by_severity[k]}" for k in sorted(by_severity, reverse=True))
+    )
+    typer.echo("Par société : " + ", ".join(f"{k}={n}" for k, n in by_company.most_common()))
+
+
 @app.command()
 def collect(
+    ctx: typer.Context,
     source: Annotated[str, typer.Option("--source", help="Source à collecter (ex. zabbix).")],
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="N'écrit rien en base, affiche les signaux.")
@@ -78,9 +140,31 @@ def collect(
         Path | None,
         typer.Option("--fixtures", help="Rejoue des réponses enregistrées au lieu d'appeler."),
     ] = None,
+    mapping: Annotated[
+        Path,
+        typer.Option("--mapping", help="Dossier de companies.yaml (rattachement des sociétés)."),
+    ] = Path("config"),
 ) -> None:
     """Collecte les alertes d'une source (lecture seule)."""
-    _not_implemented(3)
+    if not dry_run:
+        typer.echo(
+            "Collecte avec enregistrement en base non implémentée (phase 4) : utiliser --dry-run.",
+            err=True,
+        )
+        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    if source not in registry.available():
+        typer.echo(f"ERREUR aucun connecteur installé pour la source {source!r}", err=True)
+        raise typer.Exit(code=1)
+    _, cfg = _config(ctx)
+    try:
+        mapper = RuleMapper.from_seed_dir(mapping)
+        connector = _build_connector(source, cfg, fixtures)
+        since = datetime.now(UTC) - timedelta(minutes=connector.config.interval_min)
+        signals = [connector.to_signal(raw, mapper) for raw in connector.collect(since)]
+    except (ConnectorConfigError, SecretError, SeedError, SourceCallError) as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    _print_signals(signals)
 
 
 @app.command()
@@ -108,16 +192,41 @@ def notify(
     _not_implemented(7)
 
 
+def _check_source(name: str, cfg: VigieConfig) -> bool:
+    try:
+        health = _build_connector(name, cfg, None).healthcheck()
+    except (ConnectorConfigError, SecretError, SourceCallError) as exc:
+        typer.echo(f"    ERREUR {exc}", err=True)
+        return False
+    if not health.ok:
+        typer.echo(f"    ERREUR {health.detail}", err=True)
+        return False
+    extra = f", {health.detail}" if health.detail else ""
+    typer.echo(f"    OK : version {health.version}, {health.latency_ms} ms{extra}")
+    return True
+
+
 @app.command()
-def check(ctx: typer.Context) -> None:
-    """Vérifie la configuration et la base (sources : phase 3)."""
+def check(
+    ctx: typer.Context,
+    sources: Annotated[
+        bool,
+        typer.Option("--sources", help="Teste aussi la connexion aux sources activées."),
+    ] = False,
+) -> None:
+    """Vérifie la configuration, la base et, avec --sources, la connexion aux sources."""
     path, cfg = _config(ctx)
     typer.echo(f"Configuration valide : {path}")
     installed = set(registry.available())
+    failed = False
     for name in sorted(cfg.sources):
         state = "activée" if cfg.sources[name].enabled else "désactivée"
         connector = "connecteur installé" if name in installed else "connecteur absent"
         typer.echo(f"  source {name} : {state}, {connector}")
+        if sources and cfg.sources[name].enabled and name in installed:
+            failed |= not _check_source(name, cfg)
+    if failed:
+        raise typer.Exit(code=1)
 
     engine = make_engine(cfg.database.url)
     try:

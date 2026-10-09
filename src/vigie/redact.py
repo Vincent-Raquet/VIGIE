@@ -82,3 +82,19 @@ def redact(text: str, *, emails: bool = True, phones: bool = True) -> str:
     if phones:
         text = _PHONE_RE.sub(_phone, text)
     return text
+
+
+_TAG_RE = re.compile(r"<[^<>]{0,200}>")
+_CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f​-‏‪-‮⁦-⁩]")
+_SPACES_RE = re.compile(r"[ \t]+")
+
+
+def clean_untrusted(text: str, max_len: int) -> str:
+    """Texte venu d'une source (non fiable) : balises et caractères de contrôle retirés,
+    espaces réduits, secrets masqués, tronqué à `max_len` caractères (SPEC §7.2)."""
+    text = _CONTROL_RE.sub("", _TAG_RE.sub("", text.replace("\r", "")))
+    text = "\n".join(_SPACES_RE.sub(" ", line).strip() for line in text.split("\n")).strip()
+    text = redact(text)
+    if len(text) > max_len:
+        text = text[: max_len - 1].rstrip() + "…"
+    return text

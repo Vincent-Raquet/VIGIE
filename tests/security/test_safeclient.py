@@ -2,6 +2,7 @@
 
 import json
 import ssl
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -19,6 +20,7 @@ from vigie.connectors.base import (
     Signal,
     SourceCallError,
     bounded,
+    fixture_transport,
 )
 from vigie.db.enums import Category
 
@@ -382,3 +384,60 @@ def test_signal_severity_range() -> None:
             first_seen=now,
             last_seen=now,
         )
+
+
+# --- Appels anonymes et rejeu de fixtures -------------------------------------------
+
+
+class EmptyParams(RootModel[list[int]]):
+    pass
+
+
+ANON = [
+    AllowedCall(
+        jsonrpc="apiinfo.version",
+        endpoint="/api_jsonrpc.php",
+        params_schema=EmptyParams,
+        anonymous=True,
+    ),
+    AllowedCall(jsonrpc="problem.get", endpoint="/api_jsonrpc.php", params_schema=ProblemGetParams),
+    AllowedCall(method="GET", path=r"^/api/v1/jobs$"),
+]
+
+
+def test_anonymous_call_sends_no_auth_header() -> None:
+    recorder = Recorder(
+        httpx.Response(200, json={"result": "7.4.0"}), httpx.Response(200, json={"result": []})
+    )
+    c = SafeClient(source="t", base_url=BASE_URL, allowlist=ANON, transport=recorder.transport())
+    c.set_auth_header("Authorization", SecretStr("Bearer fake-token"))
+    assert c.jsonrpc("apiinfo.version", []) == "7.4.0"
+    c.jsonrpc("problem.get", {})
+    assert "Authorization" not in recorder.requests[0].headers
+    assert json.loads(recorder.requests[0].content)["params"] == []
+    assert recorder.requests[1].headers["Authorization"] == "Bearer fake-token"
+
+
+def test_fixture_replay(tmp_path: Path) -> None:
+    (tmp_path / "problem.get.json").write_text('[{"eventid": "7"}]')
+    (tmp_path / "GET_api_v1_jobs.json").write_text('{"data": []}')
+    c = SafeClient(
+        source="t", base_url=BASE_URL, allowlist=ANON, transport=fixture_transport(tmp_path)
+    )
+    assert c.jsonrpc("problem.get", {}) == [{"eventid": "7"}]
+    assert c.get("/api/v1/jobs") == {"data": []}
+    with pytest.raises(SourceCallError, match="HTTP 404"):
+        c.jsonrpc("apiinfo.version", [])
+
+
+def test_fixture_replay_still_enforces_allowlist(tmp_path: Path) -> None:
+    (tmp_path / "host.delete.json").write_text("[]")
+    c = SafeClient(
+        source="t", base_url=BASE_URL, allowlist=ANON, transport=fixture_transport(tmp_path)
+    )
+    assert_forbidden(lambda: c.jsonrpc("host.delete", {}))
+
+
+def test_unreadable_ca_bundle_is_reported(tmp_path: Path) -> None:
+    with pytest.raises(SourceCallError, match="bundle CA illisible"):
+        SafeClient(source="t", base_url=BASE_URL, allowlist=ANON, ca_bundle=tmp_path / "absent.pem")

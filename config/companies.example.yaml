@@ -7,15 +7,21 @@ companies:
   - {code: FWD, name: Fairwind,         criticality: 1.0}
 
 asset_rules:
-  # Zabbix : préfixe du groupe d'hôtes
+  # Zabbix : préfixe du groupe d'hôtes, borné par un séparateur (espace - _ / . ( )),
+  # insensible à la casse et aux accents : « WI » capte « WI - Serveurs », « WI-Réseau »,
+  # mais pas « WIFI-… ». Le motif le plus long l'emporte.
   - {source: zabbix, match: hostgroup_prefix, pattern: "WI",  company: WI}
   - {source: zabbix, match: hostgroup_prefix, pattern: "SPL", company: SPL}
   - {source: zabbix, match: hostgroup_prefix, pattern: "WG",  company: WG}
   - {source: zabbix, match: hostgroup_prefix, pattern: "CC",  company: CC}
   - {source: zabbix, match: hostgroup_prefix, pattern: "FWD", company: FWD}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "Switchs/WI",  company: WI}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "Switchs/SPL", company: SPL}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "Switchs/WG",  company: WG}
   # Criticité des actifs par groupe (multiplicateur C_asset)
   - {source: zabbix, match: hostgroup_suffix, pattern: "Serveurs", asset_criticality: 1.3, tags: [prod]}
   - {source: zabbix, match: hostgroup_suffix, pattern: "Réseau",   asset_criticality: 1.5, tags: [core]}
+  # « WG-Reseau » : la comparaison ignore les accents, « Réseau » suffit.
   - {source: zabbix, match: hostgroup_suffix, pattern: "Cameras",  asset_criticality: 0.7}
   - {source: zabbix, match: hostgroup_suffix, pattern: "Printer",  asset_criticality: 0.6}
   # NinjaOne : organisationId → société (ids à compléter)

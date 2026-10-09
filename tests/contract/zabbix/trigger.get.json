@@ -1,0 +1,1367 @@
+[
+  {
+    "triggerid": "13485",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "4",
+        "name": "Zabbix servers"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10084",
+        "host": "Zabbix server",
+        "name": "Zabbix server",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "19998",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "30",
+        "name": "WI-Printer"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10396",
+        "host": "WI-Printer 1",
+        "name": "WI-Printer 1",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "20076",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "30",
+        "name": "WI-Printer"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10400",
+        "host": "WI-Printer 5",
+        "name": "WI-Printer 5",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "20190",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "30",
+        "name": "WI-Printer"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10400",
+        "host": "WI-Printer 5",
+        "name": "WI-Printer 5",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "37785",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "65",
+        "name": "WI-CAMERAS"
+      },
+      {
+        "groupid": "26",
+        "name": "WI-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10464",
+        "host": "WI - wifi bridge 01",
+        "name": "WI - wifi bridge 01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "43892",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10544",
+        "host": "srv-wg-01",
+        "name": "WG-SRV-AD-02",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "63268",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10726",
+        "host": "rpi-wg-01",
+        "name": "rpi-wg-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "63358",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10756",
+        "host": "hvac-wg-01",
+        "name": "hvac-wg-01",
+        "status": "0",
+        "maintenance_status": "1"
+      }
+    ]
+  },
+  {
+    "triggerid": "63612",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10804",
+        "host": "srv-wg-02",
+        "name": "WG-srv-wg-02 (app)",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "66955",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "35",
+        "name": "SRV-Veeam"
+      },
+      {
+        "groupid": "90",
+        "name": "Switchs/WI"
+      },
+      {
+        "groupid": "26",
+        "name": "WI-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10807",
+        "host": "sw-wi-backup-01",
+        "name": "sw-wi-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "68389",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "27",
+        "name": "SPL-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10391",
+        "host": "SPL - ap 2",
+        "name": "SPL-ap 2",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "68943",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "26",
+        "name": "WI-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10387",
+        "host": "WI-ap 4",
+        "name": "WI-ap 4",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "69846",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "60",
+        "name": "CC-Construct-Center"
+      },
+      {
+        "groupid": "28",
+        "name": "CC-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10640",
+        "host": "CC-ap 3",
+        "name": "CC-ap 3",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "70398",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "27",
+        "name": "SPL-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10391",
+        "host": "SPL - ap 2",
+        "name": "SPL-ap 2",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "71985",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "80",
+        "name": "SPL-Divers"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10879",
+        "host": "SPL-SIGNAGE-03",
+        "name": "SPL-SIGNAGE-03",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "78307",
+    "priority": "4",
+    "hostgroups": [
+      {
+        "groupid": "84",
+        "name": "Switchs/WG-OT"
+      },
+      {
+        "groupid": "56",
+        "name": "WG-Reseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10893",
+        "host": "sw-wg-ot-01",
+        "name": "sw-wg-ot-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "79042",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10912",
+        "host": "WI-PVE-CLUSTER",
+        "name": "WI-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "82377",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "80",
+        "name": "SPL-Divers"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10879",
+        "host": "SPL-SIGNAGE-03",
+        "name": "SPL-SIGNAGE-03",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "82379",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "80",
+        "name": "SPL-Divers"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10879",
+        "host": "SPL-SIGNAGE-03",
+        "name": "SPL-SIGNAGE-03",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "84444",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10933",
+        "host": "wi-pve-02",
+        "name": "wi-pve-02",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "91397",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10944",
+        "host": "SPL-PVE-CLUSTER",
+        "name": "SPL-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "91418",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10944",
+        "host": "SPL-PVE-CLUSTER",
+        "name": "SPL-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "91505",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10944",
+        "host": "SPL-PVE-CLUSTER",
+        "name": "SPL-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "91596",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10944",
+        "host": "SPL-PVE-CLUSTER",
+        "name": "SPL-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "93797",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10956",
+        "host": "WG-PVE-CLUSTER",
+        "name": "WG-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "93799",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10956",
+        "host": "WG-PVE-CLUSTER",
+        "name": "WG-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "93810",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10956",
+        "host": "WG-PVE-CLUSTER",
+        "name": "WG-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "93914",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10956",
+        "host": "WG-PVE-CLUSTER",
+        "name": "WG-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "94915",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10961",
+        "host": "SRV-SPL-APP-02",
+        "name": "SPL-SRV-SPL-APP-02",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "94931",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10961",
+        "host": "SRV-SPL-APP-02",
+        "name": "SPL-SRV-SPL-APP-02",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95078",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10962",
+        "host": "srv-wg-03",
+        "name": "WG-srv-wg-03 - File Server",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95275",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10963",
+        "host": "srv-wg-04",
+        "name": "WG-srv-wg-04 - SQL",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95277",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10963",
+        "host": "srv-wg-04",
+        "name": "WG-srv-wg-04 - SQL",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95380",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10965",
+        "host": "srv-wg-05",
+        "name": "WG-srv-wg-05 (app)",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95404",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10965",
+        "host": "srv-wg-05",
+        "name": "WG-srv-wg-05 (app)",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "95427",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "67",
+        "name": "WG-Maintenance"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10965",
+        "host": "srv-wg-05",
+        "name": "WG-srv-wg-05 (app)",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "96183",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "57",
+        "name": "WG-serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10956",
+        "host": "WG-PVE-CLUSTER",
+        "name": "WG-PVE-CLUSTER",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "97717",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "21",
+        "name": "SPL - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10692",
+        "host": "SRV-SPL-CTL",
+        "name": "SPL-SRV-SPL-CTL-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "99158",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "65",
+        "name": "WI-CAMERAS"
+      },
+      {
+        "groupid": "26",
+        "name": "WI-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10464",
+        "host": "WI - wifi bridge 01",
+        "name": "WI - wifi bridge 01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "99349",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10971",
+        "host": "FWD-PVE-CLOUD",
+        "name": "FWD-PVE-CLOUD",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "99350",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10971",
+        "host": "FWD-PVE-CLOUD",
+        "name": "FWD-PVE-CLOUD",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "99352",
+    "priority": "2",
+    "hostgroups": [
+      {
+        "groupid": "7",
+        "name": "Hypervisors"
+      },
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10971",
+        "host": "FWD-PVE-CLOUD",
+        "name": "FWD-PVE-CLOUD",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "99709",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "26",
+        "name": "WI-Réseau"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10423",
+        "host": "WI-fw-01",
+        "name": "WI-fw-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100078",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100081",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100089",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100091",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100100",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100107",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100109",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100110",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100120",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100122",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100128",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100163",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100176",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100234",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100238",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100241",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100243",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100248",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100253",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100257",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100262",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100311",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100317",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  },
+  {
+    "triggerid": "100330",
+    "priority": "3",
+    "hostgroups": [
+      {
+        "groupid": "15",
+        "name": "WI - Serveurs"
+      }
+    ],
+    "hosts": [
+      {
+        "hostid": "10959",
+        "host": "WI-backup-01",
+        "name": "WI-backup-01",
+        "status": "0",
+        "maintenance_status": "0"
+      }
+    ]
+  }
+]

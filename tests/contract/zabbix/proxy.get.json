@@ -1,0 +1,6 @@
+[
+  {"proxyid": "1", "name": "proxy-spl-01", "state": "2", "lastaccess": "1791563370", "operating_mode": "0"},
+  {"proxyid": "2", "name": "proxy-wg-01", "state": "1", "lastaccess": "1791559800", "operating_mode": "0"},
+  {"proxyid": "3", "name": "proxy-cc-01", "state": "2", "lastaccess": "1791561600", "operating_mode": "1"},
+  {"proxyid": "4", "name": "proxy-fwd-01", "state": "0", "lastaccess": "0", "operating_mode": "0"}
+]

@@ -1,0 +1,2432 @@
+[
+  {
+    "eventid": "504924766",
+    "objectid": "69846",
+    "clock": "1791562977",
+    "name": "Interface wifi1ap4: High error rate ( > 2 for 5m)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "errors in: 0, errors out: 34",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface wifi1ap4"
+      }
+    ]
+  },
+  {
+    "eventid": "504924493",
+    "objectid": "79042",
+    "clock": "1791562941",
+    "name": "Proxmox VE: Node [pve-02]: QEMU [WI-mon-01]: Memory usage high",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "memory"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "pve-02"
+      },
+      {
+        "tag": "qemu",
+        "value": "WI-mon-01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504923785",
+    "objectid": "100330",
+    "clock": "1791562879",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504923533",
+    "objectid": "91418",
+    "clock": "1791562851",
+    "name": "Proxmox VE: Node [spl-pve-02]: QEMU [SRV-SPL-APP-01]: Memory usage high",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "memory"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "spl-pve-02"
+      },
+      {
+        "tag": "qemu",
+        "value": "SRV-SPL-APP-01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504922903",
+    "objectid": "91596",
+    "clock": "1791562748",
+    "name": "Proxmox VE: Node [spl-pve-02]: QEMU [SPL-WORKER-SPL-PVE-02]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "spl-pve-02"
+      },
+      {
+        "tag": "qemu",
+        "value": "SPL-WORKER-SPL-PVE-02"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504919930",
+    "objectid": "68943",
+    "clock": "1791562391",
+    "name": "Interface wifi1ap4: High error rate ( > 2 for 5m)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "errors in: 0, errors out: 13",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface wifi1ap4"
+      }
+    ]
+  },
+  {
+    "eventid": "504918905",
+    "objectid": "91505",
+    "clock": "1791562288",
+    "name": "Proxmox VE: Node [spl-pve-01]: QEMU [SPL-WORKER-SPL-PVE-01]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "spl-pve-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "SPL-WORKER-SPL-PVE-01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504918560",
+    "objectid": "66955",
+    "clock": "1791562238",
+    "name": "Interface oob(): High bandwidth usage ( > 80% )",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "In: 4.39 Tbps, out: 5.06 Kbps, speed: 1 Gbps",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface oob()"
+      }
+    ]
+  },
+  {
+    "eventid": "504917609",
+    "objectid": "94915",
+    "clock": "1791562133",
+    "name": "Service \"AppXSvc\" (AppX Deployment Service (AppXSVC)) is not running (startup type automatic)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic services"
+      }
+    ]
+  },
+  {
+    "eventid": "504915807",
+    "objectid": "84444",
+    "clock": "1791561913",
+    "name": "High swap space usage ( less than 50% free)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "Free: 42.808 %, total: 47 GB",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Memory"
+      }
+    ]
+  },
+  {
+    "eventid": "504911840",
+    "objectid": "95275",
+    "clock": "1791561444",
+    "name": "Service \"DoSvc\" (Delivery Optimization) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "504898554",
+    "objectid": "99709",
+    "clock": "1791559785",
+    "name": "FortiGate WI-fw-01: tunnel(s) IPsec tombé(s) (moins de 2 actifs)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "VPN"
+      },
+      {
+        "tag": "custom",
+        "value": "fgt-health"
+      },
+      {
+        "tag": "scope",
+        "value": "vpn"
+      }
+    ]
+  },
+  {
+    "eventid": "504893022",
+    "objectid": "91397",
+    "clock": "1791559110",
+    "name": "Proxmox VE: Node [spl-pve-01]: QEMU [SRV-SPL-AD02]: Memory usage high",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "memory"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "spl-pve-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "SRV-SPL-AD02"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504888571",
+    "objectid": "20076",
+    "clock": "1791558563",
+    "name": "Printer Error",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "SNMP Enabled Printer"
+      }
+    ]
+  },
+  {
+    "eventid": "504872099",
+    "objectid": "20190",
+    "clock": "1791556583",
+    "name": "Paper Tray 2 - Warning: 165",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "SNMP Enabled Printer"
+      }
+    ]
+  },
+  {
+    "eventid": "504868888",
+    "objectid": "93797",
+    "clock": "1791556178",
+    "name": "Proxmox VE: Node [wg-pve-02]: QEMU [WG-VEEAM-WORKER-02]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "wg-pve-02"
+      },
+      {
+        "tag": "qemu",
+        "value": "WG-VEEAM-WORKER-02"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504868670",
+    "objectid": "70398",
+    "clock": "1791556155",
+    "name": "Interface GigabitEthernet1/0/13: Link down",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "Current state: down (2)",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface GigabitEthernet1/0/13"
+      }
+    ]
+  },
+  {
+    "eventid": "504859989",
+    "objectid": "100317",
+    "clock": "1791555079",
+    "name": "Veeam Backup: Failed session [REPLICATION - WG vers SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WG vers SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504857762",
+    "objectid": "96183",
+    "clock": "1791554805",
+    "name": "Proxmox VE: Node [wg-pve-01]: QEMU [WG-VEEAM-WORKER-01]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "wg-pve-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "WG-VEEAM-WORKER-01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504855371",
+    "objectid": "68389",
+    "clock": "1791554535",
+    "name": "Interface GigabitEthernet1/0/17: Link down",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "Current state: down (2)",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface GigabitEthernet1/0/17"
+      }
+    ]
+  },
+  {
+    "eventid": "504854642",
+    "objectid": "93810",
+    "clock": "1791554438",
+    "name": "Proxmox VE: Node [wg-pve-02]: QEMU [WG-VEEAM-WORKER-02]: Has been restarted",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "component",
+        "value": "uptime"
+      },
+      {
+        "tag": "node",
+        "value": "wg-pve-02"
+      },
+      {
+        "tag": "qemu",
+        "value": "WG-VEEAM-WORKER-02"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504806271",
+    "objectid": "100311",
+    "clock": "1791548479",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504801509",
+    "objectid": "95078",
+    "clock": "1791547863",
+    "name": "Service \"edgeupdate\" (Microsoft Edge Update Service (edgeupdate)) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "504785913",
+    "objectid": "13485",
+    "clock": "1791545930",
+    "name": "Zabbix unreachable poller processes more than 75% busy",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Zabbix server"
+      }
+    ]
+  },
+  {
+    "eventid": "504772753",
+    "objectid": "63358",
+    "clock": "1791544246",
+    "name": "Unavailable by ICMP ping",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Status"
+      }
+    ]
+  },
+  {
+    "eventid": "504759659",
+    "objectid": "37785",
+    "clock": "1791542597",
+    "name": "Unavailable by ICMP ping",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Status"
+      }
+    ]
+  },
+  {
+    "eventid": "504757992",
+    "objectid": "99158",
+    "clock": "1791542388",
+    "name": "WI - wifi bridge 01 has been restarted (uptime < 10m)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Status"
+      }
+    ]
+  },
+  {
+    "eventid": "504692057",
+    "objectid": "100262",
+    "clock": "1791534079",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504663080",
+    "objectid": "100257",
+    "clock": "1791530479",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504646039",
+    "objectid": "95380",
+    "clock": "1791528345",
+    "name": "Service \"edgeupdate\" (Microsoft Edge Update Service (edgeupdate)) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "504608866",
+    "objectid": "63268",
+    "clock": "1791523816",
+    "name": "Unavailable by ICMP ping",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Status"
+      }
+    ]
+  },
+  {
+    "eventid": "504575118",
+    "objectid": "100253",
+    "clock": "1791519679",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504513716",
+    "objectid": "100248",
+    "clock": "1791512179",
+    "name": "Veeam Backup: Failed session [REPLICATION - WG vers SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WG vers SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504485701",
+    "objectid": "100243",
+    "clock": "1791508879",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504467514",
+    "objectid": "93914",
+    "clock": "1791506673",
+    "name": "Proxmox VE: Node [wg-pve-01]: QEMU [srv-wg-05][C:\\]: Filesystem used high",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "filesystem"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "filesystem",
+        "value": "C:\\"
+      },
+      {
+        "tag": "node",
+        "value": "wg-pve-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "srv-wg-05"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504465655",
+    "objectid": "95427",
+    "clock": "1791506433",
+    "name": "Free disk space is less than 10% on volume C:",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Filesystems"
+      }
+    ]
+  },
+  {
+    "eventid": "504456031",
+    "objectid": "100241",
+    "clock": "1791505279",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504404238",
+    "objectid": "100238",
+    "clock": "1791498979",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504396759",
+    "objectid": "100234",
+    "clock": "1791498079",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-09"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504370560",
+    "objectid": "99352",
+    "clock": "1791494945",
+    "name": "Proxmox VE: Node [FWD-CLOUD-SRV-01]: QEMU [FWD-STARTER-01]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "FWD-CLOUD-SRV-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "FWD-STARTER-01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504358500",
+    "objectid": "99350",
+    "clock": "1791493481",
+    "name": "Proxmox VE: Node [FWD-CLOUD-SRV-01]: QEMU [FWD-SRV-WEB01]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "FWD-CLOUD-SRV-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "FWD-SRV-WEB01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504357798",
+    "objectid": "99349",
+    "clock": "1791493409",
+    "name": "Proxmox VE: Node [FWD-CLOUD-SRV-01]: QEMU [FWD-FW01]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "FWD-CLOUD-SRV-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "FWD-FW01"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504337187",
+    "objectid": "100176",
+    "clock": "1791490879",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504334150",
+    "objectid": "93799",
+    "clock": "1791490502",
+    "name": "Proxmox VE: Node [wg-pve-01]: QEMU [srv-wg-06]: Not running",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "node"
+      },
+      {
+        "tag": "component",
+        "value": "qemu"
+      },
+      {
+        "tag": "node",
+        "value": "wg-pve-01"
+      },
+      {
+        "tag": "qemu",
+        "value": "srv-wg-06"
+      },
+      {
+        "tag": "scope",
+        "value": "notice"
+      },
+      {
+        "tag": "subclass",
+        "value": "virtualization"
+      },
+      {
+        "tag": "target",
+        "value": "proxmox"
+      }
+    ]
+  },
+  {
+    "eventid": "504329714",
+    "objectid": "100163",
+    "clock": "1791489979",
+    "name": "Veeam Backup: Failed session [Rescan of Manually Added]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Rescan of Manually Added"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504302292",
+    "objectid": "100128",
+    "clock": "1791486679",
+    "name": "Veeam Backup: Failed session [REPLICATION - SPL vers  WI - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - SPL vers  WI - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504217870",
+    "objectid": "100122",
+    "clock": "1791476479",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504215613",
+    "objectid": "100120",
+    "clock": "1791476179",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504169306",
+    "objectid": "19998",
+    "clock": "1791470539",
+    "name": "Printer Error",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "SNMP Enabled Printer"
+      }
+    ]
+  },
+  {
+    "eventid": "504127597",
+    "objectid": "100110",
+    "clock": "1791465379",
+    "name": "Veeam Backup: Failed session [REPLICATION - SPL vers  WI - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - SPL vers  WI - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504127596",
+    "objectid": "100109",
+    "clock": "1791465379",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504101009",
+    "objectid": "100107",
+    "clock": "1791462079",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "504077965",
+    "objectid": "43892",
+    "clock": "1791459159",
+    "name": "Reboot required to finish installing Windows updates for WG-SRV-AD-02",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Winupdates vbs panel"
+      }
+    ]
+  },
+  {
+    "eventid": "504072972",
+    "objectid": "63612",
+    "clock": "1791458518",
+    "name": "Reboot required to finish installing Windows updates for WG-srv-wg-02 (app)",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Winupdates vbs panel"
+      }
+    ]
+  },
+  {
+    "eventid": "504070669",
+    "objectid": "95404",
+    "clock": "1791458229",
+    "name": "Service \"RemoteRegistry\" (Remote Registry) is not running (startup type automatic)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic services"
+      }
+    ]
+  },
+  {
+    "eventid": "504004981",
+    "objectid": "95277",
+    "clock": "1791449906",
+    "name": "Service \"edgeupdate\" (Microsoft Edge Update Service (edgeupdate)) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "503987385",
+    "objectid": "100100",
+    "clock": "1791447679",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503870489",
+    "objectid": "100091",
+    "clock": "1791433279",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503868240",
+    "objectid": "100089",
+    "clock": "1791432979",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503849434",
+    "objectid": "78307",
+    "clock": "1791430743",
+    "name": "Interface Fa1/7(): FCS ERRORS",
+    "severity": "4",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "#FCS Errors: 13194",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Interface Fa1/7()"
+      }
+    ]
+  },
+  {
+    "eventid": "503752154",
+    "objectid": "100081",
+    "clock": "1791418879",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503730114",
+    "objectid": "100078",
+    "clock": "1791416179",
+    "name": "Veeam Backup: Failed session [Retention job]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-08"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Retention job"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503633720",
+    "objectid": "100021",
+    "clock": "1791404479",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503626382",
+    "objectid": "100005",
+    "clock": "1791403579",
+    "name": "Veeam Backup: Failed session [Rescan of Manually Added]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Rescan of Manually Added"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503624144",
+    "objectid": "82379",
+    "clock": "1791403277",
+    "name": "mmcblk0p2: Disk read/write request responses are too high (read > 20 ms for 15m or write > 20 ms for 15m)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Disk mmcblk0p2"
+      }
+    ]
+  },
+  {
+    "eventid": "503624089",
+    "objectid": "82377",
+    "clock": "1791403275",
+    "name": "mmcblk0: Disk read/write request responses are too high (read > 20 ms for 15m or write > 20 ms for 15m)",
+    "severity": "2",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Disk mmcblk0"
+      }
+    ]
+  },
+  {
+    "eventid": "503618578",
+    "objectid": "71985",
+    "clock": "1791402627",
+    "name": "Zabbix agent is not available (for 3m)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Status"
+      }
+    ]
+  },
+  {
+    "eventid": "503598919",
+    "objectid": "99968",
+    "clock": "1791400279",
+    "name": "Veeam Backup: Failed session [REPLICATION - SPL vers  WI - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - SPL vers  WI - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503596358",
+    "objectid": "99970",
+    "clock": "1791399979",
+    "name": "Veeam Backup: Failed session [Rescan of mon-dt]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Rescan of mon-dt"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503515284",
+    "objectid": "99964",
+    "clock": "1791390079",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503483335",
+    "objectid": "94931",
+    "clock": "1791386169",
+    "name": "Service \"edgeupdate\" (Microsoft Edge Update Service (edgeupdate)) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "503426448",
+    "objectid": "99957",
+    "clock": "1791379279",
+    "name": "Veeam Backup: Failed session [REPLICATION - WI VERS SPL - VIP]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "REPLICATION - WI VERS SPL - VIP"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  },
+  {
+    "eventid": "503413874",
+    "objectid": "97717",
+    "clock": "1791377695",
+    "name": "Service \"InventorySvc\" (Inventory and Compatibility Appraisal service) is not running (startup type automatic delayed)",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Services"
+      },
+      {
+        "tag": "Application",
+        "value": "Startup automatic delayed services"
+      }
+    ]
+  },
+  {
+    "eventid": "503397591",
+    "objectid": "99954",
+    "clock": "1791375679",
+    "name": "Veeam Backup: Failed session [Host Discovery]",
+    "severity": "3",
+    "acknowledged": "0",
+    "acknowledges": "0",
+    "opdata": "",
+    "suppressed": "0",
+    "tags": [
+      {
+        "tag": "Application",
+        "value": "Veeam"
+      },
+      {
+        "tag": "class",
+        "value": "software"
+      },
+      {
+        "tag": "component",
+        "value": "sessions"
+      },
+      {
+        "tag": "creation-date",
+        "value": "2026-10-07"
+      },
+      {
+        "tag": "scope",
+        "value": "availability"
+      },
+      {
+        "tag": "session",
+        "value": "Host Discovery"
+      },
+      {
+        "tag": "target",
+        "value": "veeam"
+      }
+    ]
+  }
+]

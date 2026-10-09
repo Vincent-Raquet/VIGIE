@@ -87,3 +87,12 @@ def test_phone(phone: str) -> None:
 )
 def test_no_false_positive(text: str) -> None:
     assert redact(text) == text
+
+
+def test_clean_untrusted() -> None:
+    from vigie.redact import clean_untrusted
+
+    raw = "<b>Disque</b>‮ plein\x00 \t sur  srv\r\npassword=hunter2 <script>x</script>"
+    assert clean_untrusted(raw, 200) == "Disque plein sur srv\npassword=<redacted> x"
+    assert clean_untrusted("a" * 50, 10) == "a" * 9 + "…"
+    assert len(clean_untrusted("a" * 50, 10)) == 10

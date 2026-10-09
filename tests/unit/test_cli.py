@@ -38,7 +38,7 @@ def test_version() -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        ["collect", "--source", "zabbix", "--dry-run"],
+        ["collect", "--source", "zabbix"],  # écriture en base : phase 4
         ["plan", "--kind", "daily", "--dry-run", "--no-llm"],
         ["notify", "--plan", "latest-daily", "--dry-run"],
         ["budget"],
@@ -81,3 +81,53 @@ def test_commands_never_fall_back_to_dev_config_in_tests() -> None:
     result = runner.invoke(app, ["seed", "--dry-run"])
     assert result.exit_code == 1
     assert "absent-vigie.toml" in result.output
+
+
+ZABBIX_FIXTURES = Path(__file__).parents[1] / "contract" / "zabbix"
+
+
+def test_collect_dry_run_on_fixtures() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "--config",
+            str(EXAMPLE_CONFIG),
+            "collect",
+            "--source",
+            "zabbix",
+            "--dry-run",
+            "--fixtures",
+            str(ZABBIX_FIXTURES),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "46 signal(s)" in result.output
+    assert "Par sévérité : 4=7, 3=15, 2=24" in result.output
+    assert "24 problèmes ouverts sur WI-backup-01" in result.output
+
+
+def test_collect_unknown_source() -> None:
+    result = runner.invoke(
+        app, ["--config", str(EXAMPLE_CONFIG), "collect", "--source", "nope", "--dry-run"]
+    )
+    assert result.exit_code == 1
+    assert "aucun connecteur" in result.output
+
+
+def test_collect_without_secret_fails_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CREDENTIALS_DIRECTORY", raising=False)
+    monkeypatch.delenv("VIGIE_ENV", raising=False)
+    result = runner.invoke(
+        app, ["--config", str(EXAMPLE_CONFIG), "collect", "--source", "zabbix", "--dry-run"]
+    )
+    assert result.exit_code == 1
+    assert "zabbix_api_token" in result.output
+
+
+def test_check_sources_reports_missing_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CREDENTIALS_DIRECTORY", raising=False)
+    monkeypatch.delenv("VIGIE_ENV", raising=False)
+    result = runner.invoke(app, ["--config", str(EXAMPLE_CONFIG), "check", "--sources"])
+    assert result.exit_code == 1
+    assert "source zabbix : activée, connecteur installé" in result.output
+    assert "ERREUR secret zabbix_api_token" in result.output

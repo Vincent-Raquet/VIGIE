@@ -19,8 +19,8 @@ vigie = "vigie.cli:app"
 
 # Connecteurs découverts par vigie.connectors.registry (SPEC §6.1).
 # Ajouter un système = un module + une ligne ici (skill add-connector), sans toucher au moteur.
-# [project.entry-points."vigie.connectors"]
-# zabbix = "vigie.connectors.zabbix:ZabbixConnector"
+[project.entry-points."vigie.connectors"]
+zabbix = "vigie.connectors.zabbix:ZabbixConnector"
 
 [dependency-groups]
 dev = [
