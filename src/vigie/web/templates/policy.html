@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Politique{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Politique IT</h1><div class="sub">Les axes actifs ajoutent un bonus au score (poids × 2, plafonné à 20).</div></div></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel stack"><h2>Axes prioritaires</h2>
+    {% for a in axes %}
+    <details class="axis-edit"><summary><strong>{{ a.title }}</strong> — poids {{ a.weight }}{% if a.categories %} · {{ a.categories|join(", ") }}{% endif %}{% if a.valid_to %} · jusqu'au {{ a.valid_to.strftime("%d/%m/%Y") }}{% endif %}</summary>
+      {% with axis = a %}{% include "_axis_form.html" %}{% endwith %}
+      <form method="post" action="/politique/axes/{{ a.id }}/supprimer"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Supprimer l'axe</button></form>
+    </details>
+    {% else %}<p class="muted">Aucun axe.</p>{% endfor %}
+    <details><summary>Ajouter un axe</summary>{% with axis = none %}{% include "_axis_form.html" %}{% endwith %}</details>
+  </div>
+  <div class="grid2">
+    <div class="panel stack"><h2>Règles</h2>
+      <ul>{% for r in rules %}<li class="row"><span{% if not r.active %} class="muted"{% endif %}>{{ r.text }}</span>
+        <form method="post" action="/politique/regles/{{ r.id }}/basculer"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">{{ "Désactiver" if r.active else "Réactiver" }}</button></form></li>{% endfor %}</ul>
+      <form class="row" method="post" action="/politique/regles"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label class="f">Nouvelle règle <input name="text" required minlength="5" maxlength="500"></label><button class="btn primary" type="submit">Ajouter</button></form>
+    </div>
+    <div class="panel stack"><h2>Criticité des sociétés</h2>
+      {% for c in companies %}
+      <form class="row" method="post" action="/politique/societes/{{ c.code }}"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <span class="mono">{{ c.code }}</span> {{ c.name }}
+        <label class="sr-only" for="crit-{{ c.code }}">Criticité {{ c.code }}</label><input id="crit-{{ c.code }}" type="number" name="criticality" min="0.5" max="1.5" step="0.1" value="{{ c.criticality }}">
+        <button class="btn" type="submit">Enregistrer</button></form>
+      {% endfor %}
+      <h2>SLA cibles (heures)</h2>
+      <form class="fields" method="post" action="/politique/sla"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+        {% for p in priorities %}<label class="f">{{ p.value }} <input type="number" name="{{ p.value|lower }}" min="1" max="4320" value="{{ sla[p] }}" required></label>{% endfor %}
+        <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div></form>
+    </div>
+  </div>
+  <div class="panel table-wrap"><h2>Historique</h2>
+    <table><thead><tr><th>Date</th><th>Par</th><th>Action</th><th>Objet</th><th>Détails</th></tr></thead><tbody>
+    {% for e in history %}<tr><td class="mono">{{ e.at.strftime("%d/%m/%Y %H:%M") }}</td><td>{{ e.actor }}</td><td>{{ e.action }}</td><td class="mono">{{ e.object }}</td><td class="mono sub">{{ e.details|tojson }}</td></tr>{% else %}<tr><td colspan="5" class="muted">Aucune modification depuis l'amorçage.</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}

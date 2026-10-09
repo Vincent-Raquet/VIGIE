@@ -1,0 +1,11 @@
+<form class="fields" method="post" action="/projets/jalons">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="project_id" value="{{ project.id }}"><input type="hidden" name="milestone_id" value="{{ milestone.id if milestone else 0 }}">
+  <label class="f">Titre <input name="title" required minlength="3" maxlength="200" value="{{ milestone.title if milestone else '' }}"></label>
+  <label class="f">Échéance <input type="date" name="due" required value="{{ milestone.due if milestone else '' }}"></label>
+  <label class="f">Responsable <select name="owner_id"><option value="">—</option>{% for pe in people %}<option value="{{ pe.id }}"{% if milestone and milestone.owner_id == pe.id %} selected{% endif %}>{{ pe.name }}</option>{% endfor %}</select></label>
+  <label class="f">Charge (h) <input type="number" name="effort_h" min="0" max="1000" step="0.5" required value="{{ milestone.effort_h if milestone else 1 }}"></label>
+  <label class="f">Reste (h) <input type="number" name="remaining_h" min="0" max="1000" step="0.5" required value="{{ milestone.remaining_h if milestone else 1 }}"></label>
+  <label class="f">Statut <select name="status">{% for s in milestone_statuses %}<option value="{{ s.value }}"{% if milestone and milestone.status == s %} selected{% endif %}>{{ s.value }}</option>{% endfor %}</select></label>
+  <label class="f">Compétences (virgules) <input name="skill_tags" maxlength="300" value="{{ milestone.skill_tags|join(', ') if milestone else '' }}"></label>
+  <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+</form>

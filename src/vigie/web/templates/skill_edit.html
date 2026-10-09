@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ skill.name }}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>{{ skill.name }}</h1><div class="sub">Version {{ skill.version }} · {{ skill.updated_by }}</div></div><a class="btn" href="/skills">Retour</a></header>
+  <form class="grid2" method="post" action="/skills/{{ skill.id }}">
+    <div class="panel stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label class="f">Description (quand utiliser ce skill) <input name="description" maxlength="1000" value="{{ skill.description }}"></label>
+      <label class="f">Corps (Markdown)
+        <textarea name="body_md" required maxlength="50000" hx-post="/skills/apercu" hx-trigger="input changed delay:600ms" hx-target="#apercu" hx-swap="innerHTML">{{ skill.body_md }}</textarea></label>
+      <div><button class="btn primary" type="submit">Enregistrer une nouvelle version</button></div>
+    </div>
+    <div class="panel stack"><h2>Aperçu</h2><div id="apercu"><div class="md">{{ preview }}</div></div></div>
+  </form>
+  <div class="panel stack"><h2>Versions</h2>
+    <ul>{% for v in versions %}<li><span class="mono">v{{ v.version }}</span> · {{ v.updated_at.strftime("%d/%m/%Y %H:%M") }} · {{ v.updated_by }}{% if v.version != skill.version %} · <a href="/skills/{{ skill.id }}?diff={{ v.version }}">comparer avec l'actuelle</a>{% endif %}</li>{% endfor %}</ul>
+    {% if diff %}<h2>Différences v{{ diff }} → v{{ skill.version }}</h2><pre class="diff">{% for kind, line in diff_lines %}<span class="{{ kind }}">{{ line }}</span>
+{% endfor %}</pre>{% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -47,6 +47,7 @@ from vigie.engine.refine import Refinement, deterministic, refine
 from vigie.engine.render import render_markdown
 from vigie.logs import configure_logging
 from vigie.mapping import RuleMapper
+from vigie.pause import is_paused
 from vigie.seed import SeedError, apply_seed, load_seed_data
 
 EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
@@ -186,6 +187,9 @@ def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None
     failure: str | None = None
     try:
         with Session(engine) as session:
+            if is_paused(session, "collect", config_paused=cfg.general.paused):
+                typer.echo("Collecte en pause (interface ou [general] paused) : rien n'est fait.")
+                return
             ensure_source(
                 session,
                 source,
@@ -289,6 +293,9 @@ def plan(
     engine = make_engine(cfg.database.url)
     try:
         with Session(engine) as session:
+            if not dry_run and is_paused(session, "plan", config_paused=cfg.general.paused):
+                typer.echo("Génération des plans en pause (interface ou [general] paused).")
+                return
             run_engine(session, now)
             draft = build_plan(
                 session,
