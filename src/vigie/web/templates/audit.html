@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Audit & coûts{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Audit &amp; coûts</h1><div class="sub">Journal append-only (conservé 1 an) et consommation de l'IA.</div></div></header>
+  <div class="kpis">
+    <div class="kpi"><b>{{ "%.2f"|format(spent) }} $</b><span>dépensés en {{ month.strftime("%m/%Y") }} sur {{ "%.2f"|format(budget) }} $</span></div>
+    <div class="kpi"><b>{{ calls_count }}</b><span>appels à l'IA ce mois</span></div>
+    <div class="kpi"><b>{{ cache_share if cache_share is not none else "—" }}{% if cache_share is not none %} %{% endif %}</b><span>des jetons d'entrée servis par le cache</span></div>
+    <div class="kpi"><b>{{ total_signals }}</b><span>signaux enregistrés</span></div>
+  </div>
+  {% if calls %}
+  <div class="panel table-wrap"><h2>Derniers appels à l'IA</h2>
+    <table><thead><tr><th>Date</th><th>Modèle</th><th>Issue</th><th class="num">Entrée</th><th class="num">Cache</th><th class="num">Sortie</th><th class="num">Coût</th><th>Erreur</th></tr></thead><tbody>
+    {% for c in calls %}<tr><td class="mono">{{ c.at.strftime("%d/%m %H:%M") }}</td><td>{{ c.model }}</td><td>{{ c.outcome.value }}</td><td class="num">{{ c.input_tokens }}</td><td class="num">{{ c.cached_tokens }}</td><td class="num">{{ c.output_tokens }}</td><td class="num">{{ c.cost_usd }} $</td><td class="sub">{{ c.error or "" }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% endif %}
+  <div class="panel table-wrap"><h2>Journal</h2>
+    <form class="row" method="get" action="/audit"><label class="f">Action <select name="action"><option value="">toutes</option>{% for a in actions %}<option value="{{ a }}"{% if a == action %} selected{% endif %}>{{ a }}</option>{% endfor %}</select></label><button class="btn" type="submit">Filtrer</button></form>
+    <table><thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Objet</th><th>Détails</th></tr></thead><tbody>
+    {% for e in entries %}<tr><td class="mono">{{ e.at.strftime("%d/%m/%Y %H:%M:%S") }}</td><td>{{ e.actor }}</td><td>{{ e.action }}</td><td class="mono">{{ e.object }}</td><td class="mono sub">{{ e.details|tojson if e.details else "" }}</td></tr>{% else %}<tr><td colspan="5" class="muted">Journal vide.</td></tr>{% endfor %}
+    </tbody></table>
+    <div class="row">{% if page > 1 %}<a class="btn" href="/audit?page={{ page - 1 }}{% if action %}&amp;action={{ action|urlencode }}{% endif %}">Plus récents</a>{% endif %}{% if has_next %}<a class="btn" href="/audit?page={{ page + 1 }}{% if action %}&amp;action={{ action|urlencode }}{% endif %}">Plus anciens</a>{% endif %}</div>
+  </div>
+</section>
+{% endblock %}

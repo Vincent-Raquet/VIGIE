@@ -513,6 +513,38 @@ def web(
 
 
 @app.command()
+def jobs(
+    ctx: typer.Context,
+    run_pending: Annotated[
+        bool, typer.Option("--run-pending", help="Exécute les demandes du web en attente.")
+    ] = False,
+) -> None:
+    """Demandes déposées par l'interface web (ex. « Tester la connexion »), exécutées ici."""
+    from vigie.jobs_runner import run_pending as run
+
+    if not run_pending:
+        typer.echo("Rien à faire : utiliser --run-pending.", err=True)
+        raise typer.Exit(code=2)
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            done = run(session, lambda name: _build_connector(name, cfg, None))
+            session.commit()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    for job in done:
+        result = job.result or {}
+        typer.echo(
+            f"{job.kind.value} {job.payload} : {job.status.value} — {result.get('detail') or 'OK'}"
+        )
+    typer.echo(f"{len(done)} demande(s) traitée(s).")
+
+
+@app.command()
 def housekeeping() -> None:
     """Purge selon la rétention (SPEC §5.2)."""
     _not_implemented(8)

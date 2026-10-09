@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Signaux & incidents{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Signaux &amp; incidents</h1><div class="sub">Incidents corrélés, triés par priorité puis score.</div></div></header>
+  <form class="panel fields" method="get" action="/signaux">
+    <label class="f">Statut <select name="status">{% for v, l in [("open", "ouverts"), ("resolved", "résolus"), ("all", "tous")] %}<option value="{{ v }}"{% if filters.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+    <label class="f">Priorité <select name="priority"><option value="">toutes</option>{% for p in priorities %}<option value="{{ p.value }}"{% if filters.priority == p %} selected{% endif %}>{{ p.value }}</option>{% endfor %}</select></label>
+    <label class="f">Société <select name="company"><option value="">toutes</option>{% for c in companies %}<option value="{{ c }}"{% if filters.company == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>
+    <label class="f">Source <select name="source"><option value="">toutes</option>{% for s in sources %}<option value="{{ s }}"{% if filters.source == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+    <div class="row"><button class="btn primary" type="submit">Filtrer</button></div>
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>Priorité</th><th>Score</th><th>Catégorie</th><th>Société</th><th>Actif</th><th>Signaux</th><th>Raison</th><th></th></tr></thead>
+      <tbody>
+      {% for i in incidents %}
+        <tr><td><span class="pill {{ i.priority.value }}">{{ i.priority.value }}</span></td><td class="num">{{ i.score|fr_num }}</td><td>{{ i.category.value }}</td><td>{{ i.company_code or "—" }}</td><td>{{ i.asset or "—" }}</td><td class="num">{{ counts.get(i.id, 0) }}</td><td class="sub">{{ i.priority_reason }}</td><td><a href="/signaux/incidents/{{ i.id }}">détail</a></td></tr>
+      {% else %}
+        <tr><td colspan="8" class="muted">Aucun incident pour ces filtres.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if truncated %}<p class="muted">Liste limitée aux 200 premiers incidents : affinez les filtres.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

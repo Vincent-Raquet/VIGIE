@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from vigie.web.routes import plans
+from vigie.web.routes import audit, plans, signals, sources
 
-MODULES = (plans,)
+MODULES = (plans, signals, sources, audit)
 
 
 def register(app: FastAPI) -> None:
