@@ -7,6 +7,7 @@
     state: present
 
 - name: Rôles applicatifs (LOGIN, sans mot de passe)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   community.postgresql.postgresql_user:
     name: "{{ item }}"
     role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOINHERIT
@@ -15,6 +16,7 @@
   become_user: postgres
 
 - name: Base vigie, propriété de vigie_migrate (jamais d'un rôle d'exécution)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   community.postgresql.postgresql_db:
     name: vigie
     owner: vigie_migrate
@@ -26,6 +28,7 @@
   become_user: postgres
 
 - name: Connexion à la base pour les rôles d'exécution
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   community.postgresql.postgresql_privs:
     login_db: vigie
     type: database
@@ -35,6 +38,7 @@
   become_user: postgres
 
 - name: Aucun accès par défaut à la base pour PUBLIC
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   community.postgresql.postgresql_privs:
     login_db: vigie
     type: database

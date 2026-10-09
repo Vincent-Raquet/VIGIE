@@ -20,6 +20,7 @@
   notify: Recharger auditd
 
 - name: Services auditd, AppArmor et sshguard actifs
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     enabled: true

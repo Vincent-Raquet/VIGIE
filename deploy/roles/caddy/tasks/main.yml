@@ -5,6 +5,7 @@
     state: present
 
 - name: Caddyfile
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.template:
     src: Caddyfile.j2
     dest: /etc/caddy/Caddyfile
@@ -13,6 +14,7 @@
   notify: Recharger Caddy
 
 - name: Journal d'accès de Caddy
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.file:
     path: /var/log/caddy
     state: directory
@@ -21,6 +23,7 @@
     mode: "0750"
 
 - name: Caddy actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: caddy
     enabled: true

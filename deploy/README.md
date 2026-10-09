@@ -22,9 +22,13 @@ non reportée dans le code. Le playbook s'exécute **sur la VM elle-même** (`co
 3. Simulation puis application :
    ```sh
    cd deploy
-   uv run ansible-playbook site.yml --check --diff
-   uv run ansible-playbook site.yml
+   uv run ansible-playbook site.yml --check --diff -K
+   uv run ansible-playbook site.yml -K
    ```
+   `-K` demande le mot de passe sudo (ne jamais le stocker ni ajouter de `NOPASSWD`).
+   En simulation sur une VM vierge, les tâches qui dépendent d'un paquet ou d'un compte
+   pas encore créé échouent et sont marquées `...ignoring` : c'est attendu ; seules les
+   erreurs non ignorées comptent.
    Au premier passage, les unités Vigie ne sont **pas** activées : le playbook liste les
    secrets manquants.
 4. Déposer les secrets (§ 2), mettre `vigie_run_seed: true` le temps d'un passage (équipe,
@@ -67,7 +71,7 @@ exécution). Révoquer ensuite l'ancienne valeur à la source.
 
 ```sh
 git pull && deploy/build.sh
-cd deploy && uv run ansible-playbook site.yml --check --diff && uv run ansible-playbook site.yml
+cd deploy && uv run ansible-playbook site.yml --check --diff -K && uv run ansible-playbook site.yml -K
 ```
 
 Le playbook installe la nouvelle version dans son propre venv (dépendances vérifiées par

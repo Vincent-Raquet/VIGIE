@@ -5,6 +5,7 @@
     state: present
 
 - name: Configuration Squid (deux ports, deux allowlists de domaines)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.template:
     src: squid.conf.j2
     dest: /etc/squid/squid.conf
@@ -13,6 +14,7 @@
   notify: Redémarrer Squid
 
 - name: Squid actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: squid
     enabled: true

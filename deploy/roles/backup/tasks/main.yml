@@ -35,6 +35,7 @@
   ansible.builtin.meta: flush_handlers
 
 - name: Sauvegarde quotidienne active
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: vigie-backup.timer
     enabled: true

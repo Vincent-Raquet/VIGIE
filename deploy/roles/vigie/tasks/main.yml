@@ -6,6 +6,7 @@
     system: true
 
 - name: Comptes de service dans le groupe vigie
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.user:
     name: "{{ item }}"
     groups: [vigie]
@@ -39,6 +40,7 @@
     - {path: "{{ vigie_root }}/releases", group: root, mode: "0755"}
 
 - name: Configuration non secrète
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: /etc/vigie/{{ item }}
@@ -56,6 +58,7 @@
     mode: "0755"
 
 - name: Wheel et dépendances figées
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ vigie_release_dir }}/"
@@ -93,6 +96,7 @@
 
 # --- Données d'amorçage et migrations ---------------------------------------------------
 - name: Fichiers d'amorçage (équipe, sociétés, politique, scoring)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: /etc/vigie/seed/
@@ -103,6 +107,7 @@
     - "{{ playbook_dir }}/../config/*.yaml"
 
 - name: Skills de rôle
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.copy:
     src: "{{ vigie_roles_dir }}/"
     dest: /etc/vigie/seed/roles/
@@ -112,6 +117,7 @@
     mode: "0640"
 
 - name: Migrations de la base (vigie-migrate, propriétaire du schéma)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.command:
     cmd: "{{ vigie_bin }} --config /etc/vigie/migrate.toml migrate"
   become: true
@@ -120,6 +126,7 @@
   changed_when: "'Base migrée' in vigie_migrate.stdout"
 
 - name: Amorçage initial (vigie_run_seed)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.command:
     cmd: >-
       {{ vigie_bin }} --config /etc/vigie/migrate.toml seed
@@ -234,6 +241,7 @@
   when: not vigie_secrets_ok
 
 - name: Service web actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: vigie-web.service
     enabled: true
@@ -241,6 +249,7 @@
   when: vigie_secrets_ok
 
 - name: Timers de collecte actifs
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: vigie-collect@{{ item.name }}.timer
     enabled: true
@@ -251,6 +260,7 @@
   when: vigie_secrets_ok
 
 - name: Autres timers (actifs ou arrêtés selon la configuration)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: "{{ item.name }}"
     enabled: "{{ item.enabled | bool }}"

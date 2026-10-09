@@ -1,9 +1,11 @@
 ---
 - name: Recharger auditd
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.command: augenrules --load
   changed_when: true
 
 - name: Recharger sshd
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: ssh
     state: reloaded

@@ -12,6 +12,7 @@
     creates: /etc/zabbix/vigie.psk
 
 - name: Droits de la clé PSK
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.file:
     path: /etc/zabbix/vigie.psk
     owner: zabbix
@@ -19,6 +20,7 @@
     mode: "0400"
 
 - name: Configuration de l'agent
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.template:
     src: zabbix_agent2.conf.j2
     dest: /etc/zabbix/zabbix_agent2.conf
@@ -26,6 +28,7 @@
   notify: Redémarrer l'agent Zabbix
 
 - name: Agent actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: zabbix-agent2
     enabled: true
