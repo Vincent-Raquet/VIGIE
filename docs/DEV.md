@@ -11,7 +11,7 @@ Le développement se fait **directement sur la VM cible** WI-SRV-VIGIE-01 (192.1
 | Bases PostgreSQL | `vigie_dev`, `vigie_test` (rôle `nadmin`, peer) | `vigie` (`vigie_web`, `vigie_worker`, `vigie_migrate`) |
 | Configuration | `config/vigie.toml` (ignoré par Git) via `VIGIE_CONFIG` | `/etc/vigie/vigie.toml` via les unités systemd |
 | Secrets | `.env.local` (factices) si `VIGIE_ENV=dev` | `systemd-creds`, `$CREDENTIALS_DIRECTORY` |
-| Web | `127.0.0.1:8000`, accès par tunnel SSH | `127.0.0.1:8080` derrière Caddy |
+| Web | `127.0.0.1:8000`, accès par tunnel SSH | `https://vigie.local.wallindustries.be` (Caddy → `127.0.0.1:8080`) |
 
 Règles :
 - **Aucun secret de production sur la VM tant que Claude Code y travaille** (cf. `SECURITY.md §3`).

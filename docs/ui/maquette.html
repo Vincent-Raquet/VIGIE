@@ -1,0 +1,499 @@
+<title>Vigie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : barre latérale fixe (navigation des 10 écrans SPEC §9) + zone de travail dense, cartes réservées aux personnes. */
+:root {
+  --ink: #17202b;
+  --ink-2: #4a5666;
+  --ink-3: #7a8594;
+  --paper: #f3f5f7;
+  --panel: #ffffff;
+  --line: #dde2e8;
+  --rail: #1c2733;
+  --rail-ink: #c9d2dc;
+  --accent: #1f6f8b;
+  --accent-soft: #e2f0f5;
+  --p1: #c0392b; --p1-bg: #fbe9e7;
+  --p2: #c26a0e; --p2-bg: #fdf0e1;
+  --p3: #8a7a12; --p3-bg: #f7f3d9;
+  --p4: #6b7684; --p4-bg: #eceff2;
+  --ok: #2e7d4f; --ok-bg: #e4f3ea;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #e4e9ef; --ink-2: #aab4c0; --ink-3: #7d8896;
+    --paper: #12181f; --panel: #19212b; --line: #2a3542;
+    --rail: #0d1217; --rail-ink: #aab4c0;
+    --accent: #5fb4d2; --accent-soft: #173341;
+    --p1: #ff7a6b; --p1-bg: #3a1d1a; --p2: #f2a65a; --p2-bg: #3a2814;
+    --p3: #d8c95a; --p3-bg: #33301a; --p4: #a3adb9; --p4-bg: #252e39;
+    --ok: #6fcf97; --ok-bg: #173226;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e4e9ef; --ink-2: #aab4c0; --ink-3: #7d8896;
+  --paper: #12181f; --panel: #19212b; --line: #2a3542;
+  --rail: #0d1217; --rail-ink: #aab4c0;
+  --accent: #5fb4d2; --accent-soft: #173341;
+  --p1: #ff7a6b; --p1-bg: #3a1d1a; --p2: #f2a65a; --p2-bg: #3a2814;
+  --p3: #d8c95a; --p3-bg: #33301a; --p4: #a3adb9; --p4-bg: #252e39;
+  --ok: #6fcf97; --ok-bg: #173226;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.45 var(--font-body); }
+.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100%; }
+nav.rail { background: var(--rail); color: var(--rail-ink); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.brand { font: 600 22px/1 var(--font-display); color: #fff; letter-spacing: .02em; padding: 4px 10px 2px; }
+.brand small { display: block; font: 400 11px/1.4 var(--font-body); color: var(--rail-ink); letter-spacing: .04em; margin-top: 4px; }
+.rail h6 { margin: 14px 10px 4px; font: 500 10px/1 var(--font-body); text-transform: uppercase; letter-spacing: .12em; color: #7d8896; }
+.rail button { all: unset; cursor: pointer; padding: 7px 10px; border-radius: 6px; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; }
+.rail button:hover { background: rgba(255,255,255,.06); }
+.rail button:focus-visible { outline: 2px solid var(--accent); }
+.rail button[aria-current="page"] { background: rgba(95,180,210,.16); color: #fff; }
+.rail .count { font: 500 11px var(--font-mono); background: var(--p1); color: #fff; border-radius: 9px; padding: 1px 6px; }
+.whoami { margin-top: auto; padding: 10px; font-size: 12px; border-top: 1px solid rgba(255,255,255,.08); }
+main { padding: 20px 28px 40px; min-width: 0; }
+.banner { background: var(--accent-soft); color: var(--ink); border: 1px dashed var(--accent); border-radius: 6px; padding: 7px 12px; font-size: 12.5px; margin-bottom: 16px; }
+header.page { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 14px; }
+h1 { font: 600 26px/1.1 var(--font-display); margin: 0; text-wrap: balance; }
+h2 { font: 600 16px/1.2 var(--font-display); margin: 0 0 8px; letter-spacing: .01em; }
+.sub { color: var(--ink-2); font-size: 13px; }
+.stack { display: flex; flex-direction: column; gap: 18px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+.pill { display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1 var(--font-mono); padding: 3px 6px; border-radius: 4px; letter-spacing: .02em; white-space: nowrap; }
+.P1 { color: var(--p1); background: var(--p1-bg); } .P2 { color: var(--p2); background: var(--p2-bg); }
+.P3 { color: var(--p3); background: var(--p3-bg); } .P4 { color: var(--p4); background: var(--p4-bg); }
+.okc { color: var(--ok); background: var(--ok-bg); }
+.tag { font: 500 11px/1 var(--font-body); padding: 3px 6px; border-radius: 4px; background: var(--p4-bg); color: var(--ink-2); white-space: nowrap; }
+.btn { font: 500 13px var(--font-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #0d1217; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #0d1217; } }
+.btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.kpi b { display: block; font: 600 24px/1.1 var(--font-mono); }
+.kpi span { font-size: 12px; color: var(--ink-2); }
+.people { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.person { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+.person > header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+.person h3 { margin: 0; font: 600 17px var(--font-display); }
+.cap { height: 6px; background: var(--p4-bg); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.cap i { display: block; height: 100%; background: var(--accent); }
+.cap i.over { background: var(--p2); }
+ol.tasks { list-style: none; margin: 0; padding: 4px 0; }
+ol.tasks li { display: grid; grid-template-columns: 34px 1fr auto; gap: 4px 8px; padding: 9px 14px; border-left: 3px solid transparent; }
+ol.tasks li + li { border-top: 1px solid var(--line); }
+ol.tasks li.p1 { border-left-color: var(--p1); } ol.tasks li.p2 { border-left-color: var(--p2); }
+ol.tasks li.p3 { border-left-color: var(--p3); } ol.tasks li.p4 { border-left-color: var(--p4); }
+.t-title { font-weight: 500; }
+.t-why { grid-column: 2 / 4; font-size: 12px; color: var(--ink-2); }
+.t-h { font: 12px var(--font-mono); color: var(--ink-2); }
+.esc { font: 600 10.5px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--p1); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font: 500 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.sel td { background: var(--accent-soft); }
+tbody tr { cursor: default; }
+.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+.formula { font: 12.5px/1.7 var(--font-mono); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: nowrap; }
+.week { display: grid; grid-template-columns: 110px repeat(5, minmax(120px, 1fr)); min-width: 760px; }
+.week > div { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 8px; min-height: 64px; font-size: 12.5px; }
+.week .hd { min-height: 0; font: 500 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); background: var(--paper); }
+.week .who { font-weight: 600; background: var(--paper); }
+.week .off { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--p4-bg) 6px 8px); color: var(--ink-3); }
+.chip { display: block; margin-bottom: 4px; padding: 3px 6px; border-radius: 4px; background: var(--paper); border-left: 3px solid var(--p4); }
+.chip.p1 { border-left-color: var(--p1); } .chip.p2 { border-left-color: var(--p2); } .chip.p3 { border-left-color: var(--p3); }
+.chip.ms { border-left-color: var(--accent); }
+.matrix td.lv { text-align: center; font-family: var(--font-mono); }
+.lv3 { background: var(--accent); color: #fff; } .lv2 { background: var(--accent-soft); } .lv1 { color: var(--ink-3); }
+:root[data-theme="dark"] .lv3 { color: #0d1217; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lv3 { color: #0d1217; } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+input, select, textarea { font: 13px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+textarea { font-family: var(--font-mono); font-size: 12.5px; width: 100%; min-height: 260px; resize: vertical; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+input[type=range] { padding: 0; accent-color: var(--accent); }
+.axis { display: grid; grid-template-columns: 1fr 140px 28px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.timeline { position: relative; height: 34px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; margin: 6px 0 2px; }
+.timeline .ms { position: absolute; top: 6px; transform: translateX(-50%); font: 11px var(--font-mono); white-space: nowrap; }
+.timeline .ms::before { content: ""; display: block; width: 10px; height: 10px; margin: 0 auto 2px; background: var(--accent); transform: rotate(45deg); }
+.timeline .ms.risk::before { background: var(--p2); }
+.timeline .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--p1); }
+.src { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--p4); }
+.dot.ok { background: var(--ok); } .dot.ko { background: var(--p1); }
+.bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; border-bottom: 1px solid var(--line); }
+.bars div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-width: 8px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle input { width: 34px; height: 18px; accent-color: var(--accent); }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  nav.rail { flex-direction: row; flex-wrap: wrap; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; padding: 10px 16px; }
+  .rail h6, .whoami, .brand small { display: none; }
+  .brand { width: 100%; padding: 0 0 6px; }
+  main { padding: 16px; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: no-preference) { .cap i { transition: width .3s; } }
+</style>
+
+<div class="app">
+  <nav class="rail" aria-label="Navigation">
+    <div class="brand">Vigie<small>Pilotage IT · WI SPL WG CC FWD</small></div>
+    <h6>Plans</h6>
+    <button data-page="today" aria-current="page">Aujourd'hui <span class="count">2 P1</span></button>
+    <button data-page="week">Semaine</button>
+    <button data-page="signals">Signaux &amp; incidents</button>
+    <h6>Configuration</h6>
+    <button data-page="team">Équipe</button>
+    <button data-page="policy">Politique</button>
+    <button data-page="projects">Projets</button>
+    <button data-page="skills">Skills de rôle</button>
+    <button data-page="sources">Sources</button>
+    <button data-page="settings">Paramètres</button>
+    <h6>Administration</h6>
+    <button data-page="audit">Audit &amp; coûts</button>
+    <div class="whoami">Connecté : Vincent<br><span class="muted">rôle admin · Entra ID</span></div>
+  </nav>
+
+  <main>
+    <div class="banner"><strong>Maquette</strong> de l'interface prévue en phase 6 (SPEC §9). Données d'exemple issues de <span class="mono">config/*.example.yaml</span> ; aucun élément n'est branché.</div>
+
+    <!-- AUJOURD'HUI -->
+    <section id="page-today" class="stack">
+      <header class="page">
+        <div><h1>Plan du jeudi 8 octobre 2026</h1><div class="sub">Généré à 07:15 · publié à 07:30 · <span class="pill P2">non validé</span> · généré avec IA (0,21 $)</div></div>
+        <div class="row"><button class="btn">Régénérer sans IA</button><button class="btn primary">Valider le plan</button></div>
+      </header>
+      <div class="kpis">
+        <div class="kpi"><b>2</b><span>nouveaux P1 depuis hier</span></div>
+        <div class="kpi"><b>3</b><span>présents (Angelo absent)</span></div>
+        <div class="kpi"><b>14,8 h</b><span>planifiées sur 16,8 h de capacité</span></div>
+        <div class="kpi"><b>0</b><span>source en panne</span></div>
+      </div>
+      <div class="people">
+        <article class="person">
+          <header><div><h3>Cédric</h3><span class="sub">Réseau · présent le jeudi</span></div><span class="t-h">5,5 / 6,4 h</span></header>
+          <div class="cap" style="margin:0 14px"><i style="width:86%"></i></div>
+          <ol class="tasks">
+            <li class="p1"><span class="pill P1">P1</span><span class="t-title">VPN site-à-site WG ↔ WI tombé</span><span class="t-h">2 h</span>
+              <span class="t-why">Override : VPN down depuis 42 min (&gt; 30 min). Compétence réseau 3, présent aujourd'hui. Zabbix · WG-FW01.</span></li>
+            <li class="p3"><span class="pill P3">P3</span><span class="t-title">Maquette configuration FortiGate CC</span><span class="t-h">3 h</span>
+              <span class="t-why">Jalon du projet « Remplacement firewall CC », échéance 29/10, 6 h restantes.</span></li>
+            <li class="p4"><span class="pill P4">P4</span><span class="t-title">Analyse : flaps Wi-Fi bâtiment SPL</span><span class="t-h">0,5 h</span>
+              <span class="t-why">Récurrent (7 occurrences sur 7 j), reporté 1 fois.</span></li>
+          </ol>
+        </article>
+        <article class="person">
+          <header><div><h3>Vincent</h3><span class="sub">Coordinateur · 50 % planifiable</span></div><span class="t-h">4,0 / 4,0 h</span></header>
+          <div class="cap" style="margin:0 14px"><i style="width:100%"></i></div>
+          <ol class="tasks">
+            <li class="p1"><span class="pill P1">P1</span><span class="t-title">SPL-FS01 : aucune sauvegarde réussie depuis 31 h</span><span class="t-h">1,5 h</span>
+              <span class="t-why"><span class="esc">Escalade</span> · Override : job critique sans succès &gt; 24 h. Angelo (backup 3) absent jusqu'à mardi ; tâche de cause racine planifiée pour lui le 13/10.</span></li>
+            <li class="p2"><span class="pill P2">P2</span><span class="t-title">Repository WI-REPO01 occupé à 92 %</span><span class="t-h">1 h</span>
+              <span class="t-why">Override : repository &gt; 90 %. Veeam · vbr-main.</span></li>
+            <li class="p3"><span class="pill P3">P3</span><span class="t-title">CC-SRV-APP02 : disque C: à 91 %</span><span class="t-h">1,5 h</span>
+              <span class="t-why">Score 24,6. Zabbix High, actif production (×1,3).</span></li>
+          </ol>
+        </article>
+        <article class="person">
+          <header><div><h3>Giovanni</h3><span class="sub">Support utilisateurs</span></div><span class="t-h">5,3 / 6,4 h</span></header>
+          <div class="cap" style="margin:0 14px"><i style="width:83%"></i></div>
+          <ol class="tasks">
+            <li class="p3"><span class="pill P3">P3</span><span class="t-title">6 postes WI : agent Zabbix non rapporté</span><span class="t-h">1,5 h</span>
+              <span class="t-why">Regroupé en une tâche (liste des postes jointe). Compétence poste 3.</span></li>
+            <li class="p3"><span class="pill P3">P3</span><span class="t-title">Préparer la venue d'Angelo mardi</span><span class="t-h">0,5 h</span>
+              <span class="t-why">Accès console VBR et fenêtre de maintenance SPL-FS01 à réserver.</span></li>
+            <li class="p4"><span class="pill P4">P4</span><span class="t-title">Imprimantes WG-PRN03 et WG-PRN05 injoignables</span><span class="t-h">0,5 h</span>
+              <span class="t-why">Actif peu critique (×0,6).</span></li>
+          </ol>
+        </article>
+      </div>
+      <div class="panel">
+        <h2>Synthèse de l'IA</h2>
+        <p style="margin:0;max-width:72ch">Deux urgences : la sauvegarde de SPL-FS01 échoue depuis hier soir et le VPN WG–WI est coupé. Cédric est présent : il prend le VPN. Vincent traite la sauvegarde en l'absence d'Angelo, qui reprendra l'analyse mardi. Le repository WI approche de la saturation : à surveiller avant le week-end.</p>
+      </div>
+    </section>
+
+    <!-- SEMAINE -->
+    <section id="page-week" class="stack" hidden>
+      <header class="page">
+        <div><h1>Semaine 41 · 5 au 9 octobre</h1><div class="sub">Plan hebdomadaire · <span class="pill okc">validé</span> lundi 08:52 par Vincent</div></div>
+        <div class="row"><button class="btn">Exporter</button><button class="btn primary">Publier</button></div>
+      </header>
+      <div class="panel table-wrap">
+        <div class="week">
+          <div class="hd"></div><div class="hd">Lun 5</div><div class="hd">Mar 6</div><div class="hd">Mer 7</div><div class="hd">Jeu 8</div><div class="hd">Ven 9</div>
+          <div class="who">Vincent<br><span class="muted mono">4 h/j</span></div>
+          <div><span class="chip p2">Repository WI 88 %</span><span class="chip ms">Suivi projets</span></div>
+          <div><span class="chip p3">Certificat vigie.local.wallindustries.be</span></div>
+          <div><span class="chip p3">CC-SRV-APP02 disque</span></div>
+          <div><span class="chip p1">SPL-FS01 sauvegarde</span><span class="chip p2">Repo WI 92 %</span></div>
+          <div><span class="chip">Revue hebdo</span></div>
+          <div class="who">Giovanni<br><span class="muted mono">6,4 h/j</span></div>
+          <div><span class="chip p3">Agents Zabbix postes</span></div>
+          <div><span class="chip">Tickets</span></div>
+          <div><span class="chip">Tickets</span></div>
+          <div><span class="chip p3">Préparer mardi Angelo</span></div>
+          <div><span class="chip">Tickets</span></div>
+          <div class="who">Cédric<br><span class="muted mono">jeudi</span></div>
+          <div class="off">absent</div><div class="off">absent</div><div class="off">absent</div>
+          <div><span class="chip p1">VPN WG ↔ WI</span><span class="chip ms">Maquette FortiGate CC</span></div>
+          <div class="off">absent</div>
+          <div class="who">Angelo<br><span class="muted mono">mardi</span></div>
+          <div class="off">absent</div>
+          <div><span class="chip ms">Restauration test SPL-FS01</span><span class="chip p3">Mises à jour hyperviseurs</span></div>
+          <div class="off">absent</div><div class="off">absent</div><div class="off">absent</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>Backlog non planifié faute de capacité</h2>
+          <table><thead><tr><th>Prio.</th><th>Tâche</th><th class="num">h</th></tr></thead><tbody>
+            <tr><td><span class="pill P3">P3</span></td><td>Nettoyage règles FortiGate WI obsolètes</td><td class="num">3</td></tr>
+            <tr><td><span class="pill P4">P4</span></td><td>Documentation VLAN FWD</td><td class="num">2</td></tr>
+          </tbody></table>
+          <p class="sub" style="margin-bottom:0">Recommandation : reporter la documentation FWD à S43, la capacité réseau étant prise par le projet CC.</p>
+        </div>
+        <div class="panel"><h2>Jalons à risque</h2>
+          <p style="margin:0"><span class="pill P2">risque</span> <strong>Maquette FortiGate CC</strong> · échéance 29/10 · 6 h restantes pour 3 jeudis de Cédric (19,2 h), dont une partie absorbée par les incidents réseau.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIGNAUX -->
+    <section id="page-signals" class="stack" hidden>
+      <header class="page"><div><h1>Signaux &amp; incidents</h1><div class="sub">41 incidents ouverts · 63 signaux · dernière collecte 07:15</div></div></header>
+      <div class="row">
+        <select id="f-src" aria-label="Source"><option>Toutes les sources</option><option>Zabbix</option><option>Veeam</option></select>
+        <select id="f-co" aria-label="Société"><option>Toutes les sociétés</option><option>WI</option><option>SPL</option><option>WG</option><option>CC</option><option>FWD</option></select>
+        <select id="f-prio" aria-label="Priorité"><option>Toutes priorités</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+      </div>
+      <div class="grid2">
+        <div class="panel table-wrap">
+          <table><thead><tr><th>Prio.</th><th>Incident</th><th>Soc.</th><th>Source</th><th class="num">Score</th><th class="num">Âge</th></tr></thead><tbody>
+            <tr class="sel"><td><span class="pill P1">P1</span></td><td>VPN site-à-site WG ↔ WI down</td><td>WG</td><td>Zabbix</td><td class="num">28,1</td><td class="num">42 min</td></tr>
+            <tr><td><span class="pill P1">P1</span></td><td>SPL-FS01 : pas de sauvegarde depuis 31 h</td><td>SPL</td><td>Veeam</td><td class="num">35,5</td><td class="num">31 h</td></tr>
+            <tr><td><span class="pill P2">P2</span></td><td>Repository WI-REPO01 à 92 %</td><td>WI</td><td>Veeam</td><td class="num">31,0</td><td class="num">3 j</td></tr>
+            <tr><td><span class="pill P3">P3</span></td><td>CC-SRV-APP02 disque C: 91 %</td><td>CC</td><td>Zabbix</td><td class="num">24,6</td><td class="num">2 j</td></tr>
+            <tr><td><span class="pill P3">P3</span></td><td>6 postes WI sans remontée d'agent</td><td>WI</td><td>Zabbix</td><td class="num">16,2</td><td class="num">1 j</td></tr>
+            <tr><td><span class="pill P4">P4</span></td><td>WG-PRN03, WG-PRN05 injoignables</td><td>WG</td><td>Zabbix</td><td class="num">6,1</td><td class="num">5 h</td></tr>
+          </tbody></table>
+        </div>
+        <div class="panel stack" style="gap:10px">
+          <h2>VPN site-à-site WG ↔ WI down</h2>
+          <div class="row"><span class="pill P1">P1</span><span class="tag">network</span><span class="tag">WG-FW01</span><span class="tag">2 signaux corrélés</span></div>
+          <div><strong>Raison de la priorité</strong><br>Override « VPN site-à-site down &gt; 30 min » : la priorité calculée (P3) est forcée à P1.</div>
+          <div class="formula">score = W_sev × C_soc × C_actif × F_âge × F_réc × W_cat + B_politique<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 14 × 1,0 × 1,5 × 1,0 × 1,05 × 1,0 + 6 = <strong>28,1</strong></div>
+          <div class="sub">B_politique : axe « Stabilité réseau inter-sites » (poids 3 × 2). Actif cœur réseau (×1,5). 1 occurrence sur 7 j.</div>
+          <div><strong>Signaux</strong><br><span class="mono">Zabbix #4471203</span> Disaster · « Tunnel IPsec WG-WI down » · depuis 07:33<br><span class="mono">Zabbix #4471188</span> High · « WG-FW01 : perte de paquets WAN 2 » · depuis 07:31</div>
+          <div><a href="#" onclick="return false" style="color:var(--accent)">Ouvrir dans Zabbix</a> <span class="muted">(lien construit par Vigie, jamais par l'IA)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ÉQUIPE -->
+    <section id="page-team" class="stack" hidden>
+      <header class="page"><div><h1>Équipe</h1><div class="sub">Compétences, présence et capacité planifiable</div></div><button class="btn primary">Ajouter une absence</button></header>
+      <div class="panel table-wrap">
+        <table class="matrix"><thead><tr><th>Personne</th><th>Présence</th><th class="num">Capacité/j</th><th>réseau</th><th>fortinet</th><th>système</th><th>backup</th><th>sécurité</th><th>m365</th><th>patching</th><th>poste</th><th>support</th><th>supervision</th></tr></thead><tbody>
+          <tr><td><strong>Vincent</strong><br><span class="muted">admin</span></td><td>lun–ven 8 h</td><td class="num">4,0 h</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv lv2">2</td><td class="lv lv2">2</td><td class="lv"></td><td class="lv lv1">1</td><td class="lv lv3">3</td></tr>
+          <tr><td><strong>Giovanni</strong><br><span class="muted">tech</span></td><td>lun–ven 8 h</td><td class="num">6,4 h</td><td class="lv lv1">1</td><td class="lv"></td><td class="lv"></td><td class="lv"></td><td class="lv"></td><td class="lv lv2">2</td><td class="lv lv2">2</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv"></td></tr>
+          <tr><td><strong>Cédric</strong><br><span class="muted">tech</span></td><td>jeu 8 h</td><td class="num">6,4 h</td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv"></td><td class="lv"></td><td class="lv lv2">2</td><td class="lv"></td><td class="lv"></td><td class="lv"></td><td class="lv"></td><td class="lv lv1">1</td></tr>
+          <tr><td><strong>Angelo</strong><br><span class="muted">tech</span></td><td>mar 8 h</td><td class="num">6,4 h</td><td class="lv"></td><td class="lv"></td><td class="lv lv3">3</td><td class="lv lv3">3</td><td class="lv lv2">2</td><td class="lv"></td><td class="lv lv2">2</td><td class="lv"></td><td class="lv"></td><td class="lv lv2">2</td></tr>
+        </tbody></table>
+        <p class="sub" style="margin-bottom:0">Niveaux : 1 notions, 2 autonome, 3 expert. Capacité = heures × taux de planification (80 %, coordinateur 50 %).</p>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>Fiche : Cédric</h2>
+          <div class="fields">
+            <label class="f" for="p-role">Rôle métier<input id="p-role" value="Ingénieur réseau (temps partiel)"></label>
+            <label class="f" for="p-app">Rôle applicatif<select id="p-app"><option>tech</option><option>manager</option><option>admin</option><option>viewer</option></select></label>
+            <label class="f" for="p-rate">Taux de planification<input id="p-rate" value="80 %"></label>
+            <label class="f" for="p-days">Jours de présence<input id="p-days" value="jeudi 8 h"></label>
+          </div>
+          <label class="f" for="p-notes" style="margin-top:12px">Consignes transmises au moteur<input id="p-notes" value="Pas d'intervention sur site FWD"></label>
+        </div>
+        <div class="panel"><h2>Absences à venir</h2>
+          <table><tbody>
+            <tr><td>Angelo</td><td>congé</td><td class="mono">20/10 → 20/10</td></tr>
+            <tr><td>Giovanni</td><td>formation</td><td class="mono">29/10 → 30/10</td></tr>
+            <tr><td>Cédric</td><td>jour supplémentaire</td><td class="mono">mar 27/10 · 8 h</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- POLITIQUE -->
+    <section id="page-policy" class="stack" hidden>
+      <header class="page"><div><h1>Politique IT</h1><div class="sub">Version 3 · modifiée le 01/10 par Vincent</div></div><button class="btn primary">Enregistrer</button></header>
+      <div class="grid2">
+        <div class="panel"><h2>Axes prioritaires</h2>
+          <div class="axis"><span>Sauvegardes fiables et testées<br><span class="muted">backup · veeam, restauration</span></span><input id="ax1" type="range" min="1" max="5" value="5" aria-label="Poids sauvegardes"><span class="mono">5</span></div>
+          <div class="axis"><span>Réduction des vulnérabilités critiques<br><span class="muted">vulnerability, security · cve, kev</span></span><input id="ax2" type="range" min="1" max="5" value="4" aria-label="Poids vulnérabilités"><span class="mono">4</span></div>
+          <div class="axis"><span>Stabilité réseau inter-sites<br><span class="muted">network, firewall · vpn, sd-wan</span></span><input id="ax3" type="range" min="1" max="5" value="3" aria-label="Poids réseau"><span class="mono">3</span></div>
+          <div class="axis"><span>Qualité du support utilisateurs<br><span class="muted">user_support, endpoint, m365</span></span><input id="ax4" type="range" min="1" max="5" value="2" aria-label="Poids support"><span class="mono">2</span></div>
+        </div>
+        <div class="panel"><h2>Criticité des sociétés et SLA</h2>
+          <table><thead><tr><th>Société</th><th class="num">Criticité</th></tr></thead><tbody>
+            <tr><td>WI · WallIndustries</td><td class="num">1,0</td></tr><tr><td>SPL · Splifar</td><td class="num">1,0</td></tr>
+            <tr><td>WG · WallGlass</td><td class="num">1,0</td></tr><tr><td>CC · Construct Center</td><td class="num">1,0</td></tr>
+            <tr><td>FWD · Fairwind</td><td class="num">1,0</td></tr></tbody></table>
+          <div class="row" style="margin-top:10px"><span class="pill P1">P1 4 h</span><span class="pill P2">P2 24 h</span><span class="pill P3">P3 72 h</span><span class="pill P4">P4 168 h</span></div>
+        </div>
+      </div>
+      <div class="panel"><h2>Règles transmises au moteur</h2>
+        <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+          <li>Toute vulnérabilité CVSS ≥ 9 ou listée CISA KEV sur un actif exposé Internet est traitée sous 48 h.</li>
+          <li>Un job de sauvegarde critique sans succès depuis plus de 24 h est toujours P1.</li>
+          <li>Aucun changement en production le vendredi après 14 h sauf incident P1.</li>
+          <li>Les tickets utilisateurs bloquants reçoivent une première réponse dans la journée.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- PROJETS -->
+    <section id="page-projects" class="stack" hidden>
+      <header class="page"><div><h1>Projets</h1><div class="sub">2 projets actifs · fenêtre de réservation des jalons : 21 jours</div></div><button class="btn primary">Nouveau projet</button></header>
+      <div class="panel"><h2>Test de restauration trimestriel <span class="tag">Angelo</span> <span class="tag">priorité haute</span></h2>
+        <div class="timeline" aria-label="Jalons"><span class="today" style="left:8%"></span><span class="ms" style="left:42%">27/10 SPL-FS01</span><span class="ms" style="left:82%">10/11 WG-DC01</span></div>
+        <div class="sub">2 jalons · 6 h restantes · compétences backup + système</div>
+      </div>
+      <div class="panel"><h2>Remplacement firewall CC <span class="tag">Cédric</span> <span class="tag">priorité moyenne</span></h2>
+        <div class="timeline" aria-label="Jalons"><span class="today" style="left:8%"></span><span class="ms risk" style="left:46%">29/10 Maquette</span><span class="ms" style="left:90%">19/11 Bascule</span></div>
+        <div class="sub">2 jalons · 14 h restantes · <span style="color:var(--p2)">maquette à risque</span> (capacité de Cédric avant échéance)</div>
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section id="page-skills" class="stack" hidden>
+      <header class="page"><div><h1>Skills de rôle</h1><div class="sub">Contexte métier injecté dans le moteur et exportable vers Claude</div></div>
+        <div class="row"><select id="sk" aria-label="Skill"><option>ingenieur-coordinateur</option><option>responsable-informatique</option></select><button class="btn">Exporter</button><button class="btn primary">Enregistrer la version 2</button></div></header>
+      <div class="grid2">
+        <div class="panel"><label class="f" for="sk-body">SKILL.md</label>
+<textarea id="sk-body">---
+name: ingenieur-coordinateur
+description: Rôle d'ingénieur système et réseau coordinateur…
+---
+
+# Ingénieur système &amp; réseau — coordinateur
+
+## Principes de répartition
+1. **Le service rendu d'abord** : une sauvegarde qui ne tourne plus,
+   un site coupé ou une alerte de sécurité sérieuse passent avant
+   tout projet.
+2. Faire travailler chacun dans sa zone d'expertise, mais protéger
+   les jours de Cédric et Angelo.</textarea></div>
+        <div class="panel"><h2>Versions</h2>
+          <table><tbody><tr><td class="mono">v1</td><td>seed</td><td class="mono">09/10/2026</td><td><span class="pill okc">active</span></td></tr></tbody></table>
+          <p class="sub">Chaque enregistrement crée une version ; le diff entre deux versions s'affiche ici.</p></div>
+      </div>
+    </section>
+
+    <!-- SOURCES -->
+    <section id="page-sources" class="stack" hidden>
+      <header class="page"><div><h1>Sources</h1><div class="sub">Lecture seule : aucune action n'est possible sur les systèmes supervisés</div></div></header>
+      <div class="panel table-wrap">
+        <table><thead><tr><th>Source</th><th>Accès</th><th>État</th><th>Dernière collecte</th><th class="num">Volume</th><th class="num">Fréquence</th><th></th></tr></thead><tbody>
+          <tr><td><strong>Zabbix 7.4</strong></td><td>MCP · outils de lecture</td><td><span class="dot ok"></span>OK</td><td class="mono">07:15 · 1,8 s</td><td class="num">52</td><td class="num">15 min</td><td><button class="btn">Tester la connexion</button></td></tr>
+          <tr><td><strong>Veeam B&amp;R</strong><br><span class="muted">vbr-main</span></td><td>MCP · outils de lecture</td><td><span class="dot ok"></span>OK</td><td class="mono">07:00 · 3,2 s</td><td class="num">11</td><td class="num">30 min</td><td><button class="btn">Tester la connexion</button></td></tr>
+          <tr><td>NinjaOne</td><td>API REST</td><td><span class="dot"></span>désactivée</td><td class="muted">—</td><td class="num">—</td><td class="num">15 min</td><td></td></tr>
+          <tr><td>FortiAnalyzer</td><td>API JSON-RPC</td><td><span class="dot"></span>désactivée</td><td class="muted">—</td><td class="num">—</td><td class="num">15 min</td><td></td></tr>
+          <tr><td>Wazuh</td><td>API + indexer</td><td><span class="dot"></span>désactivée</td><td class="muted">—</td><td class="num">—</td><td class="num">15 min</td><td></td></tr>
+          <tr><td>Veezo</td><td class="muted">à identifier</td><td><span class="dot"></span>non configurée</td><td class="muted">—</td><td class="num">—</td><td class="num">—</td><td></td></tr>
+        </tbody></table>
+      </div>
+      <div class="panel"><h2>Allowlist Zabbix (extrait)</h2>
+        <div class="row"><span class="tag mono">apiinfo.version</span><span class="tag mono">problem.get</span><span class="tag mono">host.get</span><span class="tag mono">hostgroup.get</span><span class="tag mono">proxy.get</span><span class="tag mono">maintenance.get</span></div>
+        <p class="sub" style="margin-bottom:0">Tout autre appel est refusé avant l'envoi et déclenche un signal P1 « Tentative d'appel non autorisé ».</p>
+      </div>
+    </section>
+
+    <!-- PARAMÈTRES -->
+    <section id="page-settings" class="stack" hidden>
+      <header class="page"><div><h1>Paramètres</h1></div><button class="btn primary">Enregistrer</button></header>
+      <div class="panel"><h2>Génération des plans</h2>
+        <div class="fields">
+          <label class="f" for="s-daily">Plan quotidien (lun–ven)<input id="s-daily" type="time" value="07:15"></label>
+          <label class="f" for="s-pub">Publication automatique<input id="s-pub" type="time" value="07:30"></label>
+          <label class="f" for="s-week">Plan hebdomadaire<select id="s-week"><option>lundi 06:30</option><option>vendredi 16:00 (semaine suivante)</option></select></label>
+          <label class="f" for="s-wpub">Publication auto si non validé<input id="s-wpub" type="time" value="09:00"></label>
+          <label class="f" for="s-max">Tâches max par personne et par jour<input id="s-max" type="number" value="5" min="1"></label>
+          <label class="f" for="s-carry">Escalade après N reports<input id="s-carry" type="number" value="3" min="1"></label>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>IA</h2>
+          <div class="fields">
+            <label class="f" for="s-model">Modèle<select id="s-model"><option>claude-sonnet-5-5</option></select></label>
+            <label class="f" for="s-budget">Budget mensuel ($)<input id="s-budget" type="number" value="30"></label>
+          </div>
+          <div class="stack" style="gap:8px;margin-top:12px">
+            <label class="toggle" for="s-llm"><input id="s-llm" type="checkbox" checked> Raffinement par IA activé</label>
+            <label class="toggle" for="s-ticket"><input id="s-ticket" type="checkbox"> Envoyer le corps des tickets à l'IA</label>
+          </div>
+        </div>
+        <div class="panel"><h2>Pause d'urgence</h2>
+          <p class="sub" style="margin-top:0">Suspend la collecte et/ou la génération sans arrêter les services.</p>
+          <div class="stack" style="gap:8px">
+            <label class="toggle" for="s-pc"><input id="s-pc" type="checkbox"> Suspendre la collecte</label>
+            <label class="toggle" for="s-pg"><input id="s-pg" type="checkbox"> Suspendre la génération des plans</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section id="page-audit" class="stack" hidden>
+      <header class="page"><div><h1>Audit &amp; coûts</h1><div class="sub">Journal append-only · conservé 1 an</div></div></header>
+      <div class="grid2">
+        <div class="panel"><h2>Coût IA d'octobre</h2>
+          <div class="kpis" style="margin-bottom:10px"><div class="kpi"><b>4,62 $</b><span>dépensés sur 30 $</span></div><div class="kpi"><b>0,21 $</b><span>par plan quotidien</span></div></div>
+          <div class="bars" aria-label="Coût par jour ouvré"><div style="height:42%" title="01/10 0,19 $"></div><div style="height:48%" title="02/10 0,22 $"></div><div style="height:100%" title="05/10 hebdo 0,46 $"></div><div style="height:45%" title="06/10 0,21 $"></div><div style="height:41%" title="07/10 0,19 $"></div><div style="height:46%" title="08/10 0,21 $"></div></div>
+          <div class="row mono muted" style="justify-content:space-between;font-size:11px"><span>01/10</span><span>08/10</span></div>
+        </div>
+        <div class="panel table-wrap"><h2>Derniers événements</h2>
+          <table><tbody>
+            <tr><td class="mono">07:30</td><td>système</td><td>plan quotidien publié (non validé)</td></tr>
+            <tr><td class="mono">07:16</td><td>worker</td><td>appel IA · 41 230 jetons dont 28 900 en cache</td></tr>
+            <tr><td class="mono">07:15</td><td>worker</td><td>collecte Zabbix · 52 signaux · 1,8 s</td></tr>
+            <tr><td class="mono">lun 08:52</td><td>Vincent</td><td>plan hebdomadaire validé</td></tr>
+            <tr><td class="mono">01/10</td><td>Vincent</td><td>politique v3 : poids « Stabilité réseau » 2 → 3</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll(".rail button[data-page]");
+  var sections = document.querySelectorAll("main section");
+  function show(name) {
+    sections.forEach(function (s) { s.hidden = s.id !== "page-" + name; });
+    buttons.forEach(function (b) {
+      if (b.dataset.page === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+  }
+  buttons.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.page); }); });
+  document.querySelectorAll(".axis input[type=range]").forEach(function (r) {
+    r.addEventListener("input", function () { r.nextElementSibling.textContent = r.value; });
+  });
+  var start = (location.hash || "").replace("#", "");
+  if (document.getElementById("page-" + start)) show(start);
+})();
+</script>

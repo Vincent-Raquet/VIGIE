@@ -45,7 +45,7 @@ class _Strict(BaseModel):
 
 class GeneralConfig(_Strict):
     timezone: str = "Europe/Brussels"
-    base_url: str = "https://vigie.lan"
+    base_url: str = "https://vigie.local.wallindustries.be"
     holidays_country: str = "BE"
     paused: bool = False
 
