@@ -2,6 +2,8 @@
 {% block body %}
 <p style="margin:0 0 12px;">Récapitulatif du plan {{ period }}{% if ai.get("by_llm") %}, affiné par l'IA et validé automatiquement{% else %}, généré sans IA{% endif %}.</p>
 {% if ai.get("summary_exec") %}<div style="margin:0 0 12px;padding:10px 12px;background:#e2f0f5;border-radius:6px;">{% for line in ai["summary_exec"].splitlines() if line.strip() %}<p style="margin:0 0 6px;">{{ line|plain(600) }}</p>{% endfor %}</div>{% endif %}
+{% if uncovered %}<div style="margin:0 0 12px;padding:10px 12px;background:#fbe9e7;border-left:4px solid #c0392b;border-radius:6px;"><strong style="color:#c0392b;">{{ uncovered|length }} P1 non couvert(s)</strong> : aucun spécialiste disponible et capacité d'escalade atteinte. Arbitrage nécessaire.
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{% for t in uncovered %}{% include "_task.html" %}{% endfor %}</table></div>{% endif %}
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
 <tr><th align="left" style="border-bottom:1px solid #dde2e8;">Personne</th><th align="right" style="border-bottom:1px solid #dde2e8;">Tâches</th><th align="right" style="border-bottom:1px solid #dde2e8;">Charge</th></tr>
 {% for c in view.people %}<tr><td style="border-bottom:1px solid #dde2e8;">{{ c.person.name }}</td><td align="right" style="border-bottom:1px solid #dde2e8;">{{ c.tasks|length }}</td><td align="right" style="border-bottom:1px solid #dde2e8;{% if c.over %}color:#c26a0e;{% endif %}">{{ c.load_h|num }} / {{ c.capacity_h|num }} h</td></tr>{% endfor %}

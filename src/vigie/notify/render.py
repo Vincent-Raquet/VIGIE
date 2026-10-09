@@ -154,6 +154,7 @@ def build(session: Session, plan: models.Plan, base_url: str) -> Bundle:
             **ctx,
             "view": view,
             "escalations": escalations,
+            "uncovered": [t for t in view.backlog if t.task.priority is Priority.P1],
             "sources_down": [s.name for s in failing_sources(session)],
             "p1": sum(1 for c in view.people for t in c.tasks if t.task.priority is Priority.P1),
         }

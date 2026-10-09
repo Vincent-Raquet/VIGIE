@@ -277,3 +277,19 @@ def test_source_errors(response: dict[str, Any]) -> None:
 def test_invalid_configuration(settings: dict[str, Any]) -> None:
     with pytest.raises(ConnectorConfigError, match=r"\[sources.zabbix\] invalide"):
         make(**settings)
+
+
+def test_hostname_rule_beats_group_criticality(mapper: RuleMapper) -> None:
+    from vigie.db.enums import MatchType
+    from vigie.mapping import AssetRuleData
+
+    by_name = RuleMapper(
+        [
+            *mapper._rules,
+            AssetRuleData("zabbix", MatchType.hostname_contains, "ap", asset_criticality=0.8),
+        ]
+    )
+    ap = by_asset(signals(by_name), "CC-ap 3")[0]  # groupe CC-Réseau (×1,5) mais antenne
+    assert ap.attributes["asset_criticality"] == 0.8
+    switch = by_asset(signals(by_name), "sw-wg-ot-01")[0]
+    assert switch.attributes["asset_criticality"] == 1.5

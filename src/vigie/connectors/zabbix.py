@@ -402,7 +402,15 @@ class ZabbixConnector:
                 lines.append(f"Acquitté dans Zabbix ({acks} message(s))")
             params = {"eventid": str(problem["eventid"]), "triggerid": str(problem["objectid"])}
 
-        criticality = max_criticality(mapping, SOURCE, MatchType.hostgroup_suffix, groups)
+        # Le type d'actif déduit du nom (caméra, antenne…) l'emporte sur le groupe.
+        by_name = max_criticality(
+            mapping, SOURCE, MatchType.hostname_contains, [str(host.get("host", "")), visible]
+        )
+        criticality = (
+            by_name
+            if by_name is not None
+            else max_criticality(mapping, SOURCE, MatchType.hostgroup_suffix, groups)
+        )
         return Signal(
             source=SOURCE,
             external_id=raw.external_id,

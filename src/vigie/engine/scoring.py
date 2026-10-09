@@ -115,6 +115,7 @@ def compute(
             "severity": facts.severity,
             "company": facts.company_code,
             "hours_open": hours_open,
+            "title": facts.text,
             "attributes": facts.attributes,
         },
     )

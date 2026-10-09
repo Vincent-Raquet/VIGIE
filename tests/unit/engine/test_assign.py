@@ -117,20 +117,29 @@ def test_follow_up_booked_in_window_when_escalated() -> None:
     assert [(a.person_id, a.day) for a in escalated.later] == [(C.id, THURSDAY)]
 
 
-def test_follow_up_inside_window_is_booked() -> None:
-    tasks = [task("vpn", Priority.P1, skills=["reseau"], estimate_h=7)]  # trop long pour Cédric
-    result = assign(tasks, list(TEAM.values()), [TUESDAY, THURSDAY])
-    assert [(a.person_id, a.day, a.candidate.follow_up) for a in result.assigned] == [
-        (V.id, TUESDAY, False),
-        (C.id, THURSDAY, True),
+def test_escalation_ceiling_sends_p1_to_backlog() -> None:
+    # Vincent : 4 h × 150 % = 6 h d'escalade au plus ; Cédric (jeudi) hors échéance.
+    tasks = [
+        task(f"vpn{i}", Priority.P1, skills=["reseau"], estimate_h=2, due=TUESDAY, score=90 - i)
+        for i in range(4)
     ]
+    result = assign(tasks, list(TEAM.values()), [TUESDAY, THURSDAY])
+    escalated = [a for a in result.assigned if a.escalation]
+    assert [a.candidate.ref for a in escalated] == ["vpn0", "vpn1", "vpn2"]  # 6 h
+    [uncovered] = result.backlog
+    assert uncovered.candidate.ref == "vpn3" and uncovered.escalation
+    assert uncovered.rationale.startswith("P1 non couvert : aucun spécialiste disponible")
+    assert "(150 %)" in uncovered.rationale
+    relaxed = assign(tasks, list(TEAM.values()), [TUESDAY], coordinator_overload_max=2)
+    assert not relaxed.backlog
 
 
-def test_p1_when_coordinator_absent_still_escalates() -> None:
+def test_p1_with_coordinator_absent_is_uncovered() -> None:
     away = team({"Vincent": [leave(MONDAY, FRIDAY)]})
     result = assign([task("x", Priority.P1, skills=["fortinet"])], list(away.values()), [MONDAY])
-    [a] = result.assigned
-    assert (a.person_id, a.day, a.escalation) == (V.id, MONDAY, True)
+    assert not result.assigned
+    [a] = result.backlog
+    assert a.escalation and a.rationale.startswith("P1 non couvert")
 
 
 def test_team_without_coordinator() -> None:
@@ -201,3 +210,13 @@ def test_milestones_reserve_capacity_before_same_priority_incidents() -> None:
     result = assign([incident, milestone], list(TEAM.values()), [THURSDAY])
     assert result.assigned[0].candidate.ref == "m"
     assert result.assigned[0].person_id == C.id
+
+
+def test_forced_p1_is_served_before_scored_p1() -> None:
+    scored = task("fgt", Priority.P1, skills=["reseau"], estimate_h=4, score=63, due=MONDAY)
+    smart = task(
+        "smart", Priority.P1, skills=["systeme"], estimate_h=4, score=59, due=MONDAY, forced=True
+    )
+    result = assign([scored, smart], list(TEAM.values()), [MONDAY])  # Vincent : 6 h d'escalade
+    assert [a.candidate.ref for a in result.assigned] == ["smart"]
+    assert [a.candidate.ref for a in result.backlog] == ["fgt"]

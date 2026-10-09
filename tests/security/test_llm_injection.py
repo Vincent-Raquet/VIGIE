@@ -84,3 +84,14 @@ def test_obeying_the_injection_is_blocked_by_the_validator(prepared: Session) ->
     assert all(a.person_id != cedric for a in out.draft.result.assigned)
     assert all("evil.test" not in a.candidate.title for a in out.draft.result.assigned)
     assert any("lien ou balise refusé" in r for r in out.rejections)
+
+
+def test_low_priority_backlog_is_summarised_not_detailed(prepared: Session) -> None:
+    draft = build_plan(prepared, PlanKind.weekly, NOW.date(), NOW, PlansConfig(), tz=TZ)
+    prompt = build_prompt(prepared, draft, ScoringConfig())
+    body = json.loads(prompt.user.split("<source_data>\n", 1)[1].rsplit("\n</source_data>", 1)[0])
+    detailed = {t["ref"] for t in body["tasks"] if t["status"] == "backlog"}
+    low = [a for a in draft.result.backlog if a.candidate.priority.value in ("P3", "P4")]
+    assert low and not detailed & {a.candidate.ref for a in low}
+    summary = body["backlog_not_detailed"]
+    assert sum(n for per in summary.values() for n in per.values()) == len(low)

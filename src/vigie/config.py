@@ -88,6 +88,9 @@ class PlansConfig(_Strict):
     max_tasks_per_person_per_day: int = Field(5, gt=0)
     carry_over_escalation_after: int = Field(3, gt=0)
     milestone_window_days: int = Field(21, gt=0)
+    # P1 escaladées au coordinateur : au plus ce multiple de sa capacité du jour ; au-delà,
+    # backlog « P1 non couvert » à arbitrer (rodage 2026-10 : 15 escalades pour 4 h).
+    coordinator_overload_max: float = Field(1.5, ge=1, le=3)
 
 
 class NotifyConfig(_Strict):

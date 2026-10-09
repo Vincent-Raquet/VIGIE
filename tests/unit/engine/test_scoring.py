@@ -47,9 +47,9 @@ def facts(**kw: object) -> IncidentFacts:
                 "asset_criticality": 1.5,
                 "opened_at": NOW - timedelta(days=3),
             },
-            74.2,
+            63.2,
             Priority.P1,
-        ),  # High cœur réseau ouvert depuis 3 j : 35 × 1,5 × 1,3 + axe réseau 6
+        ),  # High cœur réseau ouvert depuis 3 j : 35 × 1,5 × 1,09 + axe réseau 6
         ({"severity": 3, "asset_criticality": 1.3}, 26.0, Priority.P3),  # Average serveur
         (
             {"severity": 2, "category": Category.endpoint, "asset_criticality": 0.6},
@@ -83,9 +83,11 @@ def test_factors_and_reason() -> None:
         [BACKUP_AXIS],
         NOW,
     )
-    # 20 × 1,2 × 1,5 × 2 (âge plafonné à 10 j) × 1,15 × 1,3 + 10
-    assert result.score == round(20 * 1.2 * 1.5 * 2 * 1.15 * 1.3 + 10, 1)
-    assert result.reason.startswith("Score 117,6 : sévérité 3 (20), société ×1,2, actif ×1,5")
+    # 20 × 1,2 × 1,5 × 1,3 (âge plafonné à 10 j) × 1,15 × 1,3 + 10
+    assert result.score == round(20 * 1.2 * 1.5 * 1.3 * 1.15 * 1.3 + 10, 1) == 80.0
+    assert result.reason.startswith(
+        "Score 80 : sévérité 3 (20), société ×1,2, actif ×1,5, âge ×1,3"
+    )
     assert "récurrence ×1,15" in result.reason
     assert "politique +10 (Sauvegardes fiables et testées)" in result.reason
 
@@ -175,3 +177,15 @@ def test_category_skill_accepts_strings_and_estimates() -> None:
     assert CFG.category_factor(Category.firewall) == 1.2
     assert CFG.category_factor(Category.server) == 1.0
     assert Path
+
+
+def test_hardware_failure_override() -> None:
+    smart = facts(text="Proxmox VE: Node [spl-pve-01]: Disk [/dev/sda]: SMART status fail")
+    result = compute(smart, CFG, [], NOW)
+    assert (result.priority, result.override_id) == (Priority.P1, "hardware_failure")
+    hot = facts(severity=4, text="System-0.23: Temperature is above critical threshold: >60")
+    assert compute(hot, CFG, [], NOW).priority is Priority.P1
+    warning = facts(severity=2, text="Sw1, PSB Failed: Power supply is in warning state")
+    assert compute(warning, CFG, [], NOW).priority is Priority.P4
+    low = facts(severity=3, text="Disk [/dev/sda]: SMART status fail")  # sous le seuil High
+    assert compute(low, CFG, [], NOW).override_id is None

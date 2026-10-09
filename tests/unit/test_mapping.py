@@ -104,3 +104,30 @@ def test_from_session(db_session: Session) -> None:
     m = RuleMapper.from_session(db_session)
     assert m.company_for("zabbix", P, "CC-Réseau") == "CC"
     assert m.asset_criticality("zabbix", S, "CC-Réseau") == 1.5
+
+
+@pytest.mark.parametrize(
+    ("host", "crit"),
+    [
+        ("WG -CAM FAS-COLLAGE", 0.7),
+        ("SPL - Unifi Antenne 4", 0.8),
+        ("WG-Unifi Antenne 11", 0.8),
+        ("WG-iLO-HPE-1", 1.3),
+        ("SPL UPS APC WC04", 1.2),
+        ("CAMERAS-HALL", None),  # « CAM » doit être un mot entier
+        ("srv-camping", None),
+        ("SRV-WALL-DC03", None),
+    ],
+)
+def test_hostname_contains(host: str, crit: float | None) -> None:
+    m = RuleMapper(
+        [
+            AssetRuleData(
+                "zabbix", MatchType.hostname_contains, "Unifi Antenne", asset_criticality=0.8
+            ),
+            AssetRuleData("zabbix", MatchType.hostname_contains, "CAM", asset_criticality=0.7),
+            AssetRuleData("zabbix", MatchType.hostname_contains, "iLO", asset_criticality=1.3),
+            AssetRuleData("zabbix", MatchType.hostname_contains, "UPS", asset_criticality=1.2),
+        ]
+    )
+    assert m.asset_criticality("zabbix", MatchType.hostname_contains, host) == crit

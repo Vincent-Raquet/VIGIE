@@ -2,6 +2,13 @@ Récapitulatif du plan {{ period }}{% if ai.get("by_llm") %} (affiné par l'IA){
 {% if draft %}
 PLAN NON VALIDÉ.
 {% endif %}
+{% if uncovered %}
+
+!!! {{ uncovered|length }} P1 NON COUVERT(S) — arbitrage nécessaire :
+{% for t in uncovered %}
+  [P1] {{ t.task.title|plain(120) }}
+{% endfor %}
+{% endif %}
 {% if ai.get("summary_exec") %}
 
 {{ ai["summary_exec"]|plain(600) }}
