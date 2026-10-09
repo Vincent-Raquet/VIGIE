@@ -47,6 +47,16 @@ def test_web_task_and_plan_columns(conn: Connection) -> None:
         denied(conn, "UPDATE plan SET summary_md = 'x' WHERE false")
 
 
+def test_review_tables(conn: Connection) -> None:
+    with as_role(conn, "vigie_web"):
+        allowed(conn, "UPDATE task_review SET relevant = true, note = '' WHERE false")
+        allowed(conn, "UPDATE plan_review SET missing = '' WHERE false")
+        denied(conn, "DELETE FROM task_review")
+    with as_role(conn, "vigie_worker"):
+        denied(conn, "UPDATE task_review SET relevant = false WHERE false")
+        denied(conn, "INSERT INTO plan_review (plan_id, missing, reviewer_id) VALUES (1, '', 1)")
+
+
 def test_web_config_crud(conn: Connection) -> None:
     with as_role(conn, "vigie_web"):
         allowed(conn, "INSERT INTO company (code, name, criticality) VALUES ('ZZ', 'Test', 1)")

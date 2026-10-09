@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Rodage{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Rodage</h1><div class="sub">Critère : au moins {{ (rate_threshold * 100)|int }} % des tâches jugées pertinentes et bien affectées, {{ target }} jours ouvrés de suite (au moins {{ (coverage_threshold * 100)|int }} % des tâches du jour jugées).</div></div></header>
+  {% if streak >= target %}
+  <div class="flash ok">Critère atteint : {{ streak }} jours consécutifs validés. La diffusion à l'équipe peut être activée (procédure « Fin de rodage » de <span class="mono">deploy/README.md</span>).</div>
+  {% endif %}
+  <div class="kpis">
+    <div class="kpi"><b>{{ streak }} / {{ target }}</b><span>jours validés consécutifs</span></div>
+    <div class="kpi"><b>{{ "%.2f"|format(spent) }} $</b><span>dépensés ce mois sur {{ "%.2f"|format(budget) }} $</span></div>
+    <div class="kpi"><b>{{ "%.2f"|format(projection) }} $</b><span>projection sur le mois</span></div>
+    <div class="kpi"><b>{{ "%.3f"|format(avg_cost) if avg_cost is not none else "—" }}{% if avg_cost is not none %} ${% endif %}</b><span>coût moyen d'un plan quotidien</span></div>
+  </div>
+  <div class="panel table-wrap"><h2>Plans quotidiens</h2>
+    <table><thead><tr><th>Jour</th><th class="num">Tâches</th><th class="num">Jugées</th><th class="num">Pertinentes</th><th class="num">Bien affectées</th><th class="num">Les deux</th><th class="num">Coût IA</th><th>Jour</th></tr></thead><tbody>
+    {% for d in days %}<tr>
+      <td><a href="/aujourdhui?day={{ d.day.isoformat() }}">{{ d.day|fr_date }}</a></td>
+      <td class="num">{{ d.planned }}</td>
+      <td class="num">{{ d.reviewed }} ({{ (d.coverage * 100)|round|int }} %)</td>
+      <td class="num">{{ ((d.relevant_rate * 100)|round|int ~ " %") if d.relevant_rate is not none else "—" }}</td>
+      <td class="num">{{ ((d.assigned_rate * 100)|round|int ~ " %") if d.assigned_rate is not none else "—" }}</td>
+      <td class="num">{{ ((d.both_rate * 100)|round|int ~ " %") if d.both_rate is not none else "—" }}</td>
+      <td class="num">{{ "%.3f"|format(d.cost_usd) }} $</td>
+      <td>{% if d.validated %}<span class="tag okc">validé</span>{% elif d.reviewed == 0 %}<span class="muted">à relire</span>{% else %}<span class="tag P2">non validé</span>{% endif %}</td>
+    </tr>{% else %}<tr><td colspan="8" class="muted">Aucun plan quotidien.</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+  {% if rejections %}
+  <div class="grid2">
+    <div class="panel table-wrap"><h2>Tâches rejetées</h2>
+      <table><thead><tr><th>Jour</th><th>Tâche</th><th>Affectée à</th><th>Motif</th><th>Note</th></tr></thead><tbody>
+      {% for r in rejections %}<tr><td class="mono">{{ r.day.strftime("%d/%m") }}</td><td>{{ r.title }}<br><span class="muted">{{ r.category }} · {{ r.origin }}</span></td><td>{{ r.assignee }}</td><td>{% if not r.relevant %}<span class="tag P1">non pertinente</span>{% endif %}{% if not r.well_assigned %} <span class="tag P2">mal affectée</span>{% endif %}</td><td class="sub">{{ r.note }}</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    <div class="panel"><h2>Où régler le barème</h2>
+      <h3 class="sub">Par catégorie</h3>
+      <ul>{% for k, n in counts.category.most_common() %}<li>{{ k }} : {{ n }}</li>{% endfor %}</ul>
+      <h3 class="sub">Par origine</h3>
+      <ul>{% for k, n in counts.origin.most_common() %}<li>{{ k }} : {{ n }}</li>{% endfor %}</ul>
+      <p class="sub">Les seuils, poids et estimations se règlent dans <a href="/parametres">Paramètres</a> (admin) ; effet au plan suivant.</p>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

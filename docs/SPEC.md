@@ -154,6 +154,8 @@ Composants :
 | `setting` | key, value (JSON) |
 | `role_skill_version` | role_skill_id, version, description, body_md, updated_by, updated_at (historique F4) |
 | `task_comment` | task_id, author_id, at, body (F10) |
+| `task_review` | task_id (PK), relevant, well_assigned, note ≤ 300, reviewer_id, at (rodage) |
+| `plan_review` | plan_id (PK), missing ≤ 1000, reviewer_id, at (rodage) |
 | `job_request` | kind (liste fermée), payload (JSON strict par kind, sans secret, ≤ 4 Ko), requested_by, requested_at, status, result, done_at — demandes du web exécutées par le worker |
 
 Les listes de références sont des tables d'association avec clés étrangères : `incident_signal`, `task_incident` (une tâche peut couvrir plusieurs incidents), `project_company`, `project_axis`, `milestone_dependency`. `task.status` inclut `pending_done` (« done? ») et `task.status_reason` porte le motif de `wont_do`. `audit_log` : UPDATE et TRUNCATE interdits, DELETE uniquement au-delà de 365 jours, `at` forcé à `now()`.
@@ -314,12 +316,13 @@ Pages (FR, responsive, utilisable sur mobile) :
 6. **Projets** — liste, jalons (vue timeline), charge restante, risques.
 7. **Skills de rôle** — éditeur Markdown avec aperçu, versions, diff, export.
 8. **Sources** — état, dernière collecte, volume, bouton « tester la connexion » (healthcheck lecture seule).
-9. **Paramètres** — horaires, auto-publication, budget LLM, modèle, destinataires, pause globale.
+9. **Paramètres** — horaires, auto-publication, budget LLM, modèle, destinataires, pause globale, barème (seuils, poids, estimations, ancienneté).
 10. **Audit & coûts**.
+11. **Rodage** — jugement des tâches (pertinente, bien affectée) sur Aujourd'hui, série de jours validés, motifs de rejet, coût IA par plan et projection mensuelle.
 
 Accessibilité : contrastes AA, navigation clavier. Aucun script ou police chargés depuis un CDN.
 
-Droits par écran (testés) : Aujourd'hui et Signaux — admin, manager, tech ; Semaine — tous (viewer : plans hebdomadaires seulement) ; Politique et Projets — admin, manager ; Équipe, Skills, Sources, Paramètres, Audit — admin. Un `tech` ne modifie que le statut de ses propres tâches ; tout membre de l'équipe peut commenter. Paramètres : configuration du worker en lecture seule, seule la pause globale est modifiable.
+Droits par écran (testés) : Aujourd'hui et Signaux — admin, manager, tech ; Semaine — tous (viewer : plans hebdomadaires seulement) ; Politique, Projets et Rodage — admin, manager ; Équipe, Skills, Sources, Paramètres, Audit — admin. Un `tech` ne modifie que le statut de ses propres tâches ; tout membre de l'équipe peut commenter. Paramètres : configuration du worker en lecture seule ; la pause globale et le barème (validé par `ScoringConfig`, audité) sont modifiables, les règles d'override restent dans `scoring.yaml`. Jugement des tâches et revue du plan : admin, manager.
 
 ## 10. API interne (JSON, sous `/api`, session OIDC + CSRF)
 `GET /api/plans?kind=&date=`, `GET /api/plans/{id}`, `POST /api/plans/{id}/validate`, `PATCH /api/tasks/{id}` (statut, commentaire), `CRUD /api/people|absences|axes|rules|projects|milestones|role-skills|companies|asset-rules`, `GET /api/signals`, `GET /api/incidents`, `GET /api/sources`, `POST /api/sources/{name}/test`, `GET /api/costs`, `GET /healthz` (sans auth, sans détail).

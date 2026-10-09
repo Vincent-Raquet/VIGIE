@@ -12,6 +12,29 @@
     <label class="toggle"><input type="checkbox" name="plan"{% if pause.plan %} checked{% endif %}> Suspendre la génération des plans</label>
     <div><button class="btn primary" type="submit">Enregistrer</button></div>
   </form>
+  <form id="bareme" class="panel stack" method="post" action="/parametres/bareme">
+    <h2>Barème</h2>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <p class="sub">Réglages du score et des estimations (rodage) ; effet au prochain plan, ou tout de suite avec <span class="mono">sudo systemctl start vigie-plan@daily</span>. Les règles d'override restent dans <span class="mono">scoring.yaml</span>.</p>
+    {% if error %}<div class="flash error" role="alert">{{ error }}</div>{% endif %}
+    <h3 class="sub">Seuils de priorité (score minimal)</h3>
+    <div class="fields">{% for p in ("P1", "P2", "P3") %}<label class="f" for="thr_{{ p }}">{{ p }}<input id="thr_{{ p }}" name="thr_{{ p }}" inputmode="decimal" value="{{ scoring.thresholds[p]|fr_num(2) }}"></label>{% endfor %}</div>
+    <h3 class="sub">Poids par sévérité de la source (0 = non classée … 5 = désastre)</h3>
+    <div class="fields">{% for n in range(6) %}<label class="f" for="sev_{{ n }}">Sévérité {{ n }}<input id="sev_{{ n }}" name="sev_{{ n }}" inputmode="decimal" value="{{ scoring.severity_weight[n]|fr_num(2) }}"></label>{% endfor %}</div>
+    <h3 class="sub">Poids par catégorie (vide = poids « default »)</h3>
+    <div class="fields">
+      <label class="f" for="cw_default">default<input id="cw_default" name="cw_default" inputmode="decimal" value="{{ scoring.category_weight.get('default', 1)|fr_num(2) }}"></label>
+      {% for c in categories %}<label class="f" for="cw_{{ c }}">{{ c }}<input id="cw_{{ c }}" name="cw_{{ c }}" inputmode="decimal" value="{{ scoring.category_weight[c]|fr_num(2) if c in scoring.category_weight else '' }}"></label>{% endfor %}
+    </div>
+    <h3 class="sub">Estimation par défaut d'une tâche (heures)</h3>
+    <div class="fields">{% for c in categories %}<label class="f" for="est_{{ c }}">{{ c }}<input id="est_{{ c }}" name="est_{{ c }}" inputmode="decimal" value="{{ scoring.estimate_h(c)|fr_num(2) }}"></label>{% endfor %}</div>
+    <h3 class="sub">Ancienneté</h3>
+    <div class="fields">
+      <label class="f" for="age_per_day">Hausse par jour ouvert<input id="age_per_day" name="age_per_day" inputmode="decimal" value="{{ scoring.age_factor_per_day|fr_num(3) }}"></label>
+      <label class="f" for="age_max_days">Plafond (jours)<input id="age_max_days" name="age_max_days" inputmode="numeric" value="{{ scoring.age_factor_max_days }}"></label>
+    </div>
+    <div><button class="btn primary" type="submit">Enregistrer le barème</button></div>
+  </form>
   <div class="grid2">
     <div class="panel"><h2>Plans</h2><table><tbody>
       <tr><td>Plan quotidien</td><td class="mono">{{ cfg.plans.daily_at.strftime("%H:%M") }}, publié à {{ cfg.plans.daily_publish_at.strftime("%H:%M") }}</td></tr>
@@ -30,7 +53,9 @@
     <div class="panel"><h2>Sources</h2><ul>{% for name, enabled in sources.items() %}<li><span class="dot {{ 'ok' if enabled else '' }}"></span>{{ name }} — {{ "activée" if enabled else "désactivée" }}</li>{% endfor %}</ul></div>
     <div class="panel"><h2>Diffusion</h2><table><tbody>
       <tr><td>Expéditeur</td><td class="mono">{{ cfg.notify.mail_sender or "—" }}</td></tr>
+      <tr><td>E-mail</td><td class="mono">{{ "oui" if cfg.notify.mail_enabled else "non" }}</td></tr>
       <tr><td>Teams</td><td class="mono">{{ "oui" if cfg.notify.teams_enabled else "non" }}</td></tr>
+      <tr><td>Mode rodage</td><td class="mono">{{ "oui : tout part au coordinateur" if cfg.notify.draft_only else "non : envoi à chaque personne" }}</td></tr>
       <tr><td>Destinataires</td><td>les personnes actives de l'équipe (allowlist)</td></tr>
     </tbody></table></div>
   </div>

@@ -10,6 +10,7 @@ from vigie.web.routes import (
     plans,
     policy,
     projects,
+    rodage,
     settings,
     signals,
     skills,
@@ -17,7 +18,7 @@ from vigie.web.routes import (
     team,
 )
 
-MODULES = (api, plans, signals, team, policy, projects, skills, sources, settings, audit)
+MODULES = (api, plans, rodage, signals, team, policy, projects, skills, sources, settings, audit)
 
 
 def register(app: FastAPI) -> None:

@@ -30,6 +30,18 @@
     {% endfor %}
   </div>
   {% include "_ai.html" %}
+  {% if is_lead %}
+  <div class="panel"><h2>Revue du plan (rodage)</h2>
+    <p class="sub">Jugez chaque tâche ci-dessus (pertinente, bien affectée) ; le suivi est sur la page <a href="/rodage">Rodage</a>.</p>
+    <form class="fields" method="post" action="/plans/{{ view.plan.id }}/revue">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ path }}">
+      <label class="f" for="pr-missing">Ce qui manquait au plan
+        <textarea id="pr-missing" name="missing" maxlength="1000" rows="3">{{ plan_review.missing if plan_review else "" }}</textarea></label>
+      <div class="row"><button class="btn" type="submit">Enregistrer</button>{% if plan_review %} <span class="muted">enregistré le {{ plan_review.at.strftime("%d/%m %H:%M") }}</span>{% endif %}</div>
+    </form>
+  </div>
+  {% endif %}
   {% if new_incidents %}
   <div class="panel"><h2>Nouveautés depuis hier (P1/P2)</h2>
     <div class="table-wrap"><table><thead><tr><th>Priorité</th><th>Société</th><th>Actif</th><th>Score</th><th></th></tr></thead><tbody>

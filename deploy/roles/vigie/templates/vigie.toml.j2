@@ -21,7 +21,7 @@ fallback = true
 mail_enabled = {{ vigie_notify_mail_enabled | lower }}
 teams_enabled = {{ vigie_notify_teams_enabled | lower }}
 proxy = "http://127.0.0.1:{{ squid_worker_port }}"
-draft_only = true
+draft_only = {{ vigie_notify_draft_only | lower }}
 
 [web]
 host = "127.0.0.1"

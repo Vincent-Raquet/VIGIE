@@ -54,6 +54,9 @@ vigie_llm_enabled: true
 vigie_llm_budget_usd: 30
 vigie_notify_mail_enabled: false
 vigie_notify_teams_enabled: false
+# Rodage (phase 9) : true = tout part au coordinateur. false seulement une fois le critère
+# de la page Rodage atteint (deploy/README.md, « Fin de rodage »).
+vigie_notify_draft_only: true
 vigie_oidc:
   tenant_id: "6f5991ec-d614-41e6-92a6-dd77a108b727"                 # à reprendre de config/vigie.toml (non secret)
   client_id: "5cd2e503-e88b-4a02-b23e-36e1e487fffd"   # gitleaks:allow (identifiant public d'app Entra, non secret)

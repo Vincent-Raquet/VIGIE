@@ -24,6 +24,7 @@ PAGES = {
     "/parametres": {AppRole.admin},
     "/audit": {AppRole.admin},
     "/signaux": {AppRole.admin, AppRole.manager, AppRole.tech},
+    "/rodage": {AppRole.admin, AppRole.manager},
 }
 
 
@@ -47,11 +48,14 @@ def test_mutations_refused_to_other_roles(client: TestClient, seeded: Session) -
         "/projets/jalons",
         "/skills/1",
         "/parametres/pause",
+        "/parametres/bareme",
         "/politique/societes/WI",
+        "/taches/1/revue",
+        "/plans/1/revue",
     ):
         assert client.post(path, headers=h).status_code == 403, path
     token = login(client, seeded, "Vincent", AppRole.manager)
-    for path in ("/equipe/0", "/skills/1", "/parametres/pause"):
+    for path in ("/equipe/0", "/skills/1", "/parametres/pause", "/parametres/bareme"):
         assert client.post(path, headers={"X-CSRF-Token": token}).status_code == 403, path
 
 
