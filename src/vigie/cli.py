@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import os
 from collections import Counter
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
 from zoneinfo import ZoneInfo
 
 import typer
 from pydantic import SecretStr
+from sqlalchemy import Engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -18,6 +21,7 @@ from vigie import __version__
 from vigie.collect import ensure_source, record_failure, record_success, store_snapshot
 from vigie.config import (
     ConfigError,
+    LLMConfig,
     SecretError,
     VigieConfig,
     get_secret,
@@ -32,11 +36,14 @@ from vigie.connectors.base import (
     SourceCallError,
     fixture_transport,
 )
+from vigie.db import models
 from vigie.db.enums import PlanKind
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
 from vigie.engine.calendar import CalendarError
-from vigie.engine.planner import build_plan, run_engine, save_plan
+from vigie.engine.llm import LLMClient, make_client, month_spend
+from vigie.engine.planner import PlanDraft, build_plan, run_engine, save_plan
+from vigie.engine.refine import Refinement, deterministic, refine
 from vigie.engine.render import render_markdown
 from vigie.logs import configure_logging
 from vigie.mapping import RuleMapper
@@ -217,6 +224,47 @@ def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None
     )
 
 
+# Point d'injection des tests (faux client, aucun réseau).
+llm_client_factory: Callable[[str, LLMConfig], LLMClient] = make_client
+
+
+def _refine(
+    session: Session, engine: Engine, draft: PlanDraft, cfg: VigieConfig, no_llm: bool
+) -> tuple[Refinement | None, str]:
+    """Raffinement par l'IA, ou raison de s'en passer. L'appel est journalisé dans sa propre
+    transaction : son coût compte dans le budget même en simulation."""
+    if no_llm:
+        return None, ""
+    if not cfg.llm.enabled:
+        return deterministic(draft, "IA désactivée dans la configuration"), ""
+    try:
+        key = get_secret("anthropic_api_key")
+    except SecretError:
+        return deterministic(draft, "clé API Anthropic indisponible"), ""
+    client = llm_client_factory(key.get_secret_value(), cfg.llm)
+    with Session(engine) as log_session:
+        refinement = refine(
+            session,
+            log_session,
+            draft,
+            client,
+            cfg.llm,
+            cfg.plans,
+            country=cfg.general.holidays_country,
+        )
+        note = ""
+        if refinement.llm is not None and refinement.llm.call_id is not None:
+            call = log_session.get(models.LLMCall, refinement.llm.call_id)
+            if call is not None:
+                note = (
+                    f"Appel IA ({call.model}) : {call.outcome.value}, {call.cost_usd} $, "
+                    f"{call.input_tokens} jetons en entrée dont {call.cached_tokens} en cache, "
+                    f"{call.output_tokens} en sortie."
+                )
+        log_session.commit()
+    return refinement, note
+
+
 @app.command()
 def plan(
     ctx: typer.Context,
@@ -230,10 +278,7 @@ def plan(
         typer.Option("--date", help="Jour du plan (AAAA-MM-JJ) ; défaut : aujourd'hui."),
     ] = None,
 ) -> None:
-    """Génère un plan de tâches (brouillon) et l'affiche en Markdown."""
-    if not no_llm:
-        typer.echo("Raffinement par IA non implémentée (phase 5) : utiliser --no-llm.", err=True)
-        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    """Génère un plan de tâches (brouillon), affiné par l'IA sauf --no-llm, et l'affiche."""
     _, cfg = _config(ctx)
     tz = ZoneInfo(cfg.general.timezone)
     now = datetime.now(UTC)
@@ -254,12 +299,21 @@ def plan(
                 tz=tz,
                 country=cfg.general.holidays_country,
             )
-            markdown = render_markdown(draft)
+            refinement, ai_note = _refine(session, engine, draft, cfg, no_llm)
+            if refinement is None:
+                markdown = render_markdown(draft)
+                final, call_id = draft, None
+            else:
+                markdown = render_markdown(
+                    draft, refinement.plan, without_ai=refinement.without_ai_reason
+                )
+                final = refinement.plan.draft
+                call_id = refinement.llm.call_id if refinement.by_llm and refinement.llm else None
             plan_id = None
             if dry_run:
                 session.rollback()
             else:
-                plan_id = save_plan(session, draft, markdown).id
+                plan_id = save_plan(session, final, markdown, llm_call_id=call_id).id
                 session.commit()
     except CalendarError as exc:
         typer.echo(f"ERREUR {exc}", err=True)
@@ -270,6 +324,8 @@ def plan(
     finally:
         engine.dispose()
     typer.echo(markdown)
+    if ai_note:
+        typer.echo(ai_note)
     if plan_id is None:
         typer.echo("Simulation : rien n'a été écrit.")
     else:
@@ -392,9 +448,31 @@ def seed(
 
 
 @app.command()
-def budget() -> None:
+def budget(ctx: typer.Context) -> None:
     """Affiche la consommation LLM du mois et le budget restant."""
-    _not_implemented(5)
+    _, cfg = _config(ctx)
+    now = datetime.now(UTC)
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            spent = month_spend(session, now)
+            start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            rows = session.scalars(select(models.LLMCall).where(models.LLMCall.at >= start)).all()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    limit = Decimal(str(cfg.llm.monthly_budget_usd))
+    outcomes = Counter(r.outcome.value for r in rows)
+    total_in = sum(r.input_tokens + r.cached_tokens for r in rows)
+    cached = sum(r.cached_tokens for r in rows)
+    share = f"{cached * 100 // total_in} %" if total_in else "—"
+    typer.echo(f"Mois de {now:%m/%Y} : {spent:.4f} $ dépensés sur {limit:.2f} $")
+    typer.echo(f"Reste : {max(limit - spent, Decimal(0)):.4f} $")
+    detail = ", ".join(f"{k} {v}" for k, v in sorted(outcomes.items())) or "aucun"
+    typer.echo(f"Appels : {len(rows)} ({detail})")
+    typer.echo(f"Part des jetons d'entrée servis par le cache : {share}")
 
 
 @app.command()

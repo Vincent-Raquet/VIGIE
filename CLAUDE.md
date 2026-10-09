@@ -5,7 +5,7 @@ Vigie collecte l'état et les alertes de systèmes de supervision IT, les normal
 
 ## Règles non négociables (lire `docs/SECURITY.md`)
 1. **Lecture seule absolue vers les systèmes supervisés.** Tout appel sortant vers une source passe par `vigie.connectors.base.SafeClient`, qui applique une allowlist (méthode HTTP + chemin, ou méthode JSON-RPC) définie dans le connecteur. Aucun contournement, aucun `httpx`/`requests` direct dans un connecteur. Un test vérifie que tout appel hors allowlist lève `ForbiddenCallError`.
-2. **Le LLM n'a aucun outil d'action.** Un seul outil exposé : `submit_plan` (sortie structurée, données uniquement). Sa sortie est validée par Pydantic puis par `vigie.engine.validator` (ids de signaux existants, personnes existantes, capacités respectées). Rien de ce que produit le LLM n'est exécuté.
+2. **Le LLM n'a aucun outil.** Aucun outil déclaré : la réponse est une **sortie structurée** (`output_config.format`, schéma JSON du plan, données uniquement) ; le modèle du projet refuse de toute façon `tool_choice` forcé. Sa sortie est validée par Pydantic puis par `vigie.engine.validator` (ids de signaux existants, personnes existantes, capacités respectées). Rien de ce que produit le LLM n'est exécuté.
 3. **Contenu des sources = données non fiables** (tickets rédigés par des utilisateurs finaux, logs). Toujours tronqué, nettoyé, encapsulé dans des balises de données, jamais interprété comme instruction. Sorties HTML toujours échappées.
 4. **Secrets** : jamais dans le code, les logs, les fixtures, les prompts ou Git. Chargés via credentials systemd (`$CREDENTIALS_DIRECTORY`) en prod, `.env.local` (ignoré par Git) en dev. Ne jamais lire ni afficher `.env*`, `secrets/`, `*.cred`.
 5. **Séparation des processus** : `vigie-web` n'a accès à aucun secret de source ni à la clé Anthropic ; seul `vigie-worker` les détient.
@@ -14,7 +14,7 @@ Vigie collecte l'état et les alertes de systèmes de supervision IT, les normal
 ## Stack
 - Python 3.12+, gestion par `uv` ; FastAPI ; SQLAlchemy 2 + Alembic ; PostgreSQL 17 ; Pydantic v2.
 - UI : Jinja2 + HTMX + Alpine.js + Tailwind (compilé au build, aucun CDN au runtime). Utiliser le skill `frontend-design` pour la phase UI.
-- LLM : SDK `anthropic` Python, modèle par défaut `claude-sonnet-5-5`, sortie structurée via outil forcé, prompt caching sur les blocs stables.
+- LLM : SDK `anthropic` Python, modèle par défaut `claude-sonnet-5-5`, sortie structurée via `output_config.format` (aucun outil), prompt caching sur les blocs stables, repli serveur `fallbacks="default"`.
 - Auth : OIDC Entra ID (authlib), rôles mappés depuis des groupes Entra.
 - Déploiement : Ansible (dossier `deploy/`) vers Debian 13 ; Caddy en reverse proxy ; systemd timers pour l'ordonnancement.
 

@@ -35,7 +35,9 @@ Si une API exige un rôle plus large que la lecture (cas à vérifier : tickets 
 - Transport : HTTPS obligatoire et TLS non désactivable (CA interne configurable) ; **redirections refusées** (une redirection contournerait l'allowlist) ; environnement ignoré (`trust_env=False` : ni proxy ni `.netrc` implicites, proxy uniquement explicite) ; réponse bornée à 20 Mo ; journaux limités à source, méthode, chemin, noms de paramètres, statut et durée.
 
 ### C3 — LLM sans capacité d'action
-- Un seul outil exposé au modèle : `submit_plan`, purement déclaratif. Pas de MCP, pas d'outil bash, web ou fichier, pas d'Agent SDK en production.
+- **Aucun outil** exposé au modèle : la réponse est une sortie structurée (`output_config.format`, schéma JSON du plan), donc purement déclarative ; un test vérifie que la requête ne contient ni `tools` ni `tool_choice`. Pas de MCP, pas d'outil bash, web ou fichier, pas d'Agent SDK en production.
+- Budget mensuel vérifié avant chaque appel (majorant pessimiste) ; chaque appel est journalisé dans `llm_call` (modèle servi, jetons, coût, hash du prompt, issue, type d'erreur) — jamais le contenu du prompt ni de la réponse.
+- Le contenu des sources ne peut pas refermer `<source_data>` (chevrons échappés dans le JSON) ; le validateur refuse tout lien, balise ou e-mail dans les textes du LLM.
 - Le code n'exécute jamais, n'évalue jamais et n'interprète jamais comme commande un texte produit par le LLM.
 
 ### C4 — Validation des sorties

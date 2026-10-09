@@ -39,12 +39,13 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - Réalisé (sur Zabbix seul) : enregistrement des collectes (`vigie collect`, résolution par instantané, panne de source = signal), corrélation (même actif, 60 min), score calibré + overrides déclaratifs (F, H), compétences multiples (I), calendrier avec fériés belges, affectation (coordinateur en recours, escalade P1 + suivi chez le spécialiste, P2 reportée dans le SLA, `task.not_before`), plans quotidien/hebdomadaire Markdown (`vigie plan --no-llm [--date] [--dry-run]`), reports avec compteur. Couverture `engine/` ≥ 94 % par module.
 
 ## Phase 5 — Intégration LLM (1–2 jours)
-- `llm.py` : SDK `anthropic`, outil forcé `submit_plan`, prompt caching, budget, retries, journal `llm_call`.
+- `llm.py` : SDK `anthropic`, sortie structurée (aucun outil : le modèle refuse `tool_choice` forcé), prompt caching, budget, retries, journal `llm_call`.
 - Prompts dans `engine/prompts/` (système, plan quotidien, plan hebdo), incluant les skills de rôle.
 - `validator.py` complet ; repli déterministe.
 - Tests avec client Anthropic simulé : sortie valide, invalide, injection, dépassement de budget.
 - Utiliser le skill `product-self-knowledge` (claude.ai) ou la doc officielle pour vérifier les paramètres SDK et l'identifiant de modèle.
 - **Acceptation** : un plan généré sur fixtures réelles anonymisées coûte < 0,40 $ ; tests d'injection verts.
+- Réalisé : sortie structurée sans outil, contexte en blocs cachés (instructions + skills de rôle, organisation) et `<source_data>` non refermable, budget vérifié avant appel, coût par modèle servi (repli serveur), validateur élément par élément (compétences, présence, capacité, priorité jamais abaissée, aucun lien, 5 tâches nouvelles max), repli déterministe, `vigie plan` (IA par défaut, `--no-llm`), `vigie budget`. Mesure réelle (2026-10-09, plan hebdomadaire sur fixtures Zabbix, `claude-sonnet-5-5`, effort `medium`) : 21 400 jetons en entrée, ≈ 5 400 en sortie, **0,099 $** au premier appel, **0,087 $** au second (5 920 jetons servis par le cache), 37 s ; aucune proposition rejetée par le validateur. Critère < 0,40 $ ✅.
 
 ## Phase 6 — Application web (3–4 jours)
 - **Direction visuelle validée** (2026-10-09) : `docs/ui/maquette.html` (10 écrans, barre latérale, cartes par personne, priorités codées P1–P4, thèmes clair et sombre ; polices IBM Plex à auto-héberger : la maquette les charge depuis Google Fonts, mais aucun CDN n'est permis à l'exécution). La phase 6 l'implémente en Jinja2 + HTMX + Tailwind ; skill `frontend-design` pour les finitions.
@@ -78,7 +79,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 | F ✅ | Calibrage du score : hors override et hors bonus politique, le maximum théorique est ≈ 47 (< seuil P1 60) et un Zabbix *High* standard vaut 10 → P4. `B_policy` non borné. Revoir seuils/poids avant d'écrire les tests de scénarios. | 4 |
 | H ✅ | Overrides : préférer des conditions déclaratives (champ, opérateur, valeur) à des expressions `when` interprétées. | 4 |
 | I ✅ | `vulnerability` → `patching` (+ `systeme` si serveur) : `category_skill` ne gère qu'une compétence. | 4 |
-| K | Skills `frontend-design` (phase 6) et `product-self-knowledge` (phase 5) absents de l'environnement ; utiliser `claude-api` pour la phase 5. | 5 / 6 |
+| K | Skills `frontend-design` (phase 6) et `product-self-knowledge` (phase 5) absents de l'environnement ; `claude-api` utilisé pour la phase 5 ✅. | 5 / 6 |
 | N ✅ | Rétention 1 an de `audit_log` (SPEC §5.2) incompatible avec un append-only strict → DELETE autorisé par le trigger uniquement pour les lignes de plus de 365 jours ; `at` forcé à `now()` à l'insertion. | 1 |
 | O ✅ | `.gitignore` laissait passer de vrais `config/*.yaml` (e-mails, noms) → ignorés, sauf `*.example.yaml`. | 1 |
 | M | OIDC : configurer l'app Entra pour n'émettre que les groupes assignés (éviter le *groups overage* qui imposerait un appel Graph depuis `vigie-web`). | 6 |

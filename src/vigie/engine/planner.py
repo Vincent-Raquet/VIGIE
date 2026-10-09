@@ -426,14 +426,22 @@ def run_engine(session: Session, now: datetime) -> None:
     score_incidents(session, now)
 
 
-def save_plan(session: Session, draft: PlanDraft, summary_md: str) -> models.Plan:
+def save_plan(
+    session: Session,
+    draft: PlanDraft,
+    summary_md: str,
+    *,
+    llm_call_id: int | None = None,
+) -> models.Plan:
+    """Enregistre le brouillon ; `llm_call_id` : plan affiné par l'IA et validé."""
     plan = models.Plan(
         kind=draft.kind,
         period_start=draft.period_start,
         period_end=draft.period_end,
         status=PlanStatus.draft,
         summary_md=summary_md,
-        generated_by=GeneratedBy.rules,
+        generated_by=GeneratedBy.llm if llm_call_id is not None else GeneratedBy.rules,
+        llm_call_id=llm_call_id,
         created_at=draft.generated_at,
     )
     session.add(plan)
@@ -451,7 +459,7 @@ def save_plan(session: Session, draft: PlanDraft, summary_md: str) -> models.Pla
                 milestone_id=c.milestone_id,
                 title=c.title[:TITLE_MAX],
                 description=c.reason,
-                actions=[],
+                actions=list(c.actions),
                 category=c.category,
                 priority=c.priority,
                 score=c.score,
@@ -462,7 +470,7 @@ def save_plan(session: Session, draft: PlanDraft, summary_md: str) -> models.Pla
                 status=status,
                 carry_count=c.carry_count,
                 rationale=a.rationale,
-                origin=TaskOrigin.engine,
+                origin=TaskOrigin.llm if c.by_llm else TaskOrigin.engine,
                 created_at=draft.generated_at,
             )
             session.add(task)
