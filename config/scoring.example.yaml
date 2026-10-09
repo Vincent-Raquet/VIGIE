@@ -1,24 +1,37 @@
-# Paramètres du moteur de priorisation (voir docs/SPEC.md §7.4). Ajustables pendant le rodage.
-severity_weight: {0: 1, 1: 2, 2: 4, 3: 7, 4: 10, 5: 14}
+# Paramètres du moteur de priorisation (docs/SPEC.md §7.4). Ajustables pendant le rodage.
+# `vigie seed` les valide et les enregistre en base (setting « scoring »). Valeurs = défauts du code.
+#
+# score = W_sev × C_company × C_asset × F_age × F_recurrence × W_category + min(B_policy, max)
+# Calibrage 2026-10 (point F) : Zabbix High sur serveur de prod ≈ 45 → P2 ; Average ≈ 26 → P3 ;
+# Warning ≈ 10 → P4 ; Disaster → P1 par override.
+severity_weight: {0: 1, 1: 4, 2: 10, 3: 20, 4: 35, 5: 50}
 category_weight: {backup: 1.3, security: 1.3, firewall: 1.2, default: 1.0}
+asset_criticality_default: 1.0   # C_asset quand aucune règle asset_rule ne s'applique
 age_factor_per_day: 0.1
 age_factor_max_days: 10
 recurrence_factor: 0.05
 recurrence_max: 10
+recurrence_window_days: 7
 policy_bonus_per_weight: 2
+policy_bonus_max: 20
 thresholds: {P1: 60, P2: 35, P3: 15}
 
+# Compétences requises par catégorie (toutes requises si plusieurs).
 category_skill:
-  network: reseau
-  firewall: fortinet
-  security: securite
-  vulnerability: patching
-  backup: backup
-  server: systeme
-  endpoint: poste
-  user_support: support
-  m365: m365
-  monitoring: supervision
+  network: [reseau]
+  firewall: [fortinet]
+  security: [securite]
+  vulnerability: [patching]
+  backup: [backup]
+  server: [systeme]
+  endpoint: [poste]
+  user_support: [support]
+  m365: [m365]
+  monitoring: [supervision]
+
+# Compétences supplémentaires selon un attribut du signal (point I).
+extra_skills:
+  - {category: vulnerability, when: {field: attr.asset_type, op: eq, value: server}, skills: [systeme]}
 
 default_estimate_h:
   network: 2
@@ -31,20 +44,74 @@ default_estimate_h:
   user_support: 0.5
   m365: 1
   monitoring: 1
+  project: 2
 
-# Catégorie des signaux Zabbix : [sources.zabbix] category_by_group (vigie.toml).
-
+# Overrides déclaratifs (point H) : toutes les conditions doivent être vraies ; ils ne peuvent
+# que relever la priorité. Champs : source, category, severity, company, hours_open,
+# attr.<clé> (attributs fournis par le connecteur). Opérateurs : eq ne gt ge lt le in.
+# Aucune expression n'est évaluée. Les règles Veeam, Wazuh, vulnérabilités et certificats
+# restent inertes tant que les connecteurs correspondants ne fournissent pas ces attributs.
 overrides:
-  - {id: backup_no_success_24h, priority: P1, when: "category == 'backup' and hours_since_last_success > 24 and asset_critical"}
-  - {id: backup_two_failures,   priority: P1, when: "category == 'backup' and consecutive_failures >= 2"}
-  - {id: repo_95,               priority: P1, when: "category == 'backup' and repo_used_pct > 95"}
-  - {id: repo_90,               priority: P2, when: "category == 'backup' and repo_used_pct > 90"}
-  - {id: firewall_down,         priority: P1, when: "category == 'firewall' and state in ('offline', 'ha_degraded')"}
-  - {id: vpn_down_30m,          priority: P1, when: "category == 'network' and kind == 'vpn_down' and minutes_open > 30"}
-  - {id: zabbix_disaster,       priority: P1, when: "source == 'zabbix' and severity == 5"}
-  - {id: wazuh_level12,         priority: P1, when: "source == 'wazuh' and rule_level >= 12"}
-  - {id: critical_vuln_exposed, priority: P1, when: "category == 'vulnerability' and (cvss >= 9 or kev) and exposed"}
-  - {id: cert_7d,               priority: P1, when: "kind == 'cert_expiry' and days_left < 7"}
-  - {id: cert_21d,              priority: P2, when: "kind == 'cert_expiry' and days_left < 21"}
-  - {id: source_down_4h,        priority: P1, when: "category == 'monitoring' and kind == 'source_down' and hours_open > 4"}
-# Les expressions `when` sont évaluées par un petit évaluateur sûr (AST restreint), jamais par eval().
+  - id: zabbix_disaster
+    priority: P1
+    reason: Zabbix sévérité Disaster
+    all: [{field: source, op: eq, value: zabbix}, {field: severity, op: eq, value: 5}]
+  - id: source_down
+    priority: P2
+    reason: source de supervision injoignable
+    all: [{field: attr.kind, op: eq, value: source_down}]
+  - id: source_down_4h
+    priority: P1
+    reason: source de supervision injoignable depuis plus de 4 h
+    all: [{field: attr.kind, op: eq, value: source_down}, {field: hours_open, op: gt, value: 4}]
+  - id: proxy_down
+    priority: P2
+    reason: proxy Zabbix sans contact
+    all: [{field: attr.kind, op: eq, value: proxy_down}]
+  - id: backup_no_success_24h
+    priority: P1
+    reason: sauvegarde critique sans succès depuis plus de 24 h
+    all:
+      - {field: category, op: eq, value: backup}
+      - {field: attr.hours_since_last_success, op: gt, value: 24}
+      - {field: attr.asset_critical, op: eq, value: true}
+  - id: backup_two_failures
+    priority: P1
+    reason: deux échecs de sauvegarde consécutifs
+    all: [{field: category, op: eq, value: backup}, {field: attr.consecutive_failures, op: ge, value: 2}]
+  - id: repo_95
+    priority: P1
+    reason: repository de sauvegarde > 95 %
+    all: [{field: category, op: eq, value: backup}, {field: attr.repo_used_pct, op: gt, value: 95}]
+  - id: repo_90
+    priority: P2
+    reason: repository de sauvegarde > 90 %
+    all: [{field: category, op: eq, value: backup}, {field: attr.repo_used_pct, op: gt, value: 90}]
+  - id: firewall_down
+    priority: P1
+    reason: pare-feu hors ligne ou HA dégradée
+    all: [{field: category, op: eq, value: firewall}, {field: attr.state, op: in, value: [offline, ha_degraded]}]
+  - id: vpn_down_30m
+    priority: P1
+    reason: VPN site-à-site down depuis plus de 30 min
+    all: [{field: attr.kind, op: eq, value: vpn_down}, {field: hours_open, op: gt, value: 0.5}]
+  - id: wazuh_level12
+    priority: P1
+    reason: Wazuh règle de niveau ≥ 12
+    all: [{field: source, op: eq, value: wazuh}, {field: attr.rule_level, op: ge, value: 12}]
+  - id: critical_vuln_cvss
+    priority: P1
+    reason: vulnérabilité CVSS ≥ 9 sur un actif exposé
+    all: [{field: attr.cvss, op: ge, value: 9}, {field: attr.exposed, op: eq, value: true}]
+  - id: critical_vuln_kev
+    priority: P1
+    reason: vulnérabilité CISA KEV sur un actif exposé
+    all: [{field: attr.kev, op: eq, value: true}, {field: attr.exposed, op: eq, value: true}]
+  - id: cert_7d
+    priority: P1
+    reason: certificat expirant sous 7 jours
+    all: [{field: attr.kind, op: eq, value: cert_expiry}, {field: attr.days_left, op: lt, value: 7}]
+  - id: cert_21d
+    priority: P2
+    reason: certificat expirant sous 21 jours
+    all: [{field: attr.kind, op: eq, value: cert_expiry}, {field: attr.days_left, op: lt, value: 21}]

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
+from zoneinfo import ZoneInfo
 
 import typer
 from pydantic import SecretStr
@@ -14,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from vigie import __version__
+from vigie.collect import ensure_source, record_failure, record_success, store_snapshot
 from vigie.config import (
     ConfigError,
     SecretError,
@@ -33,6 +35,9 @@ from vigie.connectors.base import (
 from vigie.db.enums import PlanKind
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
+from vigie.engine.calendar import CalendarError
+from vigie.engine.planner import build_plan, run_engine, save_plan
+from vigie.engine.render import render_markdown
 from vigie.logs import configure_logging
 from vigie.mapping import RuleMapper
 from vigie.seed import SeedError, apply_seed, load_seed_data
@@ -145,38 +150,130 @@ def collect(
         typer.Option("--mapping", help="Dossier de companies.yaml (rattachement des sociétés)."),
     ] = Path("config"),
 ) -> None:
-    """Collecte les alertes d'une source (lecture seule)."""
-    if not dry_run:
-        typer.echo(
-            "Collecte avec enregistrement en base non implémentée (phase 4) : utiliser --dry-run.",
-            err=True,
-        )
-        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    """Collecte les alertes d'une source (lecture seule) et les enregistre en base."""
     if source not in registry.available():
         typer.echo(f"ERREUR aucun connecteur installé pour la source {source!r}", err=True)
         raise typer.Exit(code=1)
     _, cfg = _config(ctx)
+    if dry_run:
+        try:
+            mapper = RuleMapper.from_seed_dir(mapping)
+            connector = _build_connector(source, cfg, fixtures)
+            signals = _run(connector, mapper)
+        except (ConnectorConfigError, SecretError, SeedError, SourceCallError) as exc:
+            typer.echo(f"ERREUR {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        _print_signals(signals)
+        return
+    _collect_to_db(source, cfg, fixtures)
+
+
+def _run(connector: Any, mapper: RuleMapper) -> list[Signal]:
+    since = datetime.now(UTC) - timedelta(minutes=connector.config.interval_min)
+    return [connector.to_signal(raw, mapper) for raw in connector.collect(since)]
+
+
+def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None:
+    settings = cfg.sources.get(source)
+    engine = make_engine(cfg.database.url)
+    failure: str | None = None
     try:
-        mapper = RuleMapper.from_seed_dir(mapping)
-        connector = _build_connector(source, cfg, fixtures)
-        since = datetime.now(UTC) - timedelta(minutes=connector.config.interval_min)
-        signals = [connector.to_signal(raw, mapper) for raw in connector.collect(since)]
-    except (ConnectorConfigError, SecretError, SeedError, SourceCallError) as exc:
+        with Session(engine) as session:
+            ensure_source(
+                session,
+                source,
+                kind=source,
+                enabled=settings.enabled if settings else True,
+                interval_min=settings.interval_min if settings else 15,
+                base_url=str(getattr(settings, "base_url", "") or ""),
+            )
+            mapper = RuleMapper.from_session(session)
+            now = datetime.now(UTC)
+            try:
+                connector = _build_connector(source, cfg, fixtures)
+                signals = _run(connector, mapper)
+                complete = not getattr(connector, "truncated", False)
+                report = store_snapshot(session, source, signals, now, complete=complete)
+                record_success(session, source, now)
+            except SourceCallError as exc:
+                failure = str(exc)
+                record_failure(session, source, failure, now)
+            session.commit()
+    except (ConnectorConfigError, SecretError) as exc:
         typer.echo(f"ERREUR {exc}", err=True)
         raise typer.Exit(code=1) from exc
-    _print_signals(signals)
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    if failure is not None:
+        typer.echo(f"ERREUR {failure} (signal « source injoignable » enregistré)", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"{source} : {len(signals)} signal(s) — {report.created} nouveau(x), "
+        f"{report.updated} mis à jour, {report.reopened} rouvert(s), {report.resolved} résolu(s)"
+        + ("" if complete else " ; collecte tronquée : aucune résolution")
+    )
 
 
 @app.command()
 def plan(
+    ctx: typer.Context,
     kind: Annotated[PlanKind, typer.Option("--kind", help="Plan quotidien ou hebdomadaire.")],
     dry_run: Annotated[bool, typer.Option("--dry-run", help="N'enregistre pas le plan.")] = False,
     no_llm: Annotated[
         bool, typer.Option("--no-llm", help="Plan déterministe seul, sans appel au LLM.")
     ] = False,
+    day: Annotated[
+        str | None,
+        typer.Option("--date", help="Jour du plan (AAAA-MM-JJ) ; défaut : aujourd'hui."),
+    ] = None,
 ) -> None:
-    """Génère un plan de tâches."""
-    _not_implemented(4)
+    """Génère un plan de tâches (brouillon) et l'affiche en Markdown."""
+    if not no_llm:
+        typer.echo("Raffinement par IA non implémentée (phase 5) : utiliser --no-llm.", err=True)
+        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    _, cfg = _config(ctx)
+    tz = ZoneInfo(cfg.general.timezone)
+    now = datetime.now(UTC)
+    try:
+        target = date.fromisoformat(day) if day else now.astimezone(tz).date()
+    except ValueError as exc:
+        raise typer.BadParameter("date attendue au format AAAA-MM-JJ", param_hint="--date") from exc
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            run_engine(session, now)
+            draft = build_plan(
+                session,
+                kind,
+                target,
+                now,
+                cfg.plans,
+                tz=tz,
+                country=cfg.general.holidays_country,
+            )
+            markdown = render_markdown(draft)
+            plan_id = None
+            if dry_run:
+                session.rollback()
+            else:
+                plan_id = save_plan(session, draft, markdown).id
+                session.commit()
+    except CalendarError as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    typer.echo(markdown)
+    if plan_id is None:
+        typer.echo("Simulation : rien n'a été écrit.")
+    else:
+        typer.echo(f"Plan {plan_id} enregistré en brouillon.")
 
 
 @app.command()

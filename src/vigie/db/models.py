@@ -29,6 +29,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -323,6 +324,9 @@ class Signal(Base):
     title: Mapped[str] = mapped_column(String(300))
     details: Mapped[str] = mapped_column(Text, default="")
     url_template_params: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    attributes: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -418,6 +422,7 @@ class Task(Base):
     estimate_h: Mapped[float] = mapped_column(Float, default=1)
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"))
     due: Mapped[date | None] = mapped_column(Date)
+    not_before: Mapped[date | None] = mapped_column(Date)
     status: Mapped[enums.TaskStatus] = mapped_column(
         _enum(enums.TaskStatus, "status"), default=enums.TaskStatus.todo
     )

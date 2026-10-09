@@ -36,6 +36,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - Calendrier : jours de présence, absences, jours fériés BE.
 - `vigie plan --kind daily|weekly --no-llm`.
 - **Acceptation** : couverture ≥ 90 % sur `engine/` ; scénarios de SPEC §7.5 (VPN un mardi, Veeam SPL, tickets Giovanni) reproduits en tests ; plan lisible en Markdown en sortie CLI.
+- Réalisé (sur Zabbix seul) : enregistrement des collectes (`vigie collect`, résolution par instantané, panne de source = signal), corrélation (même actif, 60 min), score calibré + overrides déclaratifs (F, H), compétences multiples (I), calendrier avec fériés belges, affectation (coordinateur en recours, escalade P1 + suivi chez le spécialiste, P2 reportée dans le SLA, `task.not_before`), plans quotidien/hebdomadaire Markdown (`vigie plan --no-llm [--date] [--dry-run]`), reports avec compteur. Couverture `engine/` ≥ 94 % par module.
 
 ## Phase 5 — Intégration LLM (1–2 jours)
 - `llm.py` : SDK `anthropic`, outil forcé `submit_plan`, prompt caching, budget, retries, journal `llm_call`.
@@ -74,9 +75,9 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 | B ✅ | « Tester la connexion » d'une source depuis l'UI : `vigie-web` n'a ni secret ni sortie réseau → demande mise en file en base, exécutée par le worker. Table `job_request` (payload strict par kind, sans secret) en phase 1. | 1 ✅ / 6 |
 | C | `vigie secrets set/rotate` nécessite `systemd-creds`, or `subprocess` est interdit dans `src/` → script shell dans `deploy/`. | 8 |
 | D ✅ | Rôle DB `vigie_web` : ajouter UPDATE limité à `plan.status`, `validated_by`, `validated_at`, `published_at` (validation depuis l'UI). | 1 ✅ |
-| F | Calibrage du score : hors override et hors bonus politique, le maximum théorique est ≈ 47 (< seuil P1 60) et un Zabbix *High* standard vaut 10 → P4. `B_policy` non borné. Revoir seuils/poids avant d'écrire les tests de scénarios. | 4 |
-| H | Overrides : préférer des conditions déclaratives (champ, opérateur, valeur) à des expressions `when` interprétées. | 4 |
-| I | `vulnerability` → `patching` (+ `systeme` si serveur) : `category_skill` ne gère qu'une compétence. | 4 |
+| F ✅ | Calibrage du score : hors override et hors bonus politique, le maximum théorique est ≈ 47 (< seuil P1 60) et un Zabbix *High* standard vaut 10 → P4. `B_policy` non borné. Revoir seuils/poids avant d'écrire les tests de scénarios. | 4 |
+| H ✅ | Overrides : préférer des conditions déclaratives (champ, opérateur, valeur) à des expressions `when` interprétées. | 4 |
+| I ✅ | `vulnerability` → `patching` (+ `systeme` si serveur) : `category_skill` ne gère qu'une compétence. | 4 |
 | K | Skills `frontend-design` (phase 6) et `product-self-knowledge` (phase 5) absents de l'environnement ; utiliser `claude-api` pour la phase 5. | 5 / 6 |
 | N ✅ | Rétention 1 an de `audit_log` (SPEC §5.2) incompatible avec un append-only strict → DELETE autorisé par le trigger uniquement pour les lignes de plus de 365 jours ; `at` forcé à `now()` à l'insertion. | 1 |
 | O ✅ | `.gitignore` laissait passer de vrais `config/*.yaml` (e-mails, noms) → ignorés, sauf `*.example.yaml`. | 1 |

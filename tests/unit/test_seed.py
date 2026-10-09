@@ -39,7 +39,9 @@ def test_example_files_load() -> None:
         "team.example.yaml",
         "companies.example.yaml",
         "policy.example.yaml",
+        "scoring.example.yaml",
     ]
+    assert data.scoring is not None
 
 
 def test_real_file_preferred_over_example(seed_dir: Path) -> None:

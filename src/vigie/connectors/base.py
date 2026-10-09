@@ -460,6 +460,9 @@ class Signal:
     last_seen: datetime
     url_template_params: Mapping[str, str] = field(default_factory=dict)
     resolved: bool = False
+    # Attributs structurés (ex. kind, maintenance, asset_criticality) : comparés par les
+    # règles déclaratives du moteur, jamais interprétés. Valeurs JSON simples uniquement.
+    attributes: Mapping[str, str | int | float | bool | None] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not 0 <= self.severity <= 5:

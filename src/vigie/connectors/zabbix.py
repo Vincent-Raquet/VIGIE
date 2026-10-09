@@ -29,7 +29,7 @@ from vigie.connectors.base import (
     bounded,
 )
 from vigie.db.enums import Category, MatchType
-from vigie.mapping import companies_for, normalize
+from vigie.mapping import companies_for, max_criticality, normalize
 from vigie.redact import clean_untrusted
 
 SOURCE = "zabbix"
@@ -193,6 +193,8 @@ class ZabbixConnector:
         self.config = config
         self.client = client
         self._now = now
+        # Collecte tronquée : l'absence d'un problème ne prouve pas sa résolution.
+        self.truncated = False
         self._group_words = sorted(config.category_by_group.items(), key=lambda kv: -len(kv[0]))
 
     @classmethod
@@ -287,7 +289,10 @@ class ZabbixConnector:
                 "limit": MAX_OBJECTS + 1,
             },
         )
-        return list(bounded(self._list(result, "problem.get")))
+        items = bounded(self._list(result, "problem.get"))
+        problems = list(items)
+        self.truncated = items.truncated
+        return problems
 
     def _triggers(self, triggerids: set[str]) -> dict[str, dict[str, Any]]:
         ids = sorted(triggerids, key=int)
@@ -397,6 +402,7 @@ class ZabbixConnector:
                 lines.append(f"Acquitté dans Zabbix ({acks} message(s))")
             params = {"eventid": str(problem["eventid"]), "triggerid": str(problem["objectid"])}
 
+        criticality = max_criticality(mapping, SOURCE, MatchType.hostgroup_suffix, groups)
         return Signal(
             source=SOURCE,
             external_id=raw.external_id,
@@ -409,6 +415,11 @@ class ZabbixConnector:
             first_seen=min(_ts(p["clock"]) for p in problems),
             last_seen=payload["at"],
             url_template_params=params,
+            attributes={
+                "kind": kind,
+                "maintenance": in_maintenance,
+                "asset_criticality": criticality,
+            },
         )
 
     def _proxy_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:
@@ -429,6 +440,7 @@ class ZabbixConnector:
             first_seen=seen,
             last_seen=raw.payload["at"],
             url_template_params={"proxyid": str(proxy.get("proxyid", ""))},
+            attributes={"kind": "proxy_down"},
         )
 
     def _category(self, tags: Iterable[Mapping[str, Any]], groups: Sequence[str]) -> Category:

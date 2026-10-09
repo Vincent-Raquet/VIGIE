@@ -142,4 +142,20 @@ def test_cli_seed_invalid_data(test_config: Path, tmp_path: Path) -> None:
 def test_cli_check_reports_database(test_config: Path) -> None:
     result = CliRunner().invoke(app, ["--config", str(test_config), "check"])
     assert result.exit_code == 0, result.output
-    assert "Base : OK (révision 0003, à jour)" in result.output
+    assert "Base : OK (révision 0005, à jour)" in result.output
+
+
+def test_seed_stores_scoring_setting(db_session: Session, data: SeedData) -> None:
+    from vigie.db.enums import Priority
+    from vigie.engine.settings import ScoringConfig, load_scoring, load_sla_hours
+
+    apply_seed(db_session, data)
+    assert load_scoring(db_session) == ScoringConfig()
+    assert load_sla_hours(db_session)[Priority.P1] == 4
+
+
+def test_seed_without_scoring_file_keeps_defaults(db_session: Session, data: SeedData) -> None:
+    from vigie.engine.settings import ScoringConfig, load_scoring
+
+    apply_seed(db_session, replace(data, scoring=None))
+    assert load_scoring(db_session) == ScoringConfig()

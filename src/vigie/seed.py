@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vigie.db import enums, models
+from vigie.engine.settings import ScoringConfig
 
 SEED_FILES = ("team", "companies", "policy")
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -150,6 +151,7 @@ class SeedData:
     policy: PolicyFile
     role_skills: list[RoleSkillIn]
     example_files: list[str] = field(default_factory=list)
+    scoring: ScoringConfig | None = None  # scoring.yaml facultatif : défauts du code sinon
 
 
 @dataclass
@@ -231,9 +233,20 @@ def load_seed_data(from_dir: Path, roles_dir: Path) -> SeedData:
         policy=_validate(PolicyFile, _load_yaml(policy_path), policy_path),
         role_skills=[parse_role_skill(p) for p in sorted(roles_dir.glob("*/SKILL.md"))],
         example_files=examples,
+        scoring=_load_scoring(from_dir, examples),
     )
     check_references(data)
     return data
+
+
+def _load_scoring(from_dir: Path, examples: list[str]) -> ScoringConfig | None:
+    try:
+        path, is_example = pick_file(from_dir, "scoring")
+    except SeedError:
+        return None
+    if is_example:
+        examples.append(path.name)
+    return _validate(ScoringConfig, _load_yaml(path), path)
 
 
 def load_companies(from_dir: Path) -> CompaniesFile:
@@ -467,6 +480,17 @@ def apply_seed(
             models.Setting,
             {"key": "sla_hours"},
             {"value": {str(k): v for k, v in data.policy.sla_hours.items()}},
+            **up,
+        )
+
+    if data.scoring is not None:
+        _upsert(
+            session,
+            report,
+            "setting",
+            models.Setting,
+            {"key": "scoring"},
+            {"value": data.scoring.model_dump(mode="json")},
             **up,
         )
 
