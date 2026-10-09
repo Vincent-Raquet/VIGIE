@@ -37,6 +37,12 @@
   when: ntp_servers | length > 0
   notify: Redémarrer chrony
 
+- name: Dossier des compléments de journald (absent par défaut sur Debian 13)
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
 - name: Journal systemd persistant et borné
   ansible.builtin.copy:
     dest: /etc/systemd/journald.conf.d/vigie.conf

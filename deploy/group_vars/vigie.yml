@@ -68,7 +68,7 @@ vigie_run_seed: false           # true au premier déploiement (fichiers dans /e
 zabbix_agent_hostname: WI-SRV-VIGIE-01
 zabbix_agent_psk_identity: vigie-01
 # Clé PUBLIQUE age des sauvegardes (la clé privée reste hors VM) : `age-keygen -o vigie.key`.
-backup_age_recipient: ""
+backup_age_recipient: "age19ws8qk2j62hshnygfgkpsevluaytpy0umgya4drnxt0d9zs7dgqstm3aq8"
 backup_retention_days: 14
 
 # --- Durcissement -----------------------------------------------------------------------
