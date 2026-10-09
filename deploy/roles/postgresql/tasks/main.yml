@@ -93,3 +93,41 @@
 # pg_hba / pg_ident / listen_addresses doivent être actifs avant les migrations (rôle vigie).
 - name: Prise en compte de la configuration PostgreSQL
   ansible.builtin.meta: flush_handlers
+
+# Filet de sécurité : un passage interrompu perd ses handlers. On compare donc les dates
+# des fichiers à celles du dernier chargement / démarrage du serveur.
+- name: Dates des fichiers de configuration PostgreSQL
+  ansible.builtin.stat:
+    path: /etc/postgresql/17/main/{{ item }}
+    get_checksum: false
+  loop: [pg_hba.conf, pg_ident.conf, postgresql.conf]
+  register: postgresql_conf_files
+
+- name: Dernier chargement et démarrage du serveur
+  community.postgresql.postgresql_query:
+    query: >-
+      SELECT extract(epoch FROM pg_conf_load_time()) AS loaded,
+             extract(epoch FROM pg_postmaster_start_time()) AS started
+  become: true
+  become_user: postgres
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  register: postgresql_times
+  changed_when: false
+
+- name: Redémarrage si postgresql.conf est plus récent que le serveur
+  ansible.builtin.systemd_service:
+    name: postgresql
+    state: restarted
+  when:
+    - postgresql_times.query_result is defined
+    - postgresql_conf_files.results[2].stat.mtime > postgresql_times.query_result[0].started | float
+
+- name: Rechargement si pg_hba ou pg_ident sont plus récents que la configuration chargée
+  ansible.builtin.systemd_service:
+    name: postgresql
+    state: reloaded
+  when:
+    - postgresql_times.query_result is defined
+    - postgresql_conf_files.results[2].stat.mtime <= postgresql_times.query_result[0].started | float
+    - (postgresql_conf_files.results[:2] | map(attribute='stat.mtime') | max)
+      > postgresql_times.query_result[0].loaded | float
