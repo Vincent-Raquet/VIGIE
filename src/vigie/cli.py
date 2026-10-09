@@ -1,4 +1,4 @@
-"""Point d'entrée `vigie`. Les commandes non encore implémentées sortent avec le code 2."""
+"""Point d'entrée `vigie`. Les commandes non encore implémentées sortent avec le code 3."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from vigie import __version__
 from vigie.config import ConfigError, load_config, resolve_config_path
 from vigie.connectors import registry
 
-EXIT_NOT_IMPLEMENTED = 2
+EXIT_NOT_IMPLEMENTED = 3  # distinct du code 2 de Click (erreur d'usage)
 
 app = typer.Typer(
     name="vigie",

@@ -57,8 +57,8 @@ def test_stubs_exit_not_implemented(args: list[str]) -> None:
 
 def test_plan_rejects_unknown_kind() -> None:
     result = runner.invoke(app, ["plan", "--kind", "monthly"])
-    assert result.exit_code != 0
-    assert result.exit_code != EXIT_NOT_IMPLEMENTED
+    assert result.exit_code == 2  # erreur d'usage Click
+    assert "non implémentée" not in result.output
 
 
 def test_check_valid_example_config() -> None:

@@ -34,7 +34,7 @@ Vigie est l'assistant de pilotage IT de l'équipe. Il fait la veille des systèm
 
 ## Ce que tu dois préparer de ton côté
 
-- La VM Debian 13 (2 vCPU, 4 Go RAM, 40 Go disque), IP fixe dans le VLAN d'admin, accès SSH par clé pour le compte de déploiement.
+- La VM Debian 13 (2 vCPU, 4 Go RAM, 40 Go disque recommandés ; la VM actuelle WI-SRV-VIGIE-01 a 1 vCPU, 4 Go, 30 Go et sert aussi au développement, cf. `docs/DEV.md`), IP fixe dans le VLAN d'admin, accès SSH par clé pour le compte de déploiement.
 - Les comptes de service **en lecture seule** listés dans `docs/CONNECTORS.md`.
 - Une clé API Anthropic dans un workspace dédié avec une limite de dépense.
 - Une app registration Entra ID (connexion SSO + envoi de mail restreint à une boîte `itbot@…`).

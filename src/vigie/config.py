@@ -25,7 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, f
 
 DEFAULT_CONFIG_PATH = Path("config/vigie.toml")
 DEFAULT_ENV_FILE = Path(".env.local")
-ENV_SECRET_PREFIX = "VIGIE_SECRET_"
+ENV_SECRET_PREFIX = "VIGIE_SECRET_"  # noqa: S105 - préfixe de clé, pas un secret
 
 _SECRET_NAME_RE = re.compile(r"^[a-z0-9_]{1,64}$")
 _SOURCE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
@@ -128,9 +128,7 @@ class VigieConfig(_Strict):
         return sorted(name for name, src in self.sources.items() if src.enabled)
 
 
-def resolve_config_path(
-    explicit: Path | None = None, env: Mapping[str, str] | None = None
-) -> Path:
+def resolve_config_path(explicit: Path | None = None, env: Mapping[str, str] | None = None) -> Path:
     env = os.environ if env is None else env
     if explicit is not None:
         return explicit
@@ -181,9 +179,7 @@ def get_secret(
             return SecretStr(values[key])
         raise SecretError(f"secret {name} absent de {env_file} ({key})")
 
-    raise SecretError(
-        f"secret {name} indisponible : ni CREDENTIALS_DIRECTORY ni VIGIE_ENV=dev"
-    )
+    raise SecretError(f"secret {name} indisponible : ni CREDENTIALS_DIRECTORY ni VIGIE_ENV=dev")
 
 
 def _read_env_file(path: Path) -> dict[str, str]:

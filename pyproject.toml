@@ -42,6 +42,10 @@ line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
 
+[tool.ruff.format]
+# Les blocs de code des docs sont illustratifs, pas du code du projet.
+exclude = ["*.md"]
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "UP", "S", "SIM", "PTH", "RUF", "TID"]
 

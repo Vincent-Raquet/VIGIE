@@ -34,9 +34,7 @@ def test_reads_from_credentials_directory(cred_dir: Path) -> None:
     assert secret.get_secret_value() == FAKE
 
 
-def test_credentials_directory_has_priority_and_no_fallback(
-    cred_dir: Path, env_file: Path
-) -> None:
+def test_credentials_directory_has_priority_and_no_fallback(cred_dir: Path, env_file: Path) -> None:
     env = {"CREDENTIALS_DIRECTORY": str(cred_dir), "VIGIE_ENV": "dev"}
     with pytest.raises(SecretError):
         get_secret("quoted", env=env, env_file=env_file)
