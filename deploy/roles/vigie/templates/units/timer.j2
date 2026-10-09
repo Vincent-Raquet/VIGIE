@@ -4,7 +4,7 @@ Description=Vigie — déclenchement de {{ timer_unit }}
 
 [Timer]
 Unit={{ timer_unit }}
-{% if timer_calendar is defined %}
+{% if timer_calendar | default('') %}
 OnCalendar={{ timer_calendar }}
 Persistent=true
 {% else %}

@@ -24,7 +24,7 @@ IPAddressAllow=localhost{% for ip in unit_ips | default([]) %} {{ ip }}{% endfor
 
 {% include 'units/_sandbox.j2' %}
 
-{% if unit_state_dir is defined %}
+{% if unit_state_dir | default('') %}
 StateDirectory={{ unit_state_dir }}
 StateDirectoryMode=0755
 # Lu par l'agent Zabbix : fichiers lisibles par tous (aucune donnée sensible).

@@ -137,18 +137,33 @@ def _directives(text: str) -> dict[str, list[str]]:
     return out
 
 
+def _task_vars(task_name: str, ctx: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
+    """Variables passées au gabarit par la tâche du rôle, rendues comme Ansible le ferait :
+    le test suit ainsi exactement le rôle (`omit`, absent ici, ferait échouer le rendu)."""
+    tasks = yaml.safe_load((ROLE / "tasks" / "main.yml").read_text(encoding="utf-8"))
+    task = next(t for t in tasks if t["name"] == task_name)
+    return {k: _resolve(v, {**ctx, "item": item}, _env()) for k, v in task["vars"].items()}
+
+
 def _units(ctx: dict[str, Any]) -> dict[str, str]:
     units = {"vigie-web.service": _render("units/vigie-web.service.j2", ctx)}
     for unit in ctx["vigie_worker_units"]:
-        params = {
-            "unit_credentials": [],
-            "unit_proxy": False,
-            "unit_ips": [],
-            "unit_timeout": "15min",
-            **{k: v for k, v in unit.items() if k.startswith("unit_")},
-        }
+        params = _task_vars("Services du worker", ctx, unit)
         units[unit["name"]] = _render("units/vigie-worker.service.j2", ctx, **params)
     return units
+
+
+def _timers(ctx: dict[str, Any]) -> dict[str, str]:
+    timers = {
+        f"vigie-collect@{s['name']}.timer": _render(
+            "units/timer.j2", ctx, **_task_vars("Timers de collecte", ctx, s)
+        )
+        for s in ctx["vigie_sources_enabled"]
+    }
+    for timer in ctx["vigie_timers"]:
+        params = _task_vars("Autres timers", ctx, timer)
+        timers[timer["name"]] = _render("units/timer.j2", ctx, **params)
+    return timers
 
 
 def _credentials(text: str) -> set[str]:
@@ -225,17 +240,35 @@ def test_only_internet_units_use_the_worker_proxy(ctx: dict[str, Any]) -> None:
         assert has_proxy == (name in {"vigie-plan@.service", "vigie-notify@.service"}), name
 
 
-def test_timers_are_persistent_and_reference_existing_units() -> None:
+def test_timers_are_valid_and_reference_existing_units() -> None:
     ctx = _context()
     services = {u["name"] for u in ctx["vigie_worker_units"]}
-    for timer in ctx["vigie_timers"]:
-        params = {k: v for k, v in timer.items() if k.startswith("timer_")}
-        text = _render("units/timer.j2", ctx, **params)
-        unit = _directives(text)["Unit"][0]
-        template = re.sub(r"@[^.]+\.", "@.", unit)
-        assert template in services, f"{timer['name']} → {unit}"
-        if "timer_calendar" in params:
-            assert "Persistent=true" in text
+    for name, text in _timers(ctx).items():
+        d = _directives(text)
+        assert re.sub(r"@[^.]+\.", "@.", d["Unit"][0]) in services, f"{name} → {d['Unit']}"
+        # Exactement un déclencheur, jamais vide (« OnCalendar= » réinitialise le timer).
+        triggers = [k for k in ("OnCalendar", "OnUnitActiveSec") if k in d]
+        assert len(triggers) == 1, f"{name} : {triggers}"
+        assert d[triggers[0]] != [""], f"{name} : {triggers[0]} vide"
+        if triggers == ["OnCalendar"]:
+            assert d["Persistent"] == ["true"], name
+
+
+def test_no_unit_has_an_empty_directive(ctx: dict[str, Any]) -> None:
+    # Une directive vide réinitialise la valeur (StateDirectory=, OnCalendar=…) : seules
+    # les remises à zéro voulues sont permises.
+    allowed_empty = {"CapabilityBoundingSet", "AmbientCapabilities"}
+    for name, text in {**_units(ctx), **_timers(ctx)}.items():
+        for key, values in _directives(text).items():
+            assert "" not in values or key in allowed_empty, f"{name} : {key}= vide"
+
+
+def test_only_selfcheck_relaxes_umask(ctx: dict[str, Any]) -> None:
+    for name, text in _units(ctx).items():
+        d = _directives(text)
+        expected = "0022" if name == "vigie-selfcheck.service" else "0027"
+        assert d["UMask"][-1] == expected, name
+        assert ("StateDirectory" in d) == (name == "vigie-selfcheck.service"), name
 
 
 def test_secret_script_validates_names_and_never_echoes_values() -> None:

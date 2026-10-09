@@ -161,7 +161,7 @@
     unit_credentials: "{{ item.unit_credentials | default([]) }}"
     unit_proxy: "{{ item.unit_proxy | default(false) }}"
     unit_ips: "{{ item.unit_ips | default([]) }}"
-    unit_state_dir: "{{ item.unit_state_dir | default(omit) }}"
+    unit_state_dir: "{{ item.unit_state_dir | default('') }}"
   notify: Recharger systemd
 
 - name: Dossiers des compléments par source
@@ -209,8 +209,8 @@
     label: "{{ item.name }}"
   vars:
     timer_unit: "{{ item.timer_unit }}"
-    timer_calendar: "{{ item.timer_calendar | default(omit) }}"
-    timer_every: "{{ item.timer_every | default(omit) }}"
+    timer_calendar: "{{ item.timer_calendar | default('') }}"
+    timer_every: "{{ item.timer_every | default('') }}"
     timer_jitter: "{{ item.timer_jitter | default('0') }}"
   notify: Recharger systemd
 
