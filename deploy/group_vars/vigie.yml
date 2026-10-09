@@ -13,7 +13,7 @@ vigie_ip: 192.168.10.17
 admin_networks:
   - 192.168.48.11/32
   - 192.168.10.0/24
-    192.168.250.0/24
+  - 192.168.250.0/24
 # HTTPS de Vigie : LAN et pool VPN (à compléter avec le pool VPN).
 lan_vpn_networks:
   - 192.168.0.0/16

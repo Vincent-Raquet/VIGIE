@@ -58,6 +58,7 @@
     mode: "0755"
 
 - name: Wheel et dépendances figées
+  diff: false  # requirements.txt : un millier de lignes d'empreintes
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.copy:
     src: "{{ item }}"
@@ -88,6 +89,7 @@
     creates: "{{ vigie_release_dir }}/bin/vigie"
 
 - name: Version courante
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : la version n'est pas encore installée
   ansible.builtin.file:
     src: "{{ vigie_release_dir }}"
     dest: "{{ vigie_root }}/current"
