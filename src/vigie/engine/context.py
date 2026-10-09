@@ -23,7 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vigie.db import models
-from vigie.db.enums import PlanKind
+from vigie.db.enums import PlanKind, Priority
 from vigie.engine.assign import Assignment
 from vigie.engine.planner import PlanDraft
 from vigie.engine.settings import ScoringConfig
@@ -168,11 +168,16 @@ def _task(a: Assignment, status: str, facts: dict[int, dict[str, Any]]) -> dict[
     }
 
 
+DETAILED_BACKLOG = (Priority.P1, Priority.P2)
+
+
 def tasks_payload(session: Session, draft: PlanDraft) -> list[dict[str, Any]]:
+    """Détail pour les tâches planifiées, prévues et le backlog P1/P2 ; le reste du backlog
+    est résumé par `backlog_summary` (coût : le détail de 150 tâches double le prompt)."""
     groups = (
         ("assigned", draft.result.assigned),
         ("later", draft.result.later),
-        ("backlog", draft.result.backlog),
+        ("backlog", [a for a in draft.result.backlog if a.candidate.priority in DETAILED_BACKLOG]),
     )
     ordered = [(status, a) for status, items in groups for a in items]
     ordered.sort(key=lambda sa: (sa[1].candidate.priority.value, -sa[1].candidate.score))
@@ -180,6 +185,18 @@ def tasks_payload(session: Session, draft: PlanDraft) -> list[dict[str, Any]]:
     ids = {i for _, a in kept for i in a.candidate.incident_ids}
     facts = _incident_facts(session, ids, draft.generated_at)
     return [_task(a, status, facts) for status, a in kept]
+
+
+def backlog_summary(draft: PlanDraft) -> dict[str, dict[str, int]]:
+    """Backlog P3/P4 non détaillé : nombre de tâches par priorité et catégorie."""
+    out: dict[str, dict[str, int]] = {}
+    for a in draft.result.backlog:
+        c = a.candidate
+        if c.priority in DETAILED_BACKLOG:
+            continue
+        per = out.setdefault(c.priority.value, {})
+        per[c.category.value] = per.get(c.category.value, 0) + 1
+    return out
 
 
 def variable_message(session: Session, draft: PlanDraft) -> str:
@@ -195,6 +212,7 @@ def variable_message(session: Session, draft: PlanDraft) -> str:
         },
         "capacity_hours": availability,
         "tasks": tasks_payload(session, draft),
+        "backlog_not_detailed": backlog_summary(draft),
         "milestones_at_risk": [
             {
                 "milestone_id": r.milestone_id,

@@ -88,11 +88,26 @@ class PlansConfig(_Strict):
     max_tasks_per_person_per_day: int = Field(5, gt=0)
     carry_over_escalation_after: int = Field(3, gt=0)
     milestone_window_days: int = Field(21, gt=0)
+    # P1 escaladées au coordinateur : au plus ce multiple de sa capacité du jour ; au-delà,
+    # backlog « P1 non couvert » à arbitrer (rodage 2026-10 : 15 escalades pour 4 h).
+    coordinator_overload_max: float = Field(1.5, ge=1, le=3)
 
 
 class NotifyConfig(_Strict):
-    mail_sender: str = ""
+    """Diffusion des plans (SPEC F9, SECURITY.md C13). Secrets : `graph_certificate` (PEM :
+    clé privée + certificat de l'application « Vigie Mail ») et `teams_webhook_url`."""
+
+    mail_enabled: bool = False
+    mail_sender: str = Field("", pattern=r"^([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$")
+    # ID d'objet Entra de la boîte d'envoi (chemin Graph /users/{id}/sendMail, sans « @ »).
+    mail_sender_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    graph_tenant_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    graph_client_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
     teams_enabled: bool = False
+    # Proxy de sortie explicite (Squid, phase 8) ; aucun proxy implicite de l'environnement.
+    proxy: str | None = Field(None, pattern=r"^https?://[^\s/]+(:[0-9]{1,5})?/?$")
+    # Rodage (phase 9) : tout est envoyé au seul coordinateur.
+    draft_only: bool = True
 
 
 class TLSConfig(_Strict):

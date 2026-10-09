@@ -24,6 +24,13 @@ asset_rules:
   # « WG-Reseau » : la comparaison ignore les accents, « Réseau » suffit.
   - {source: zabbix, match: hostgroup_suffix, pattern: "Cameras",  asset_criticality: 0.7}
   - {source: zabbix, match: hostgroup_suffix, pattern: "Printer",  asset_criticality: 0.6}
+  # Type d'actif d'après le nom d'hôte (mot entier, sans casse ni accents) : l'emporte sur le
+  # groupe (une caméra du groupe « WG-Reseau » n'est pas du cœur de réseau). Rodage 2026-10.
+  - {source: zabbix, match: hostname_contains, pattern: "Unifi Antenne", asset_criticality: 0.8}
+  - {source: zabbix, match: hostname_contains, pattern: "CAM",           asset_criticality: 0.7}
+  - {source: zabbix, match: hostname_contains, pattern: "wifi bridge",   asset_criticality: 0.9}
+  - {source: zabbix, match: hostname_contains, pattern: "iLO",           asset_criticality: 1.3}
+  - {source: zabbix, match: hostname_contains, pattern: "UPS",           asset_criticality: 1.2}
   # NinjaOne : organisationId → société (ids à compléter)
   - {source: ninjaone, match: org_id, pattern: "TODO", company: WI}
   # FortiAnalyzer : ADOM ou préfixe de devname

@@ -30,6 +30,19 @@ def normalize(text: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold().strip()
 
 
+def _contains_word(value: str, word: str) -> bool:
+    """`word` (déjà normalisé) présent dans `value` comme mot ou suite de mots entiers."""
+    start = value.find(word)
+    while start != -1:
+        end = start + len(word)
+        if (start == 0 or not value[start - 1].isalnum()) and (
+            end == len(value) or not value[end].isalnum()
+        ):
+            return True
+        start = value.find(word, start + 1)
+    return False
+
+
 @dataclass(frozen=True)
 class AssetRuleData:
     source: str
@@ -51,6 +64,8 @@ class AssetRuleData:
                 return v.startswith(p)
             case MatchType.org_id | MatchType.adom | MatchType.agent_group:
                 return v == p
+            case MatchType.hostname_contains:
+                return _contains_word(v, p)
 
 
 class RuleMapper:

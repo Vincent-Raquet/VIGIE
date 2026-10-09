@@ -29,7 +29,24 @@ def _rule(id_: str, priority: str, reason: str, *conds: tuple[str, str, Any]) ->
     )
 
 
+HARDWARE_FAILURE_TITLES = [
+    "SMART status fail",
+    "above critical threshold",
+    "power supply is in critical state",
+    "power supply failed",
+    "disk array controller is in critical state",
+    "physical disk is in critical state",
+    "RAID is degraded",
+]
+
 DEFAULT_OVERRIDES = [
+    _rule(
+        "hardware_failure",
+        "P1",
+        "défaillance matérielle (disque, RAID, alimentation, température critique)",
+        ("severity", "ge", 4),
+        ("title", "contains_any", HARDWARE_FAILURE_TITLES),
+    ),
     _rule(
         "zabbix_disaster",
         "P1",
@@ -147,7 +164,7 @@ class ScoringConfig(BaseModel):
         default_factory=lambda: {"backup": 1.3, "security": 1.3, "firewall": 1.2, "default": 1.0}
     )
     asset_criticality_default: float = Field(1.0, ge=0.5, le=1.5)
-    age_factor_per_day: float = Field(0.1, ge=0)
+    age_factor_per_day: float = Field(0.03, ge=0)
     age_factor_max_days: int = Field(10, ge=0)
     recurrence_factor: float = Field(0.05, ge=0)
     recurrence_max: int = Field(10, ge=0)

@@ -53,6 +53,7 @@ class MatchType(StrEnum):
     devname_prefix = "devname_prefix"
     job_prefix = "job_prefix"
     agent_group = "agent_group"
+    hostname_contains = "hostname_contains"  # type d'actif d'après le nom (caméra, antenne…)
 
 
 class ProjectStatus(StrEnum):

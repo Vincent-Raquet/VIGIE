@@ -7,7 +7,9 @@
 severity_weight: {0: 1, 1: 4, 2: 10, 3: 20, 4: 35, 5: 50}
 category_weight: {backup: 1.3, security: 1.3, firewall: 1.2, default: 1.0}
 asset_criticality_default: 1.0   # C_asset quand aucune règle asset_rule ne s'applique
-age_factor_per_day: 0.1
+# Âge : +3 %/jour, plafonné à 10 jours (×1,3). Rodage 2026-10 sur données réelles : à +10 %/jour
+# (×2), les problèmes chroniques jamais corrigés dans Zabbix devenaient P1/P2.
+age_factor_per_day: 0.03
 age_factor_max_days: 10
 recurrence_factor: 0.05
 recurrence_max: 10
@@ -48,10 +50,26 @@ default_estimate_h:
 
 # Overrides déclaratifs (point H) : toutes les conditions doivent être vraies ; ils ne peuvent
 # que relever la priorité. Champs : source, category, severity, company, hours_open,
-# attr.<clé> (attributs fournis par le connecteur). Opérateurs : eq ne gt ge lt le in.
+# attr.<clé> (attributs fournis par le connecteur), title (titres des signaux).
+# Opérateurs : eq ne gt ge lt le in, contains_any (sous-chaîne sans casse ni accents).
 # Aucune expression n'est évaluée. Les règles Veeam, Wazuh, vulnérabilités et certificats
 # restent inertes tant que les connecteurs correspondants ne fournissent pas ces attributs.
 overrides:
+  - id: hardware_failure
+    priority: P1
+    reason: défaillance matérielle (disque, RAID, alimentation, température critique)
+    all:
+      - {field: severity, op: ge, value: 4}
+      - field: title
+        op: contains_any
+        value:
+          - SMART status fail
+          - above critical threshold
+          - power supply is in critical state
+          - power supply failed
+          - disk array controller is in critical state
+          - physical disk is in critical state
+          - RAID is degraded
   - id: zabbix_disaster
     priority: P1
     reason: Zabbix sévérité Disaster

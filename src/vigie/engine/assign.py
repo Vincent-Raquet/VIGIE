@@ -69,6 +69,7 @@ class Candidate:
     reason: str = ""
     follow_up: bool = False
     not_before: date | None = None  # suivi prévu chez un spécialiste un jour donné
+    forced: bool = False  # priorité imposée par une règle (override) : servie avant le score
     actions: list[str] = field(default_factory=list)  # étapes rédigées par le LLM (validées)
     by_llm: bool = False  # titre, actions ou affectation retenus depuis la proposition du LLM
 
@@ -108,7 +109,9 @@ class Assigner:
         max_tasks_per_day: int = 5,
         country: str = "BE",
         escalate_carry_after: int = 3,
+        coordinator_overload_max: float = 1.5,
     ) -> None:
+        self.overload_max = coordinator_overload_max
         self.members = list(members)
         self.window = sorted(window)
         self.max_tasks = max_tasks_per_day
@@ -171,9 +174,11 @@ class Assigner:
     def run(self, tasks: Sequence[Candidate]) -> AssignmentResult:
         ordered = sorted(
             tasks,
-            # Jalons d'abord à priorité égale : capacité réservée (SPEC F3).
+            # À priorité égale : règle explicite (override) d'abord, puis jalons (capacité
+            # réservée, SPEC F3), puis score.
             key=lambda t: (
                 PRIORITY_RANK[t.priority],
+                not t.forced,
                 t.milestone_id is None,
                 -t.score,
                 t.due or date.max,
@@ -224,17 +229,22 @@ class Assigner:
             return
         self._fallback(task, qualified)
 
-    def _coordinator_day(self, hours: float, over_capacity: bool) -> date | None:
+    def _escalation_day(self, c: Member, task: Candidate) -> date | None:
+        """Premier jour où le coordinateur, présent, reste sous le plafond d'escalade."""
+        allowed = [d for d in self.window if task.due is None or d <= task.due] or self.window[:1]
+        for d in allowed:
+            cap = self.result.capacity.get((c.id, d), 0)
+            load = self.result.load.get((c.id, d), 0)
+            if cap > 0 and load + task.estimate_h <= cap * self.overload_max + 1e-9:
+                return d
+        return None
+
+    def _coordinator_day(self, hours: float) -> date | None:
+        """Premier jour où le coordinateur a la capacité (recours ordinaire, P2 à P4)."""
         c = self.coordinator
         if c is None:
             return None
-        present = [d for d in self.window if c.availability.present(d, self.country)]
-        fitting = [d for d in present if self._fits(c, d, hours)]
-        if fitting:
-            return fitting[0]
-        if over_capacity:
-            return present[0] if present else (self.window[0] if self.window else None)
-        return None
+        return next((d for d in self.window if self._fits(c, d, hours)), None)
 
     def _specialists(self, task: Candidate, qualified: Sequence[Member]) -> list[Member]:
         return sorted(
@@ -246,16 +256,21 @@ class Assigner:
         c = self.coordinator
         first = self.window[0] if self.window else None
         if task.priority is Priority.P1 and c is not None:
-            day = self._coordinator_day(task.estimate_h, over_capacity=True)
-            if day is not None:
-                self._book(c, day, task.estimate_h)
-                needed = ", ".join(task.skills) or "tous"
-                why = f"Escalade : aucun spécialiste ({needed}) disponible ; " + self._why(
-                    c, day, task
+            day = self._escalation_day(c, task)
+            if day is None:
+                ceiling = _num(self.overload_max * 100)
+                why = (
+                    "P1 non couvert : aucun spécialiste disponible et capacité d'escalade du "
+                    f"coordinateur atteinte ({ceiling} %) — arbitrage nécessaire"
                 )
-                self.result.assigned.append(Assignment(task, c.id, day, why, escalation=True))
-                self._follow_up(task, qualified, day)
+                self.result.backlog.append(Assignment(task, None, None, why, escalation=True))
                 return
+            self._book(c, day, task.estimate_h)
+            needed = ", ".join(task.skills) or "tous"
+            why = f"Escalade : aucun spécialiste ({needed}) disponible ; " + self._why(c, day, task)
+            self.result.assigned.append(Assignment(task, c.id, day, why, escalation=True))
+            self._follow_up(task, qualified, day)
+            return
         if task.priority is Priority.P2 and first is not None:
             for specialist in self._specialists(task, qualified):
                 nxt = specialist.availability.next_presence(
@@ -274,7 +289,7 @@ class Assigner:
                     self.result.later.append(Assignment(postponed, specialist.id, nxt, why))
                     return
         if c is not None and c.level(task.skills) >= min_level(task.priority):
-            day = self._coordinator_day(task.estimate_h, over_capacity=False)
+            day = self._coordinator_day(task.estimate_h)
             if day is not None:
                 self._book(c, day, task.estimate_h)
                 escalation = task.priority in (Priority.P1, Priority.P2)
@@ -330,6 +345,7 @@ def assign(
     max_tasks_per_day: int = 5,
     country: str = "BE",
     escalate_carry_after: int = 3,
+    coordinator_overload_max: float = 1.5,
 ) -> AssignmentResult:
     return Assigner(
         members,
@@ -337,6 +353,7 @@ def assign(
         max_tasks_per_day=max_tasks_per_day,
         country=country,
         escalate_carry_after=escalate_carry_after,
+        coordinator_overload_max=coordinator_overload_max,
     ).run(tasks)
 
 

@@ -38,7 +38,6 @@ def test_version() -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        ["notify", "--plan", "latest-daily", "--dry-run"],
         ["housekeeping"],
         ["selfcheck"],
         ["breakglass", "--enable"],

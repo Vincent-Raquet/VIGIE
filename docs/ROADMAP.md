@@ -59,6 +59,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - Graph `sendMail` (certificat), webhook Teams, gabarits HTML + texte, allowlist destinataires.
 - `vigie notify --plan <id> --dry-run` (écrit les messages dans un dossier au lieu d'envoyer).
 - **Acceptation** : rendu vérifié dans Outlook et Teams ; aucun lien non construit par l'application.
+- Réalisé : `vigie notify --plan <id|latest-daily|latest-weekly> [--dry-run --out DIR] [--force]` ; un e-mail par personne (tâches, actions, liens Vigie) et un récapitulatif au coordinateur (synthèse IA, escalades, risques) ; carte Teams sans détail ; Graph par certificat (MSAL) et webhook via `SafeClient` (un seul appel autorisé chacun) ; destinataires = personnes actives ; mode rodage `draft_only` ; publication du plan à la diffusion, idempotence ; pause respectée. Reste : premier envoi réel (application « Vigie Mail », webhook Teams), reporté à la demande du coordinateur ; e-mail et Teams désactivés d'ici là.
 
 ## Phase 8 — Déploiement Debian (1–2 jours)
 - Suivre le skill `debian-deploy` : Ansible (rôles `base`, `hardening`, `nftables`, `squid`, `postgresql`, `caddy`, `vigie`, `zabbix_agent`, `backup`).
@@ -67,6 +68,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - **Acceptation** : `systemd-analyze security` < 2,0 par unité ; Lynis ≥ 80 ; un `curl` vers un domaine non autorisé échoue ; collecte réelle de chaque source OK ; premier plan quotidien reçu par mail.
 
 ## Phase 9 — Rodage (2 semaines)
+- Premiers enseignements (2026-10-09, première collecte réelle Zabbix, 165 signaux) : âge ramené à +3 %/jour plafonné à ×1,3 (les problèmes chroniques devenaient P1/P2) ; plafond d'escalade du coordinateur à 150 % de sa capacité, au-delà backlog « P1 non couvert » ; criticité par type d'actif d'après le nom d'hôte (`hostname_contains` : antennes, caméras, iLO, onduleurs) prioritaire sur le groupe ; override `hardware_failure` (SMART, RAID, alimentation, température critique, sévérité ≥ High) ; à priorité égale, P1 imposé par une règle avant P1 de score ; détail envoyé à l'IA limité aux tâches planifiées et au backlog P1/P2 (coût 0,16 $ → 0,05 $).
 - Mode « brouillon uniquement » (pas d'envoi aux collègues), revue quotidienne par le coordinateur.
 - Ajustement des poids, seuils, catégories et estimations dans `config/scoring.yaml` ; suivi du coût réel.
 - **Acceptation** : le coordinateur juge ≥ 80 % des tâches pertinentes et bien affectées sur 5 jours consécutifs → activation de la diffusion à l'équipe.

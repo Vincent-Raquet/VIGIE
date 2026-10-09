@@ -82,3 +82,15 @@ def test_strongest_prefers_p1_and_requires_all_conditions() -> None:
 def test_rule_needs_conditions() -> None:
     with pytest.raises(ValidationError):
         OverrideRule(id="x", priority=Priority.P1, reason="r", all=[])
+
+
+def test_contains_any_on_titles() -> None:
+    cond = Condition(
+        field="title", op="contains_any", value=["SMART status fail", "Température critique"]
+    )
+    assert cond.holds({"title": "Proxmox VE: Node [pve-01]: Disk [/dev/sda]: smart STATUS fail"})
+    assert cond.holds({"title": "Capteur : temperature CRITIQUE atteinte"})  # sans accents ni casse
+    assert not cond.holds({"title": "Disk space low"})
+    assert not cond.holds({"title": 42})
+    assert not Condition(field="title", op="contains_any", value="SMART").holds({"title": "SMART"})
+    assert not Condition(field="title", op="contains_any", value=[" "]).holds({"title": "x"})

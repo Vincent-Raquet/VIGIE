@@ -441,3 +441,8 @@ def test_fixture_replay_still_enforces_allowlist(tmp_path: Path) -> None:
 def test_unreadable_ca_bundle_is_reported(tmp_path: Path) -> None:
     with pytest.raises(SourceCallError, match="bundle CA illisible"):
         SafeClient(source="t", base_url=BASE_URL, allowlist=ANON, ca_bundle=tmp_path / "absent.pem")
+
+
+def test_empty_body_returns_none() -> None:
+    c, _ = client(httpx.Response(202, content=b""))
+    assert c.get("/api/v1/jobs/states") is None

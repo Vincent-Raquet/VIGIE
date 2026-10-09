@@ -51,6 +51,10 @@ _DESTRUCTIVE_RPC_RE = re.compile(
 _BROAD_REGEX_RE = re.compile(r"(?<!\\)\.[*+]")
 
 
+# Transport HTTP injectable (rejeu de fixtures, tests) sans importer httpx ailleurs.
+Transport = httpx.BaseTransport
+
+
 class AllowlistDefinitionError(ValueError):
     """Entrée d'allowlist mal formée (erreur de programmation, détectée au chargement)."""
 
@@ -349,6 +353,8 @@ class SafeClient:
                 raw = self._read_limited(response, label)
             finally:
                 response.close()
+            if not raw.strip():
+                return None  # ex. 202/204 sans corps (Graph sendMail, webhook Teams)
             try:
                 return json.loads(raw)
             except ValueError:

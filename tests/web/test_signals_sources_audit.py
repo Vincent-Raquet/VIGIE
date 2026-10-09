@@ -17,7 +17,7 @@ from vigie.db import models
 from vigie.db.enums import AppRole, JobKind, JobStatus, LLMOutcome
 from vigie.engine.planner import run_engine
 from vigie.jobs_runner import run_pending
-from vigie.web.links import source_link
+from vigie.links import source_link
 
 pytestmark = pytest.mark.db
 

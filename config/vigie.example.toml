@@ -32,8 +32,14 @@ carry_over_escalation_after = 3
 milestone_window_days = 21
 
 [notify]
-mail_sender = "itbot@example.be"
-teams_enabled = true
+mail_enabled = true
+mail_sender = "itbot@example.be"          # affiché comme expéditeur
+mail_sender_id = ""                        # ID d'objet Entra de la boîte itbot (Graph /users/{id}/sendMail)
+graph_tenant_id = ""
+graph_client_id = ""                       # application « Vigie Mail » (certificat : secret graph_certificate)
+teams_enabled = true                       # URL du webhook : secret teams_webhook_url
+# proxy = "http://127.0.0.1:3128"          # Squid (phase 8)
+draft_only = true                          # rodage : tout part au coordinateur (phase 9)
 
 # Sources : un bloc par connecteur. Champs communs : enabled, interval_min ;
 # les autres champs sont validés par le connecteur lui-même.

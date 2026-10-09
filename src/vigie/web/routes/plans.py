@@ -13,9 +13,7 @@ from sqlalchemy.orm import Session
 from vigie.db import models
 from vigie.db.enums import AppRole, Category, PlanKind, PlanStatus, Priority, TaskOrigin, TaskStatus
 from vigie.engine.calendar import week_of
-from vigie.web.auth import User, audit, require_role
-from vigie.web.deps import ALL, DB, LEADS, STAFF, render
-from vigie.web.queries import (
+from vigie.planview import (
     TaskView,
     failing_sources,
     latest_plan,
@@ -23,6 +21,8 @@ from vigie.web.queries import (
     plan_view,
     since_yesterday,
 )
+from vigie.web.auth import User, audit, require_role
+from vigie.web.deps import ALL, DB, LEADS, STAFF, render
 
 router = APIRouter()
 

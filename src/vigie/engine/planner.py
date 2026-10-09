@@ -188,6 +188,7 @@ def incident_candidates(
                 due=max(due, window[0]),
                 incident_ids=[incident.id],
                 reason=incident.priority_reason,
+                forced=incident.priority_reason.startswith("Override "),
             )
         )
     return out
@@ -361,6 +362,7 @@ def build_plan(
         if live:
             top = min(live, key=lambda x: (x.priority.value, -x.score))
             c.priority, c.score, c.reason = top.priority, top.score, top.reason
+            c.forced = top.forced
             c.skills = top.skills
 
     assigner = Assigner(
@@ -369,6 +371,7 @@ def build_plan(
         max_tasks_per_day=plans.max_tasks_per_person_per_day,
         country=country,
         escalate_carry_after=plans.carry_over_escalation_after,
+        coordinator_overload_max=plans.coordinator_overload_max,
     )
     result = assigner.run(carried + fresh + milestones)
 

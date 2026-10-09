@@ -1,0 +1,4 @@
+<tr><td style="padding:8px 0;border-bottom:1px solid #dde2e8;vertical-align:top;width:44px;"><span style="font:600 11px monospace;color:#ffffff;background:{{ PRIORITY_COLORS[t.task.priority.value] }};border-radius:4px;padding:2px 6px;">{{ t.task.priority.value }}</span></td>
+<td style="padding:8px 0;border-bottom:1px solid #dde2e8;vertical-align:top;"><strong>{{ t.task.title|plain(120) }}</strong> <span style="color:#4a5666;">— {{ t.task.estimate_h|num }} h</span>
+{% if t.task.actions %}<ol style="margin:4px 0 0 18px;padding:0;color:#17202b;">{% for a in t.task.actions %}<li>{{ a|plain(200) }}</li>{% endfor %}</ol>{% endif %}
+<div style="font-size:12px;color:#4a5666;margin-top:2px;">{{ t.task.rationale|plain(300) }}{% for i in t.incident_ids %} · <a href="{{ incident_url(i) }}" style="color:#1f6f8b;">incident {{ i }}</a>{% endfor %}</div></td></tr>
