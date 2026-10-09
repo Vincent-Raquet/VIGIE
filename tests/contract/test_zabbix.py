@@ -118,6 +118,7 @@ def test_maintenance_lowers_severity(mapper: RuleMapper) -> None:
     hvac = by_asset(signals(mapper), "hvac-wg-01")[0]
     assert hvac.severity == 3  # High (4) abaissé
     assert "En maintenance" in hvac.details
+    assert hvac.attributes["maintenance"] is True
 
 
 def test_problem_signal_fields(mapper: RuleMapper) -> None:
@@ -130,6 +131,7 @@ def test_problem_signal_fields(mapper: RuleMapper) -> None:
     assert s.last_seen == NOW
     assert s.first_seen < NOW
     assert s.url_template_params.keys() == {"eventid", "triggerid"}
+    assert s.attributes == {"kind": "problem", "maintenance": False, "asset_criticality": 1.5}
     named = by_asset(signals(mapper), "srv-wg-04")[0]
     assert named.details.startswith("Hôte : WG-srv-wg-04 - SQL (srv-wg-04)")
 
@@ -218,6 +220,19 @@ def test_truncation_is_logged(tmp_path: Path, caplog: pytest.LogCaptureFixture) 
     with caplog.at_level(logging.WARNING, logger="vigie.connectors"):
         list(make(fixture_transport(tmp_path)).collect(NOW))
     assert "collecte tronquée" in caplog.text
+
+
+def test_truncated_flag(tmp_path: Path) -> None:
+    problems = [{"eventid": str(i), "objectid": "1"} for i in range(MAX_OBJECTS + 1)]
+    (tmp_path / "problem.get.json").write_text(json.dumps(problems))
+    (tmp_path / "trigger.get.json").write_text("[]")
+    (tmp_path / "proxy.get.json").write_text("[]")
+    c = make(fixture_transport(tmp_path))
+    list(c.collect(NOW))
+    assert c.truncated
+    full = make()
+    list(full.collect(NOW))
+    assert not full.truncated
 
 
 def test_healthcheck() -> None:

@@ -38,7 +38,6 @@ def test_version() -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        ["collect", "--source", "zabbix"],  # écriture en base : phase 4
         ["plan", "--kind", "daily", "--dry-run", "--no-llm"],
         ["notify", "--plan", "latest-daily", "--dry-run"],
         ["budget"],

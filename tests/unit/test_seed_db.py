@@ -142,4 +142,4 @@ def test_cli_seed_invalid_data(test_config: Path, tmp_path: Path) -> None:
 def test_cli_check_reports_database(test_config: Path) -> None:
     result = CliRunner().invoke(app, ["--config", str(test_config), "check"])
     assert result.exit_code == 0, result.output
-    assert "Base : OK (révision 0003, à jour)" in result.output
+    assert "Base : OK (révision 0004, à jour)" in result.output

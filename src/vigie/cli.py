@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from vigie import __version__
+from vigie.collect import ensure_source, record_failure, record_success, store_snapshot
 from vigie.config import (
     ConfigError,
     SecretError,
@@ -145,26 +146,71 @@ def collect(
         typer.Option("--mapping", help="Dossier de companies.yaml (rattachement des sociétés)."),
     ] = Path("config"),
 ) -> None:
-    """Collecte les alertes d'une source (lecture seule)."""
-    if not dry_run:
-        typer.echo(
-            "Collecte avec enregistrement en base non implémentée (phase 4) : utiliser --dry-run.",
-            err=True,
-        )
-        raise typer.Exit(code=EXIT_NOT_IMPLEMENTED)
+    """Collecte les alertes d'une source (lecture seule) et les enregistre en base."""
     if source not in registry.available():
         typer.echo(f"ERREUR aucun connecteur installé pour la source {source!r}", err=True)
         raise typer.Exit(code=1)
     _, cfg = _config(ctx)
+    if dry_run:
+        try:
+            mapper = RuleMapper.from_seed_dir(mapping)
+            connector = _build_connector(source, cfg, fixtures)
+            signals = _run(connector, mapper)
+        except (ConnectorConfigError, SecretError, SeedError, SourceCallError) as exc:
+            typer.echo(f"ERREUR {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        _print_signals(signals)
+        return
+    _collect_to_db(source, cfg, fixtures)
+
+
+def _run(connector: Any, mapper: RuleMapper) -> list[Signal]:
+    since = datetime.now(UTC) - timedelta(minutes=connector.config.interval_min)
+    return [connector.to_signal(raw, mapper) for raw in connector.collect(since)]
+
+
+def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None:
+    settings = cfg.sources.get(source)
+    engine = make_engine(cfg.database.url)
+    failure: str | None = None
     try:
-        mapper = RuleMapper.from_seed_dir(mapping)
-        connector = _build_connector(source, cfg, fixtures)
-        since = datetime.now(UTC) - timedelta(minutes=connector.config.interval_min)
-        signals = [connector.to_signal(raw, mapper) for raw in connector.collect(since)]
-    except (ConnectorConfigError, SecretError, SeedError, SourceCallError) as exc:
+        with Session(engine) as session:
+            ensure_source(
+                session,
+                source,
+                kind=source,
+                enabled=settings.enabled if settings else True,
+                interval_min=settings.interval_min if settings else 15,
+                base_url=str(getattr(settings, "base_url", "") or ""),
+            )
+            mapper = RuleMapper.from_session(session)
+            now = datetime.now(UTC)
+            try:
+                connector = _build_connector(source, cfg, fixtures)
+                signals = _run(connector, mapper)
+                complete = not getattr(connector, "truncated", False)
+                report = store_snapshot(session, source, signals, now, complete=complete)
+                record_success(session, source, now)
+            except SourceCallError as exc:
+                failure = str(exc)
+                record_failure(session, source, failure, now)
+            session.commit()
+    except (ConnectorConfigError, SecretError) as exc:
         typer.echo(f"ERREUR {exc}", err=True)
         raise typer.Exit(code=1) from exc
-    _print_signals(signals)
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    if failure is not None:
+        typer.echo(f"ERREUR {failure} (signal « source injoignable » enregistré)", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"{source} : {len(signals)} signal(s) — {report.created} nouveau(x), "
+        f"{report.updated} mis à jour, {report.reopened} rouvert(s), {report.resolved} résolu(s)"
+        + ("" if complete else " ; collecte tronquée : aucune résolution")
+    )
 
 
 @app.command()
