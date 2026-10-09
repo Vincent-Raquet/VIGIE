@@ -39,7 +39,6 @@ def test_version() -> None:
     "args",
     [
         ["notify", "--plan", "latest-daily", "--dry-run"],
-        ["web", "--reload"],
         ["housekeeping"],
         ["selfcheck"],
         ["breakglass", "--enable"],

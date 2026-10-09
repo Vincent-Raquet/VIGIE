@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Connexion{% endblock %}
+{% block body %}
+<main class="login stack">
+  <div class="panel stack">
+    <h1>Vigie</h1>
+    <p class="sub">Pilotage IT · WI SPL WG CC FWD</p>
+    {% if error %}<div class="flash error" role="alert">{{ error }}</div>{% endif %}
+    {% if entra %}<a class="btn primary" href="/auth/login">Se connecter avec Microsoft</a>{% else %}<p class="muted">Connexion Entra ID non configurée (<span class="mono">[web.oidc]</span>).</p>{% endif %}
+    {% if dev_login %}<a class="btn" href="/dev-login">Connexion de développement</a>{% endif %}
+    {% if breakglass %}<a class="btn" href="/breakglass">Accès de secours</a>{% endif %}
+  </div>
+</main>
+{% endblock %}

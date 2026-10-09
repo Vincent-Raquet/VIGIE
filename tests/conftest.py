@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from vigie.db.migrate import alembic_config
 
+pytest_plugins = ["tests.webfixtures"]  # application web sur la base de test
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CONFIG = REPO_ROOT / "config" / "vigie.example.toml"
 TEST_DB_URL = os.environ.get("VIGIE_TEST_DATABASE_URL", "postgresql+psycopg:///vigie_test")

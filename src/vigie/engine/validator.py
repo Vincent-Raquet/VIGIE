@@ -46,6 +46,19 @@ class RefinedPlan:
     escalations: list[tuple[str, str]] = field(default_factory=list)
     rejections: list[str] = field(default_factory=list)
 
+    def ai_data(self, without_ai_reason: str | None) -> dict[str, object]:
+        """Contributions de l'IA retenues, pour `plan.data["ai"]` (JSON)."""
+        if without_ai_reason is not None:
+            return {"by_llm": False, "without_ai_reason": without_ai_reason}
+        return {
+            "by_llm": True,
+            "summary_exec": self.summary_exec,
+            "per_person": {str(k): v for k, v in self.per_person.items()},
+            "risks": [{"text": t, "severity": s} for t, s in self.risks],
+            "escalations": [{"text": t, "to": to} for t, to in self.escalations],
+            "rejections": self.rejections,
+        }
+
 
 class _Ledger:
     """Charge et nombre de tâches par personne et par jour, mis à jour par les déplacements."""

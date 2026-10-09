@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Aujourd'hui{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page">
+    <div>
+      <h1>Plan du {{ day|fr_date }}</h1>
+      {% if view %}{% include "_plan_header.html" %}{% if view.plan.period_start != day %}<div class="sub">Dernier plan quotidien disponible : {{ view.plan.period_start|fr_date }}.</div>{% endif %}{% endif %}
+    </div>
+    {% include "_plan_actions.html" %}
+  </header>
+  {% if not view %}
+  <div class="panel"><p>Aucun plan quotidien pour ce jour. Il est généré à 07:15 les jours ouvrés (<span class="mono">vigie plan --kind daily</span>).</p></div>
+  {% else %}
+  {% set planned = view.people|sum(attribute="load_h") %}{% set capacity = view.people|sum(attribute="capacity_h") %}
+  <div class="kpis">
+    <div class="kpi"><b>{{ new_incidents|selectattr("priority.value", "equalto", "P1")|list|length }}</b><span>nouveaux P1 depuis hier</span></div>
+    <div class="kpi"><b>{{ view.people|selectattr("capacity_h")|list|length }}</b><span>personnes présentes</span></div>
+    <div class="kpi"><b>{{ planned|fr_num }} h</b><span>planifiées sur {{ capacity|fr_num }} h de capacité</span></div>
+    <div class="kpi"><b>{{ sources_down|length }}</b><span>source(s) en panne</span></div>
+  </div>
+  <div class="people">
+    {% for card in view.people %}
+    <article class="person">
+      <header><div><h3>{{ card.person.name }}</h3><span class="sub">{{ card.person.job_role }}</span></div><span class="t-h">{{ card.load_h|fr_num }} / {{ card.capacity_h|fr_num }} h</span></header>
+      <meter class="cap" min="0" max="{{ [card.capacity_h, 0.01]|max }}" high="{{ card.capacity_h }}" optimum="0" value="{{ card.load_h }}" aria-label="Charge">{{ card.load_h }} h</meter>
+      {% if card.summary %}<p class="sub md t-why">{{ card.summary }}</p>{% endif %}
+      <ol class="tasks">{% for t in card.tasks %}{% include "_task.html" %}{% else %}<li><span></span><span class="muted">Aucune tâche.</span><span></span></li>{% endfor %}</ol>
+    </article>
+    {% endfor %}
+  </div>
+  {% include "_ai.html" %}
+  {% if new_incidents %}
+  <div class="panel"><h2>Nouveautés depuis hier (P1/P2)</h2>
+    <div class="table-wrap"><table><thead><tr><th>Priorité</th><th>Société</th><th>Actif</th><th>Score</th><th></th></tr></thead><tbody>
+    {% for i in new_incidents %}<tr><td><span class="pill {{ i.priority.value }}">{{ i.priority.value }}</span></td><td>{{ i.company_code or "—" }}</td><td>{{ i.asset or "—" }}</td><td class="num">{{ i.score|fr_num }}</td><td><a href="/signaux/incidents/{{ i.id }}">détail</a></td></tr>{% endfor %}
+    </tbody></table></div></div>
+  {% endif %}
+  {% if view.later %}<div class="panel"><h2>Prévu plus tard</h2><ul>{% for t in view.later %}<li>{{ t.day|fr_date }} — <span class="pill {{ t.task.priority.value }}">{{ t.task.priority.value }}</span> {{ t.task.title }}</li>{% endfor %}</ul></div>{% endif %}
+  {% if sources_down %}<div class="panel"><h2>Sources en panne</h2><ul>{% for s in sources_down %}<li><span class="dot ko"></span>{{ s.name }} — {{ s.last_error }}</li>{% endfor %}</ul></div>{% endif %}
+  {% set urgent = view.backlog|selectattr("task.priority.value", "in", ["P1", "P2"])|list %}
+  {% if view.backlog %}<div class="panel"><h2>Non planifié</h2><ul>{% for t in urgent %}<li><span class="pill {{ t.task.priority.value }}">{{ t.task.priority.value }}</span> {{ t.task.title }} — <span class="muted">{{ t.task.rationale }}</span></li>{% endfor %}</ul>{% if view.backlog|length > urgent|length %}<p class="muted">… et {{ view.backlog|length - urgent|length }} tâche(s) P3/P4 non planifiée(s) : voir la semaine.</p>{% endif %}</div>{% endif %}
+  {% endif %}
+</section>
+{% endblock %}

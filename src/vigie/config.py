@@ -23,6 +23,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
 
+from vigie.db.enums import AppRole
+
 DEFAULT_CONFIG_PATH = Path("config/vigie.toml")
 DEFAULT_ENV_FILE = Path(".env.local")
 ENV_SECRET_PREFIX = "VIGIE_SECRET_"  # noqa: S105 - préfixe de clé, pas un secret
@@ -97,6 +99,30 @@ class TLSConfig(_Strict):
     ca_bundle: Path | None = None
 
 
+class OIDCConfig(_Strict):
+    """Application Entra ID (non secret ; le secret client est `entra_client_secret`)."""
+
+    tenant_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    client_id: str = Field("", pattern=r"^([0-9a-f-]{36})?$")
+    # ID d'objet du groupe Entra → rôle applicatif (SG-Vigie-Admin, -Manager, -Tech, -Viewer).
+    groups: dict[str, AppRole] = Field(default_factory=dict)
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.tenant_id and self.client_id and self.groups)
+
+
+class WebConfig(_Strict):
+    host: str = "127.0.0.1"  # derrière Caddy ; jamais exposé directement
+    port: int = Field(8000, ge=1, le=65535)
+    # Base de vigie-web (rôle vigie_web en prod) ; défaut : [database] url.
+    database_url: str | None = None
+    session_hours: int = Field(8, ge=1, le=24)
+    # Connexion de développement : exige aussi VIGIE_ENV=dev et une écoute sur 127.0.0.1.
+    dev_login: bool = False
+    oidc: OIDCConfig = OIDCConfig()
+
+
 class SourceConfig(BaseModel):
     """Champs communs à toutes les sources.
 
@@ -118,6 +144,7 @@ class VigieConfig(_Strict):
     plans: PlansConfig = PlansConfig()
     notify: NotifyConfig = NotifyConfig()
     tls: TLSConfig = TLSConfig()
+    web: WebConfig = WebConfig()
     sources: dict[str, SourceConfig] = Field(default_factory=dict)
 
     @field_validator("sources")

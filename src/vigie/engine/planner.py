@@ -11,6 +11,7 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -426,14 +427,42 @@ def run_engine(session: Session, now: datetime) -> None:
     score_incidents(session, now)
 
 
+def plan_data(draft: PlanDraft, ai: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Données structurées du plan lues par le web (JSON)."""
+    return {
+        "capacity": {
+            str(pid): {d.isoformat(): draft.result.capacity.get((pid, d), 0) for d in draft.window}
+            for pid in sorted(draft.members)
+        },
+        "load": {
+            str(pid): {d.isoformat(): draft.result.load.get((pid, d), 0) for d in draft.window}
+            for pid in sorted(draft.members)
+        },
+        "milestones_at_risk": [
+            {
+                "milestone_id": r.milestone_id,
+                "title": r.title,
+                "due": r.due.isoformat(),
+                "remaining_h": r.remaining_h,
+                "capacity_h": r.capacity_h,
+            }
+            for r in draft.risks
+        ],
+        "sources_down": [s.name for s in draft.sources_down],
+        "ai": ai or {},
+    }
+
+
 def save_plan(
     session: Session,
     draft: PlanDraft,
     summary_md: str,
     *,
     llm_call_id: int | None = None,
+    ai: dict[str, Any] | None = None,
 ) -> models.Plan:
-    """Enregistre le brouillon ; `llm_call_id` : plan affiné par l'IA et validé."""
+    """Enregistre le brouillon ; `llm_call_id` : plan affiné par l'IA et validé ;
+    `ai` : synthèses, risques, escalades, rejets ou raison d'un plan sans IA."""
     plan = models.Plan(
         kind=draft.kind,
         period_start=draft.period_start,
@@ -443,6 +472,7 @@ def save_plan(
         generated_by=GeneratedBy.llm if llm_call_id is not None else GeneratedBy.rules,
         llm_call_id=llm_call_id,
         created_at=draft.generated_at,
+        data=plan_data(draft, ai),
     )
     session.add(plan)
     session.flush()

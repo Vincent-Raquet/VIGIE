@@ -303,17 +303,19 @@ def plan(
             if refinement is None:
                 markdown = render_markdown(draft)
                 final, call_id = draft, None
+                ai: dict[str, object] = {"by_llm": False, "without_ai_reason": "option --no-llm"}
             else:
                 markdown = render_markdown(
                     draft, refinement.plan, without_ai=refinement.without_ai_reason
                 )
                 final = refinement.plan.draft
                 call_id = refinement.llm.call_id if refinement.by_llm and refinement.llm else None
+                ai = refinement.plan.ai_data(refinement.without_ai_reason)
             plan_id = None
             if dry_run:
                 session.rollback()
             else:
-                plan_id = save_plan(session, final, markdown, llm_call_id=call_id).id
+                plan_id = save_plan(session, final, markdown, llm_call_id=call_id, ai=ai).id
                 session.commit()
     except CalendarError as exc:
         typer.echo(f"ERREUR {exc}", err=True)
@@ -477,11 +479,37 @@ def budget(ctx: typer.Context) -> None:
 
 @app.command()
 def web(
+    ctx: typer.Context,
     reload: Annotated[bool, typer.Option("--reload", help="Rechargement auto (dev).")] = False,
-    port: Annotated[int, typer.Option("--port", help="Port d'écoute sur 127.0.0.1.")] = 8000,
+    port: Annotated[
+        int | None, typer.Option("--port", help="Port d'écoute (défaut : [web] port).")
+    ] = None,
 ) -> None:
     """Lance l'application web (127.0.0.1 uniquement)."""
-    _not_implemented(6)
+    import uvicorn
+
+    path, cfg = _config(ctx)
+    os.environ["VIGIE_CONFIG"] = str(path)  # relu par la fabrique, y compris au rechargement
+    try:
+        get_secret("web_session_key")
+    except SecretError as exc:
+        typer.echo(
+            f"ERREUR {exc} : créez une clé (ex. `python -c 'import secrets; "
+            "print(secrets.token_urlsafe(48))'`) dans .env.local ou systemd-creds.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+    uvicorn.run(
+        "vigie.web.app:build_from_env",
+        factory=True,
+        host=cfg.web.host,
+        port=port or cfg.web.port,
+        reload=reload,
+        proxy_headers=True,
+        forwarded_allow_ips="127.0.0.1",
+        server_header=False,
+        log_level="info",
+    )
 
 
 @app.command()

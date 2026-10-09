@@ -393,6 +393,10 @@ class Plan(Base):
         _enum(enums.PlanStatus, "status"), default=enums.PlanStatus.draft
     )
     summary_md: Mapped[str] = mapped_column(Text, default="")
+    # Données structurées pour le web (synthèses IA, capacité/charge, jalons à risque…).
+    data: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     generated_by: Mapped[enums.GeneratedBy] = mapped_column(
         _enum(enums.GeneratedBy, "generated_by")
     )

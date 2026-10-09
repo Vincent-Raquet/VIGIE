@@ -1,0 +1,7 @@
+{# En-tête commun : état du plan, origine (IA ou règles), actions de validation. #}
+{% set ai = view.ai %}
+<div class="sub">
+  Généré le {{ view.plan.created_at.strftime("%d/%m à %H:%M") }}
+  · <span class="pill {{ 'okc' if view.plan.status.value != 'draft' else 'P2' }}">{{ PLAN_STATUS_LABELS[view.plan.status] }}</span>
+  · {% if ai.by_llm %}affiné par l'IA, validé automatiquement{% else %}sans IA{% if ai.without_ai_reason %} ({{ ai.without_ai_reason }}){% endif %}{% endif %}
+</div>

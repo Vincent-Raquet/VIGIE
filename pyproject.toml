@@ -7,12 +7,20 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.0",
     "anthropic>=1.13.0",
+    "authlib>=1.8.0",
+    "fastapi>=0.143.0",
     "httpx>=0.28",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
+    "markdown-it-py>=4.2.0",
+    "nh3>=0.3.7",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
+    "python-multipart>=0.0.32",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",
     "typer>=0.12",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
@@ -78,6 +86,11 @@ select = ["E", "F", "W", "I", "N", "B", "UP", "S", "SIM", "PTH", "RUF", "TID"]
 strict = true
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Authlib ne publie pas d'annotations de types.
+module = ["authlib.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
