@@ -1,0 +1,70 @@
+# Vigie — Roadmap de développement
+
+Chaque phase démarre en **plan mode** dans Claude Code et se termine par : tests + lint + mypy verts, skill `security-review` passé sans point bloquant, commit. Ne pas commencer une phase avant validation humaine de la précédente.
+
+## Phase 0 — Socle du dépôt (½ jour)
+- `pyproject.toml` (uv), structure `src/vigie`, ruff, mypy, pytest, pre-commit (ruff, gitleaks), `.gitignore`, `.env.example`.
+- `vigie` CLI (Typer) avec sous-commandes vides.
+- Configuration (`config.py`) : lecture de `vigie.toml` + secrets depuis `$CREDENTIALS_DIRECTORY` ou `.env.local`.
+- Docker Compose **de dev uniquement** pour PostgreSQL 17.
+- **Acceptation** : `uv run pytest` passe ; `vigie --help` liste les commandes ; gitleaks actif.
+
+## Phase 1 — Modèle de données et seed (1 jour)
+- Modèles SQLAlchemy de SPEC §5, migrations Alembic, trigger append-only sur `audit_log`.
+- `vigie seed --from config/` idempotent (équipe, sociétés, règles d'actifs, politique, projets, skills de rôle depuis `roles/`).
+- **Acceptation** : seed exécuté deux fois sans doublon ; test qui vérifie qu'un UPDATE sur `audit_log` échoue.
+
+## Phase 2 — SafeClient et garde-fous (1 jour)
+- `connectors/base.py` : `SafeClient`, `AllowedCall`, `ForbiddenCallError`, retries, timeouts, pagination bornée, logs masqués.
+- `tests/security/` : tests statiques (imports interdits), test allowlist générique, masquage des secrets.
+- **Acceptation** : tous les tests de sécurité de `SECURITY.md C10` applicables à ce stade passent.
+
+## Phase 3 — Connecteurs (3–4 jours)
+Ordre : Zabbix → Veeam → NinjaOne → FortiAnalyzer → Wazuh → squelette Veezo. Pour chacun, suivre le skill `add-connector` :
+- vérification de l'API dans la doc de la version ;
+- allowlist + test « appel interdit » ;
+- fixtures anonymisées + tests de contrat ;
+- mapping société et catégorie ;
+- `vigie collect --source X --dry-run --fixtures …`.
+- **Acceptation** : chaque connecteur produit des signaux corrects sur fixtures ; aucun test n'émet d'appel réseau.
+
+## Phase 4 — Moteur déterministe (2–3 jours, TDD)
+- `normalize`, `correlate`, `scoring`, `rules` (overrides), `assign`, `planner` (quotidien et hebdomadaire), report des tâches, backlog.
+- Calendrier : jours de présence, absences, jours fériés BE.
+- `vigie plan --kind daily|weekly --no-llm`.
+- **Acceptation** : couverture ≥ 90 % sur `engine/` ; scénarios de SPEC §7.5 (VPN un mardi, Veeam SPL, tickets Giovanni) reproduits en tests ; plan lisible en Markdown en sortie CLI.
+
+## Phase 5 — Intégration LLM (1–2 jours)
+- `llm.py` : SDK `anthropic`, outil forcé `submit_plan`, prompt caching, budget, retries, journal `llm_call`.
+- Prompts dans `engine/prompts/` (système, plan quotidien, plan hebdo), incluant les skills de rôle.
+- `validator.py` complet ; repli déterministe.
+- Tests avec client Anthropic simulé : sortie valide, invalide, injection, dépassement de budget.
+- Utiliser le skill `product-self-knowledge` (claude.ai) ou la doc officielle pour vérifier les paramètres SDK et l'identifiant de modèle.
+- **Acceptation** : un plan généré sur fixtures réelles anonymisées coûte < 0,40 $ ; tests d'injection verts.
+
+## Phase 6 — Application web (3–4 jours)
+- Utiliser le skill `frontend-design` pour la direction visuelle (sobre, dense, lisible, mode sombre).
+- OIDC Entra, RBAC, CSRF, pages de SPEC §9, éditeur des skills de rôle, validation/publication des plans, mise à jour des tâches.
+- Tailwind compilé au build ; aucun asset externe.
+- **Acceptation** : tests d'autorisation par route et par rôle ; parcours complet sur données de seed ; CSP sans violation dans la console.
+
+## Phase 7 — Notifications (½–1 jour)
+- Graph `sendMail` (certificat), webhook Teams, gabarits HTML + texte, allowlist destinataires.
+- `vigie notify --plan <id> --dry-run` (écrit les messages dans un dossier au lieu d'envoyer).
+- **Acceptation** : rendu vérifié dans Outlook et Teams ; aucun lien non construit par l'application.
+
+## Phase 8 — Déploiement Debian (1–2 jours)
+- Suivre le skill `debian-deploy` : Ansible (rôles `base`, `hardening`, `nftables`, `squid`, `postgresql`, `caddy`, `vigie`, `zabbix_agent`, `backup`).
+- Unités et timers systemd de SPEC §8 avec sandboxing (`SECURITY.md C8`).
+- Secrets via `systemd-creds`.
+- **Acceptation** : `systemd-analyze security` < 2,0 par unité ; Lynis ≥ 80 ; un `curl` vers un domaine non autorisé échoue ; collecte réelle de chaque source OK ; premier plan quotidien reçu par mail.
+
+## Phase 9 — Rodage (2 semaines)
+- Mode « brouillon uniquement » (pas d'envoi aux collègues), revue quotidienne par le coordinateur.
+- Ajustement des poids, seuils, catégories et estimations dans `config/scoring.yaml` ; suivi du coût réel.
+- **Acceptation** : le coordinateur juge ≥ 80 % des tâches pertinentes et bien affectées sur 5 jours consécutifs → activation de la diffusion à l'équipe.
+
+## Évolutions envisagées (v2)
+- Connecteur Microsoft 365 (santé des services, Defender, licences).
+- Vue « charge » prévisionnelle sur 4 semaines.
+- Création de tickets NinjaOne à partir des tâches, **avec validation humaine action par action** et compte distinct (nécessite une revue de sécurité dédiée).

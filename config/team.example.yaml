@@ -1,0 +1,60 @@
+# Équipe IT — données d'amorçage (vigie seed). Les jours de présence de Cédric et Angelo sont des exemples.
+# Niveaux de compétence : 1 notions, 2 autonome, 3 expert. Préférence : likes | neutral | avoid
+people:
+  - name: Vincent
+    email: coordinateur@example.be        # à remplacer
+    job_role: Ingénieur système & réseau, coordinateur
+    app_role: admin
+    role_skill: ingenieur-coordinateur
+    weekly_pattern: {mon: 8, tue: 8, wed: 8, thu: 8, fri: 8}
+    planning_rate: 0.5                     # réserve de coordination
+    skills:
+      reseau: 3
+      fortinet: 3
+      systeme: 3
+      backup: 3
+      securite: 3
+      m365: 2
+      supervision: 3
+      patching: 2
+      support: 1
+    notes: Escalade de dernier recours pour tout P1 sans spécialiste présent.
+
+  - name: Giovanni
+    email: giovanni@example.be
+    job_role: Support utilisateurs
+    app_role: tech
+    weekly_pattern: {mon: 8, tue: 8, wed: 8, thu: 8, fri: 8}
+    planning_rate: 0.8
+    skills:
+      support: 3
+      poste: 3
+      m365: 2
+      patching: 2
+      reseau: 1
+    notes: Premier interlocuteur des utilisateurs ; prépare les journées de Cédric et Angelo.
+
+  - name: Cédric
+    email: cedric@example.be
+    job_role: Ingénieur réseau (temps partiel)
+    app_role: tech
+    weekly_pattern: {thu: 8}
+    planning_rate: 0.8
+    skills:
+      reseau: 3
+      fortinet: 3
+      securite: 2
+      supervision: 1
+
+  - name: Angelo
+    email: angelo@example.be
+    job_role: Ingénieur système (temps partiel)
+    app_role: tech
+    weekly_pattern: {tue: 8}
+    planning_rate: 0.8
+    skills:
+      systeme: 3
+      backup: 3
+      securite: 2
+      patching: 2
+      supervision: 2

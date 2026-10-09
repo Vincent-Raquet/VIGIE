@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(**/*.cred)",
+      "Read(**/credstore*/**)",
+      "Read(~/.ssh/**)",
+      "Bash(cat .env*)",
+      "Bash(printenv*)",
+      "Bash(env)",
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)"
+    ],
+    "ask": [
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(ansible-playbook *)",
+      "Bash(ansible *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(git push*)",
+      "Bash(docker *)",
+      "Bash(uv run vigie collect*)",
+      "Bash(uv run vigie notify*)",
+      "Bash(uv run scripts/record_fixtures.py*)"
+    ],
+    "allow": [
+      "Bash(uv sync*)",
+      "Bash(uv add *)",
+      "Bash(uv run pytest*)",
+      "Bash(uv run ruff*)",
+      "Bash(uv run mypy*)",
+      "Bash(uv run alembic*)",
+      "Bash(uv run vigie plan * --dry-run*)",
+      "Bash(uv run vigie seed*)",
+      "Bash(uv run pip-audit*)",
+      "Bash(gitleaks *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log*)",
+      "Bash(rg *)"
+    ]
+  }
+}

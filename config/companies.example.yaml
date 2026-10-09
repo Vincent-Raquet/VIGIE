@@ -1,0 +1,28 @@
+# Sociétés et règles de rattachement des actifs (asset_rule).
+companies:
+  - {code: WI,  name: WallIndustries,   criticality: 1.0}
+  - {code: SPL, name: Splifar,          criticality: 1.0}
+  - {code: WG,  name: WallGlass,        criticality: 1.0}
+  - {code: CC,  name: Construct Center, criticality: 1.0}
+  - {code: FWD, name: Fairwind,         criticality: 1.0}
+
+asset_rules:
+  # Zabbix : préfixe du groupe d'hôtes
+  - {source: zabbix, match: hostgroup_prefix, pattern: "WI",  company: WI}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "SPL", company: SPL}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "WG",  company: WG}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "CC",  company: CC}
+  - {source: zabbix, match: hostgroup_prefix, pattern: "FWD", company: FWD}
+  # Criticité des actifs par groupe (multiplicateur C_asset)
+  - {source: zabbix, match: hostgroup_suffix, pattern: "Serveurs", asset_criticality: 1.3, tags: [prod]}
+  - {source: zabbix, match: hostgroup_suffix, pattern: "Réseau",   asset_criticality: 1.5, tags: [core]}
+  - {source: zabbix, match: hostgroup_suffix, pattern: "Cameras",  asset_criticality: 0.7}
+  - {source: zabbix, match: hostgroup_suffix, pattern: "Printer",  asset_criticality: 0.6}
+  # NinjaOne : organisationId → société (ids à compléter)
+  - {source: ninjaone, match: org_id, pattern: "TODO", company: WI}
+  # FortiAnalyzer : ADOM ou préfixe de devname
+  - {source: fortianalyzer, match: devname_prefix, pattern: "WI-", company: WI}
+  # Veeam : préfixe de nom de job
+  - {source: veeam, match: job_prefix, pattern: "SPL-", company: SPL, asset_criticality: 1.3}
+  # Wazuh : groupe d'agents
+  - {source: wazuh, match: agent_group, pattern: "wg", company: WG}

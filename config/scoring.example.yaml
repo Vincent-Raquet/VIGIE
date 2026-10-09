@@ -1,0 +1,59 @@
+# Paramètres du moteur de priorisation (voir docs/SPEC.md §7.4). Ajustables pendant le rodage.
+severity_weight: {0: 1, 1: 2, 2: 4, 3: 7, 4: 10, 5: 14}
+category_weight: {backup: 1.3, security: 1.3, firewall: 1.2, default: 1.0}
+age_factor_per_day: 0.1
+age_factor_max_days: 10
+recurrence_factor: 0.05
+recurrence_max: 10
+policy_bonus_per_weight: 2
+thresholds: {P1: 60, P2: 35, P3: 15}
+
+category_skill:
+  network: reseau
+  firewall: fortinet
+  security: securite
+  vulnerability: patching
+  backup: backup
+  server: systeme
+  endpoint: poste
+  user_support: support
+  m365: m365
+  monitoring: supervision
+
+default_estimate_h:
+  network: 2
+  firewall: 2
+  security: 2
+  vulnerability: 3
+  backup: 1.5
+  server: 1.5
+  endpoint: 0.5
+  user_support: 0.5
+  m365: 1
+  monitoring: 1
+
+zabbix_category_by_group_suffix:
+  Réseau: network
+  Serveurs: server
+  Servers: server
+  Cameras: endpoint
+  Printer: endpoint
+  SRV-Veeam: backup
+  Hypervisors: server
+  IDRAC: server
+  Synology-NAS: backup
+
+overrides:
+  - {id: backup_no_success_24h, priority: P1, when: "category == 'backup' and hours_since_last_success > 24 and asset_critical"}
+  - {id: backup_two_failures,   priority: P1, when: "category == 'backup' and consecutive_failures >= 2"}
+  - {id: repo_95,               priority: P1, when: "category == 'backup' and repo_used_pct > 95"}
+  - {id: repo_90,               priority: P2, when: "category == 'backup' and repo_used_pct > 90"}
+  - {id: firewall_down,         priority: P1, when: "category == 'firewall' and state in ('offline', 'ha_degraded')"}
+  - {id: vpn_down_30m,          priority: P1, when: "category == 'network' and kind == 'vpn_down' and minutes_open > 30"}
+  - {id: zabbix_disaster,       priority: P1, when: "source == 'zabbix' and severity == 5"}
+  - {id: wazuh_level12,         priority: P1, when: "source == 'wazuh' and rule_level >= 12"}
+  - {id: critical_vuln_exposed, priority: P1, when: "category == 'vulnerability' and (cvss >= 9 or kev) and exposed"}
+  - {id: cert_7d,               priority: P1, when: "kind == 'cert_expiry' and days_left < 7"}
+  - {id: cert_21d,              priority: P2, when: "kind == 'cert_expiry' and days_left < 21"}
+  - {id: source_down_4h,        priority: P1, when: "category == 'monitoring' and kind == 'source_down' and hours_open > 4"}
+# Les expressions `when` sont évaluées par un petit évaluateur sûr (AST restreint), jamais par eval().

@@ -1,0 +1,45 @@
+# Politique IT : axes prioritaires pondérés (1–5), règles injectées dans le moteur, projets et jalons d'exemple.
+axes:
+  - title: Sauvegardes fiables et testées
+    weight: 5
+    categories: [backup]
+    keywords: [veeam, backup, restauration, repository]
+  - title: Réduction des vulnérabilités critiques
+    weight: 4
+    categories: [vulnerability, security]
+    keywords: [cve, patch, kev]
+  - title: Stabilité réseau inter-sites
+    weight: 3
+    categories: [network, firewall]
+    keywords: [vpn, sd-wan, fortigate]
+  - title: Qualité du support utilisateurs
+    weight: 2
+    categories: [user_support, endpoint, m365]
+
+rules:
+  - Toute vulnérabilité CVSS ≥ 9 ou listée CISA KEV sur un actif exposé Internet est traitée sous 48 h.
+  - Un job de sauvegarde critique sans succès depuis plus de 24 h est toujours P1.
+  - Aucun changement en production le vendredi après 14 h sauf incident P1.
+  - Les tickets utilisateurs bloquants reçoivent une première réponse dans la journée.
+
+sla_hours: {P1: 4, P2: 24, P3: 72, P4: 168}
+
+projects:
+  - name: Test de restauration trimestriel
+    companies: [WI, SPL, WG, CC, FWD]
+    axes: [Sauvegardes fiables et testées]
+    owner: Angelo
+    priority: high
+    status: active
+    milestones:
+      - {title: Restauration test SPL-FS01, due: 2026-10-27, owner: Angelo, effort_h: 3, skills: [backup, systeme]}
+      - {title: Restauration test WG-DC01, due: 2026-11-10, owner: Angelo, effort_h: 3, skills: [backup, systeme]}
+  - name: Remplacement firewall CC
+    companies: [CC]
+    axes: [Stabilité réseau inter-sites]
+    owner: Cédric
+    priority: medium
+    status: active
+    milestones:
+      - {title: Maquette configuration FortiGate CC, due: 2026-10-29, owner: Cédric, effort_h: 6, skills: [fortinet]}
+      - {title: Bascule en production CC, due: 2026-11-19, owner: Cédric, effort_h: 8, skills: [fortinet, reseau]}
