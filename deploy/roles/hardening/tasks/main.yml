@@ -1,0 +1,35 @@
+---
+- name: Paquets de durcissement
+  ansible.builtin.apt:
+    name: [auditd, audispd-plugins, apparmor, apparmor-utils, sshguard]
+    state: present
+
+- name: Paramètres noyau
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/90-vigie.conf
+    reload: true
+  loop: "{{ hardening_sysctl | dict2items }}"
+
+- name: Règles auditd de Vigie
+  ansible.builtin.copy:
+    src: vigie.rules
+    dest: /etc/audit/rules.d/vigie.rules
+    mode: "0640"
+  notify: Recharger auditd
+
+- name: Services auditd, AppArmor et sshguard actifs
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [auditd, apparmor, sshguard]
+
+- name: "SSH durci (prudent : aucune méthode d'authentification retirée sans variable)"
+  ansible.builtin.template:
+    src: sshd-vigie.conf.j2
+    dest: /etc/ssh/sshd_config.d/50-vigie.conf
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Recharger sshd

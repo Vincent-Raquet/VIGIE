@@ -612,6 +612,33 @@ def jobs(
 
 
 @app.command()
+def migrate(ctx: typer.Context) -> None:
+    """Applique les migrations de la base (en production : en tant que vigie-migrate,
+    propriétaire du schéma ; jamais avec un rôle d'exécution)."""
+    from alembic import command
+
+    from vigie.db.migrate import alembic_config
+
+    _, cfg = _config(ctx)
+    engine = make_engine(cfg.database.url)
+    try:
+        before = current_revision(engine)
+        with engine.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+        current = current_revision(engine)
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    if before == current:
+        typer.echo(f"Base déjà à jour (révision {current}).")
+    else:
+        # Repère lu par Ansible (changed_when).
+        typer.echo(f"Base migrée : {before or 'vide'} → {current}.")
+
+
+@app.command()
 def housekeeping(ctx: typer.Context) -> None:
     """Purge selon la rétention (SPEC §5.2)."""
     from vigie.housekeeping import purge

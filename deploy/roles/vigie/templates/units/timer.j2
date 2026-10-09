@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Vigie — déclenchement de {{ timer_unit }}
+
+[Timer]
+Unit={{ timer_unit }}
+{% if timer_calendar is defined %}
+OnCalendar={{ timer_calendar }}
+Persistent=true
+{% else %}
+OnBootSec=2min
+OnUnitActiveSec={{ timer_every }}
+{% endif %}
+RandomizedDelaySec={{ timer_jitter | default('0') }}
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

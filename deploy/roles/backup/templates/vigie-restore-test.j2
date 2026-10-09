@@ -1,0 +1,19 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Test de restauration : déchiffre la dernière sauvegarde (clé privée fournie le temps du
+# test, puis à supprimer) dans une base temporaire, compte quelques tables, supprime la base.
+#   sudo vigie-restore-test /chemin/vers/vigie-backup.key
+set -eu
+KEY=${1:?usage : vigie-restore-test <clé privée age>}
+LAST=$(ls -1t /var/backups/vigie/vigie-*.dump.age | head -n1)
+DB=vigie_restore_test_$(date +%s)
+echo "Sauvegarde testée : $LAST → base temporaire $DB"
+runuser -u postgres -- createdb "$DB"
+trap 'runuser -u postgres -- dropdb --if-exists "$DB"' EXIT
+age --decrypt --identity "$KEY" "$LAST" \
+  | runuser -u postgres -- pg_restore --no-owner --exit-on-error --dbname="$DB"
+for t in alembic_version person signal plan audit_log; do
+  n=$(runuser -u postgres -- psql -At -d "$DB" -c "SELECT count(*) FROM $t")
+  echo "  $t : $n ligne(s)"
+done
+echo "Restauration OK ; supprimez maintenant la clé privée de la VM."

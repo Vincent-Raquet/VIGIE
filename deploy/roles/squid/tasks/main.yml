@@ -1,0 +1,19 @@
+---
+- name: Squid
+  ansible.builtin.apt:
+    name: [squid]
+    state: present
+
+- name: Configuration Squid (deux ports, deux allowlists de domaines)
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: /etc/squid/squid.conf
+    mode: "0644"
+    validate: /usr/sbin/squid -k parse -f %s
+  notify: Redémarrer Squid
+
+- name: Squid actif
+  ansible.builtin.systemd_service:
+    name: squid
+    enabled: true
+    state: started

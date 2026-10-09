@@ -1,0 +1,9 @@
+## Vigie (SECURITY.md) : accès aux secrets, à la configuration et au code.
+-w /etc/credstore.encrypted/ -p rwa -k vigie_secrets
+-w /etc/vigie/ -p wa -k vigie_config
+-w /opt/vigie/ -p wa -k vigie_code
+-w /etc/systemd/system/ -p wa -k systemd_units
+-w /etc/nftables.conf -p wa -k firewall
+-w /etc/squid/ -p wa -k proxy
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers

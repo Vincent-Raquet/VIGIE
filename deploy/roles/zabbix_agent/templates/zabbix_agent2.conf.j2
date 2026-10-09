@@ -1,0 +1,23 @@
+# {{ ansible_managed }}
+# TODO verify : chemins PidFile/LogFile/ControlSocket/Include du paquet Debian 13 installé
+# (comparer avec /usr/share/doc/zabbix-agent2 avant le premier passage).
+PidFile=/run/zabbix/zabbix_agent2.pid
+LogType=file
+LogFile=/var/log/zabbix/zabbix_agent2.log
+LogFileSize=10
+ControlSocket=/run/zabbix/agent.sock
+
+Hostname={{ zabbix_agent_hostname }}
+Server={{ zabbix_server }}
+ServerActive={{ zabbix_server }}
+ListenIP={{ vigie_ip }}
+
+TLSConnect=psk
+TLSAccept=psk
+TLSPSKIdentity={{ zabbix_agent_psk_identity }}
+TLSPSKFile=/etc/zabbix/vigie.psk
+
+# Aucune commande distante ; seuls les fichiers d'état de Vigie sont utiles.
+DenyKey=system.run[*]
+
+Include=/etc/zabbix/zabbix_agent2.d/plugins.d/*.conf

@@ -1,0 +1,28 @@
+---
+- name: Paquet nftables
+  ansible.builtin.apt:
+    name: [nftables]
+    state: present
+
+- name: Comptes système filtrés (les règles skuid exigent qu'ils existent)
+  ansible.builtin.user:
+    name: "{{ item }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    home: /nonexistent
+  loop: [vigie-web, vigie-worker, vigie-migrate]
+
+- name: Règles nftables
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    mode: "0600"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Recharger nftables
+
+- name: Service nftables actif au démarrage
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started

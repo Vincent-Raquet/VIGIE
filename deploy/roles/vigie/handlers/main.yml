@@ -1,0 +1,10 @@
+---
+- name: Recharger systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Redémarrer vigie-web
+  ansible.builtin.systemd_service:
+    name: vigie-web.service
+    state: restarted
+  when: vigie_secrets_ok | default(false)

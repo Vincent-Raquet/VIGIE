@@ -1,0 +1,9 @@
+---
+- name: Recharger auditd
+  ansible.builtin.command: augenrules --load
+  changed_when: true
+
+- name: Recharger sshd
+  ansible.builtin.systemd_service:
+    name: ssh
+    state: reloaded

@@ -61,17 +61,20 @@ Voir SPEC §7.6. En plus :
   - DNS vers les résolveurs internes, NTP, et les dépôts Debian via le proxy.
 - **Squid** : allowlist de domaines (`api.anthropic.com`, `login.microsoftonline.com`, `graph.microsoft.com`, `<region>.ninjarmm.com`, domaine du webhook Teams, `deb.debian.org`, `security.debian.org`, `pypi.org`, `files.pythonhosted.org`). Tout le reste est refusé et journalisé.
 - L'utilisateur `vigie-web` n'a pas le droit de sortir sauf vers Entra (règle nftables `meta skuid`).
+- Réalisé (phase 8, `deploy/roles/{nftables,squid}`) : Squid à deux ports, 3128 pour `vigie-worker` (IA, Entra, Graph, Teams) et 3129 pour `vigie-web` (Entra seul) ; sur la boucle locale, chaque compte `vigie-*` n'atteint que son port Squid (et PostgreSQL par socket unix) ; `vigie-worker` sort en direct vers le DNS interne et les IP/ports des sources seulement. En défense supplémentaire, chaque unité porte `IPAddressDeny=any` et une liste `IPAddressAllow` minimale. Tant que le développement cohabite sur la VM (`vigie_dev_on_host: true`), la sortie par défaut reste ouverte pour les comptes non `vigie-*` ; elle passe en `drop` quand le développement quitte la VM.
 
 ### C7 — Secrets
 - Stockés chiffrés avec `systemd-creds` (liés au TPM ou à la clé hôte), chargés par `LoadCredentialEncrypted=` uniquement dans les unités qui en ont besoin.
 - Jamais en variable d'environnement globale, jamais dans `/etc/vigie/vigie.toml`, jamais dans les logs (filtre de journalisation qui masque les motifs sensibles).
 - Développement : `.env.local` dans `.gitignore`, valeurs factices dans `.env.example`.
 - Pré-commit : `gitleaks` ; CI : `gitleaks` + `pip-audit`.
+- Dépôt en production : `sudo vigie-secret set <nom>` (valeur sur l'entrée standard, `systemd-creds encrypt` → `/etc/credstore.encrypted/vigie.<nom>`) ; Ansible ne vérifie que leur présence et n'active les unités qu'une fois tous les secrets requis déposés. Aucun mot de passe de base : authentification peer + `pg_ident`.
 
 ### C8 — Séparation des privilèges
-- Utilisateurs système distincts : `vigie-web`, `vigie-worker`, sans shell, sans sudo.
+- Utilisateurs système distincts : `vigie-web`, `vigie-worker`, `vigie-migrate` (migrations et sauvegardes), sans shell, sans sudo ; `pg_hba` n'autorise sur la base `vigie` que ces comptes mappés (et `postgres`).
 - Rôles PostgreSQL : `vigie_web` (CRUD sur tables de configuration et `task.status`, lecture du reste, INSERT seul sur `audit_log`), `vigie_worker` (écriture signaux, incidents, plans, `llm_call`), `vigie_migrate` (DDL, utilisé uniquement au déploiement).
 - Sandboxing systemd sur toutes les unités : `NoNewPrivileges=yes`, `ProtectSystem=strict`, `ProtectHome=yes`, `PrivateTmp=yes`, `PrivateDevices=yes`, `ProtectKernelTunables/Modules/Logs=yes`, `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`, `SystemCallFilter=@system-service`, `CapabilityBoundingSet=`, `MemoryDenyWriteExecute=yes`, `ReadWritePaths=` minimal. Objectif : `systemd-analyze security` < 2,0 pour chaque unité.
+- Répartition des secrets (`LoadCredentialEncrypted=`) : `vigie-web` → `web_session_key`, `entra_client_secret` ; `vigie-collect@<source>` → le seul secret de la source (complément par source) ; `vigie-plan@` → `anthropic_api_key` ; `vigie-notify@` → `graph_certificate`, `teams_webhook_url` ; `vigie-jobs` → secrets des sources ; housekeeping et selfcheck → aucun. Vérifié par `tests/security/test_systemd_units.py` (rendu des gabarits Ansible).
 
 ### C9 — Authentification et autorisation
 - OIDC Entra ID (Authorization Code + PKCE), MFA imposé par accès conditionnel sur l'application.
@@ -91,7 +94,7 @@ Voir SPEC §7.6. En plus :
 
 ### C11 — Durcissement de l'hôte
 - Debian 13 minimale, `unattended-upgrades` (sécurité), redémarrage planifié si nécessaire hors fenêtre de génération.
-- SSH : clés uniquement, `PermitRootLogin no`, `AllowUsers deploy`, algorithmes modernes ; `fail2ban` ou `sshguard`.
+- SSH : clés uniquement, `PermitRootLogin no`, `AllowUsers deploy`, algorithmes modernes ; `fail2ban` ou `sshguard`. Pendant la cohabitation avec le développement : `PermitRootLogin no` et sshguard appliqués, mais ni `AllowUsers` ni retrait du mot de passe (`ssh_disable_password_auth`) sans décision explicite, pour ne pas couper l'accès.
 - `auditd` avec règles sur `/etc/vigie`, `/etc/credstore.encrypted`, exécutions de `sudo`.
 - AppArmor activé ; chrony ; journald persistant.
 - Lynis : score ≥ 80 après déploiement.

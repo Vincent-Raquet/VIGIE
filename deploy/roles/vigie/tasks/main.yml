@@ -1,0 +1,276 @@
+---
+# Application Vigie : version figée, configuration, migrations, unités et timers.
+- name: Groupe vigie (lecture de /etc/vigie)
+  ansible.builtin.group:
+    name: vigie
+    system: true
+
+- name: Comptes de service dans le groupe vigie
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: [vigie]
+    append: true
+  loop: [vigie-web, vigie-worker, vigie-migrate]
+
+- name: Script de dépôt des secrets
+  ansible.builtin.copy:
+    src: vigie-secret
+    dest: /usr/local/sbin/vigie-secret
+    mode: "0750"
+
+- name: Magasin des secrets chiffrés
+  ansible.builtin.file:
+    path: /etc/credstore.encrypted
+    state: directory
+    mode: "0700"
+
+- name: Dossiers de Vigie
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: /etc/vigie, group: vigie, mode: "0750"}
+    - {path: /etc/vigie/seed, group: vigie, mode: "0750"}
+    - {path: /etc/vigie/seed/roles, group: vigie, mode: "0750"}
+    - {path: "{{ vigie_root }}", group: root, mode: "0755"}
+    - {path: "{{ vigie_root }}/releases", group: root, mode: "0755"}
+
+- name: Configuration non secrète
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/vigie/{{ item }}
+    owner: root
+    group: vigie
+    mode: "0640"
+  loop: [vigie.toml, migrate.toml]
+  notify: Redémarrer vigie-web
+
+# --- Version de l'application (deploy/build.sh) -----------------------------------------
+- name: Dossier de la version {{ vigie_release }}
+  ansible.builtin.file:
+    path: "{{ vigie_release_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Wheel et dépendances figées
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ vigie_release_dir }}/"
+    mode: "0644"
+  with_fileglob:
+    - "{{ vigie_dist_dir }}/*.whl"
+    - "{{ vigie_dist_dir }}/requirements.txt"
+
+- name: Environnement virtuel
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ vigie_release_dir }}
+    creates: "{{ vigie_release_dir }}/bin/python"
+
+- name: Dépendances (empreintes vérifiées)
+  ansible.builtin.shell:
+    cmd: >-
+      {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
+      --require-hashes -r {{ vigie_release_dir }}/requirements.txt
+      && touch {{ vigie_release_dir }}/.deps-ok
+    creates: "{{ vigie_release_dir }}/.deps-ok"
+
+- name: Application (wheel construit localement, sans dépendance supplémentaire)
+  ansible.builtin.shell:
+    cmd: >-
+      {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
+      --no-deps {{ vigie_release_dir }}/vigie-*.whl
+    creates: "{{ vigie_release_dir }}/bin/vigie"
+
+- name: Version courante
+  ansible.builtin.file:
+    src: "{{ vigie_release_dir }}"
+    dest: "{{ vigie_root }}/current"
+    state: link
+  notify: Redémarrer vigie-web
+
+# --- Données d'amorçage et migrations ---------------------------------------------------
+- name: Fichiers d'amorçage (équipe, sociétés, politique, scoring)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/vigie/seed/
+    owner: root
+    group: vigie
+    mode: "0640"
+  with_fileglob:
+    - "{{ playbook_dir }}/../config/*.yaml"
+
+- name: Skills de rôle
+  ansible.builtin.copy:
+    src: "{{ vigie_roles_dir }}/"
+    dest: /etc/vigie/seed/roles/
+    owner: root
+    group: vigie
+    directory_mode: "0750"
+    mode: "0640"
+
+- name: Migrations de la base (vigie-migrate, propriétaire du schéma)
+  ansible.builtin.command:
+    cmd: "{{ vigie_bin }} --config /etc/vigie/migrate.toml migrate"
+  become: true
+  become_user: vigie-migrate
+  register: vigie_migrate
+  changed_when: "'Base migrée' in vigie_migrate.stdout"
+
+- name: Amorçage initial (vigie_run_seed)
+  ansible.builtin.command:
+    cmd: >-
+      {{ vigie_bin }} --config /etc/vigie/migrate.toml seed
+      --from /etc/vigie/seed --roles /etc/vigie/seed/roles
+  become: true
+  become_user: vigie-migrate
+  when: vigie_run_seed | bool
+  changed_when: true
+
+# --- Unités et timers -------------------------------------------------------------------
+- name: Service web
+  ansible.builtin.template:
+    src: units/vigie-web.service.j2
+    dest: /etc/systemd/system/vigie-web.service
+    mode: "0644"
+  notify: [Recharger systemd, Redémarrer vigie-web]
+
+- name: Services du worker
+  ansible.builtin.template:
+    src: units/vigie-worker.service.j2
+    dest: /etc/systemd/system/{{ item.name }}
+    mode: "0644"
+  loop: "{{ vigie_worker_units }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    unit_description: "{{ item.unit_description }}"
+    unit_exec: "{{ item.unit_exec }}"
+    unit_timeout: "{{ item.unit_timeout | default('15min') }}"
+    unit_credentials: "{{ item.unit_credentials | default([]) }}"
+    unit_proxy: "{{ item.unit_proxy | default(false) }}"
+    unit_ips: "{{ item.unit_ips | default([]) }}"
+    unit_state_dir: "{{ item.unit_state_dir | default(omit) }}"
+  notify: Recharger systemd
+
+- name: Dossiers des compléments par source
+  ansible.builtin.file:
+    path: /etc/systemd/system/vigie-collect@{{ item.name }}.service.d
+    state: directory
+    mode: "0755"
+  loop: "{{ vigie_sources_enabled }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Secret et adresses de chaque source (collecte)
+  ansible.builtin.template:
+    src: units/credentials.conf.j2
+    dest: /etc/systemd/system/vigie-collect@{{ item.name }}.service.d/credentials.conf
+    mode: "0644"
+  loop: "{{ vigie_sources_enabled }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    source: "{{ item }}"
+  notify: Recharger systemd
+
+- name: Timers de collecte
+  ansible.builtin.template:
+    src: units/timer.j2
+    dest: /etc/systemd/system/vigie-collect@{{ item.name }}.timer
+    mode: "0644"
+  loop: "{{ vigie_sources_enabled }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    timer_unit: vigie-collect@{{ item.name }}.service
+    timer_every: "{{ item.interval_min }}min"
+    timer_jitter: 1min
+  notify: Recharger systemd
+
+- name: Autres timers
+  ansible.builtin.template:
+    src: units/timer.j2
+    dest: /etc/systemd/system/{{ item.name }}
+    mode: "0644"
+  loop: "{{ vigie_timers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    timer_unit: "{{ item.timer_unit }}"
+    timer_calendar: "{{ item.timer_calendar | default(omit) }}"
+    timer_every: "{{ item.timer_every | default(omit) }}"
+    timer_jitter: "{{ item.timer_jitter | default('0') }}"
+  notify: Recharger systemd
+
+- name: Prise en compte des unités
+  ansible.builtin.meta: flush_handlers
+
+# --- Secrets : présence seulement (jamais lus ni affichés) ------------------------------
+- name: Secrets déposés
+  ansible.builtin.stat:
+    path: /etc/credstore.encrypted/vigie.{{ item }}
+    get_checksum: false
+  loop: "{{ vigie_required_secrets }}"
+  register: vigie_secret_files
+
+- name: Secrets manquants
+  ansible.builtin.set_fact:
+    vigie_missing_secrets: >-
+      {{ vigie_secret_files.results | rejectattr('stat.exists') | map(attribute='item') | list }}
+
+- name: État des secrets
+  ansible.builtin.set_fact:
+    vigie_secrets_ok: "{{ vigie_missing_secrets | length == 0 }}"
+
+- name: Secrets à déposer avant activation
+  ansible.builtin.debug:
+    msg: >-
+      Secrets manquants : {{ vigie_missing_secrets | join(', ') }}.
+      Déposez-les (`sudo vigie-secret set <nom>`, valeur sur l'entrée standard) puis relancez
+      le playbook : les unités ne sont activées qu'une fois tous les secrets présents.
+  when: not vigie_secrets_ok
+
+- name: Service web actif
+  ansible.builtin.systemd_service:
+    name: vigie-web.service
+    enabled: true
+    state: started
+  when: vigie_secrets_ok
+
+- name: Timers de collecte actifs
+  ansible.builtin.systemd_service:
+    name: vigie-collect@{{ item.name }}.timer
+    enabled: true
+    state: started
+  loop: "{{ vigie_sources_enabled }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: vigie_secrets_ok
+
+- name: Autres timers (actifs ou arrêtés selon la configuration)
+  ansible.builtin.systemd_service:
+    name: "{{ item.name }}"
+    enabled: "{{ item.enabled | bool }}"
+    state: "{{ 'started' if item.enabled | bool else 'stopped' }}"
+  loop: "{{ vigie_timers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: vigie_secrets_ok
+
+# --- Anciennes versions -----------------------------------------------------------------
+- name: Versions installées
+  ansible.builtin.find:
+    paths: "{{ vigie_root }}/releases"
+    file_type: directory
+  register: vigie_releases
+
+- name: Suppression des versions les plus anciennes (la courante est toujours gardée)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ (vigie_releases.files | sort(attribute='mtime') | map(attribute='path')
+        | reject('equalto', vigie_release_dir) | list)[:-(vigie_keep_releases - 1)] }}

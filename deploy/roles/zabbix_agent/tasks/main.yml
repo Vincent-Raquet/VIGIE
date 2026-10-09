@@ -1,0 +1,32 @@
+---
+# Agent Zabbix 2 (paquet Debian) : chiffrement PSK, état de Vigie lu dans
+# /var/lib/vigie/selfcheck/<clé> par vfs.file.contents (aucun UserParameter, aucun system.run).
+- name: Agent Zabbix 2
+  ansible.builtin.apt:
+    name: [zabbix-agent2, openssl]
+    state: present
+
+- name: Clé PSK générée sur la VM (jamais dans le dépôt ni dans la sortie d'Ansible)
+  ansible.builtin.shell:
+    cmd: umask 077 && openssl rand -hex 32 > /etc/zabbix/vigie.psk
+    creates: /etc/zabbix/vigie.psk
+
+- name: Droits de la clé PSK
+  ansible.builtin.file:
+    path: /etc/zabbix/vigie.psk
+    owner: zabbix
+    group: zabbix
+    mode: "0400"
+
+- name: Configuration de l'agent
+  ansible.builtin.template:
+    src: zabbix_agent2.conf.j2
+    dest: /etc/zabbix/zabbix_agent2.conf
+    mode: "0644"
+  notify: Redémarrer l'agent Zabbix
+
+- name: Agent actif
+  ansible.builtin.systemd_service:
+    name: zabbix-agent2
+    enabled: true
+    state: started

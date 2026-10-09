@@ -195,3 +195,9 @@ def test_cli_breakglass_selfcheck_housekeeping(
     assert r.exit_code == 0 and (out / "selfcheck.json").exists()
     r = runner.invoke(app, ["--config", str(config), "housekeeping"])
     assert r.exit_code == 0 and r.output.startswith("Purge : ")
+
+
+def test_cli_migrate_is_idempotent(config: Path) -> None:
+    r = CliRunner().invoke(app, ["--config", str(config), "migrate"])
+    assert r.exit_code == 0, r.output
+    assert "Base déjà à jour (révision 0008)" in r.output

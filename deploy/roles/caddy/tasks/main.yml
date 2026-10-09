@@ -1,0 +1,40 @@
+---
+- name: Caddy
+  ansible.builtin.apt:
+    name: [caddy]
+    state: present
+
+- name: Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    mode: "0644"
+    validate: caddy validate --adapter caddyfile --config %s
+  notify: Recharger Caddy
+
+- name: Journal d'accès de Caddy
+  ansible.builtin.file:
+    path: /var/log/caddy
+    state: directory
+    owner: caddy
+    group: caddy
+    mode: "0750"
+
+- name: Caddy actif
+  ansible.builtin.systemd_service:
+    name: caddy
+    enabled: true
+    state: started
+
+- name: Racine de l'AC interne de Caddy (créée au premier certificat)
+  ansible.builtin.stat:
+    path: /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+  register: caddy_root
+
+- name: Copie de la racine à déployer par GPO sur les postes
+  ansible.builtin.copy:
+    src: /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+    dest: /etc/vigie/caddy-root-ca.crt
+    remote_src: true
+    mode: "0644"
+  when: caddy_root.stat.exists

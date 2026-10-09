@@ -80,9 +80,9 @@ ssh -L 8000:127.0.0.1:8000 nadmin@192.168.10.17
 | Paquets `pipx`, `gitleaks`, `postgresql-17` installés à la main | `base`, `postgresql` |
 | Cluster PostgreSQL `17/main` par défaut, rôle `nadmin`, bases `vigie_dev` et `vigie_test` | `postgresql` (adopter le cluster existant sans le recréer) |
 | `uv` installé via pipx pour `nadmin` | `vigie` (installation de `uv` pour le déploiement) |
-| Rôles `vigie_web`, `vigie_worker`, `vigie_migrate` (NOLOGIN) ; `nadmin` membre de `vigie_web` et `vigie_worker` | `postgresql` : passer les rôles en LOGIN (peer + `pg_ident`), **retirer l'appartenance de `nadmin`** (sinon il lit la base de prod en `SET ROLE`) |
+| Rôles `vigie_web`, `vigie_worker`, `vigie_migrate` (NOLOGIN) ; `nadmin` membre de `vigie_web` et `vigie_worker` | `postgresql` ✅ : rôles en LOGIN (peer + `pg_ident`). L'appartenance de `nadmin` est **conservée** (les tests de droits en ont besoin sur `vigie_test`) : `pg_hba` refuse toute connexion de `nadmin` à la base `vigie`, il ne peut donc pas y faire de `SET ROLE`. |
 
-Contraintes de la cohabitation à traiter en phase 8 :
+Contraintes de la cohabitation (traitées en phase 8, cf. `deploy/README.md`) :
 - SSH : `AllowUsers` doit inclure `nadmin` (pas seulement `deploy`).
 - nftables, sortie par défaut `drop` : Claude Code (utilisateur `nadmin`) doit pouvoir joindre `api.anthropic.com`, PyPI et le dépôt Git via Squid.
 - Ansible s'exécute sur la VM elle-même (`connection: local`) ou depuis le poste admin.

@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+{
+	# AC interne : certificats émis et renouvelés localement, aucun accès Internet.
+	auto_https disable_redirects
+}
+
+{{ vigie_domain }} {
+	tls internal
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	reverse_proxy 127.0.0.1:{{ vigie_web_port }}
+	log {
+		output file /var/log/caddy/vigie-access.log {
+			roll_size 20MiB
+			roll_keep 10
+		}
+	}
+}

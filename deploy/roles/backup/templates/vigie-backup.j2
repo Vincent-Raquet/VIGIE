@@ -1,0 +1,15 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# pg_dump (format custom) en vigie-migrate, chiffré à la volée par age : le clair ne touche
+# jamais le disque. Rétention : {{ backup_retention_days }} jours.
+set -eu
+DIR=/var/backups/vigie
+STAMP=$(date +%Y%m%d-%H%M%S)
+OUT="$DIR/vigie-$STAMP.dump.age"
+umask 077
+runuser -u vigie-migrate -- pg_dump --format=custom --no-owner --dbname=vigie \
+  | age --encrypt --recipient '{{ backup_age_recipient }}' > "$OUT.tmp"
+mv "$OUT.tmp" "$OUT"
+find "$DIR" -maxdepth 1 -name 'vigie-*.dump.age' -mtime +{{ backup_retention_days }} -delete
+find "$DIR" -maxdepth 1 -name '*.tmp' -mmin +120 -delete
+logger -t vigie-backup "sauvegarde $(basename "$OUT") ($(stat -c %s "$OUT") octets)"

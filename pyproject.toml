@@ -33,6 +33,10 @@ vigie = "vigie.cli:app"
 zabbix = "vigie.connectors.zabbix:ZabbixConnector"
 
 [dependency-groups]
+deploy = [
+    "ansible>=14.5.0",
+    "ansible-lint>=26.9.0",
+]
 dev = [
     "mypy>=1.11",
     "pip-audit>=2.7",

@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+PermitRootLogin no
+MaxAuthTries 4
+LoginGraceTime 30
+X11Forwarding no
+AllowAgentForwarding no
+PermitUserEnvironment no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+{% if ssh_disable_password_auth %}
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+{% endif %}

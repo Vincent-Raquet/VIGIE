@@ -66,6 +66,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - Unités et timers systemd de SPEC §8 avec sandboxing (`SECURITY.md C8`).
 - Secrets via `systemd-creds`.
 - **Acceptation** : `systemd-analyze security` < 2,0 par unité ; Lynis ≥ 80 ; un `curl` vers un domaine non autorisé échoue ; collecte réelle de chaque source OK ; premier plan quotidien reçu par mail.
+- Réalisé : production sur la VM de développement (cohabitation, `vigie_dev_on_host`) ; `deploy/` (9 rôles, `ansible-lint` profil production, procédures dans `deploy/README.md`) ; version figée par `deploy/build.sh` (wheel + dépendances à empreintes), venv par version et lien `current` ; migrations en `vigie-migrate` (`vigie migrate`) ; unités sandboxées et timers de SPEC §8, secrets répartis par unité ; `vigie housekeeping`, `vigie selfcheck` (fichiers lus par zabbix-agent2 en PSK), `vigie breakglass` ; Caddy en AC interne (racine à diffuser par GPO) ; sauvegardes `pg_dump` chiffrées par age, emportées par Veeam, script de test de restauration. Reste : application sur la VM et contrôles de fin par le coordinateur ; « premier plan reçu par mail » attend l'activation de l'envoi.
 
 ## Phase 9 — Rodage (2 semaines)
 - Premiers enseignements (2026-10-09, première collecte réelle Zabbix, 165 signaux) : âge ramené à +3 %/jour plafonné à ×1,3 (les problèmes chroniques devenaient P1/P2) ; plafond d'escalade du coordinateur à 150 % de sa capacité, au-delà backlog « P1 non couvert » ; criticité par type d'actif d'après le nom d'hôte (`hostname_contains` : antennes, caméras, iLO, onduleurs) prioritaire sur le groupe ; override `hardware_failure` (SMART, RAID, alimentation, température critique, sévérité ≥ High) ; à priorité égale, P1 imposé par une règle avant P1 de score ; détail envoyé à l'IA limité aux tâches planifiées et au backlog P1/P2 (coût 0,16 $ → 0,05 $).
@@ -77,7 +78,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 | Réf. | Point | Phase |
 |---|---|---|
 | B ✅ | « Tester la connexion » d'une source depuis l'UI : `vigie-web` n'a ni secret ni sortie réseau → demande mise en file en base, exécutée par le worker. Table `job_request` (payload strict par kind, sans secret) en phase 1. | 1 ✅ / 6 |
-| C | `vigie secrets set/rotate` nécessite `systemd-creds`, or `subprocess` est interdit dans `src/` → script shell dans `deploy/`. | 8 |
+| C ✅ | `vigie secrets set/rotate` nécessite `systemd-creds`, or `subprocess` est interdit dans `src/` → script shell `vigie-secret` installé par le rôle `vigie`. | 8 ✅ |
 | D ✅ | Rôle DB `vigie_web` : ajouter UPDATE limité à `plan.status`, `validated_by`, `validated_at`, `published_at` (validation depuis l'UI). | 1 ✅ |
 | F ✅ | Calibrage du score : hors override et hors bonus politique, le maximum théorique est ≈ 47 (< seuil P1 60) et un Zabbix *High* standard vaut 10 → P4. `B_policy` non borné. Revoir seuils/poids avant d'écrire les tests de scénarios. | 4 |
 | H ✅ | Overrides : préférer des conditions déclaratives (champ, opérateur, valeur) à des expressions `when` interprétées. | 4 |
