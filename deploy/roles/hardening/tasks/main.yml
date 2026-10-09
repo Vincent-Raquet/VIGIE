@@ -29,7 +29,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/vigie-blacklist.conf
     content: |
-      # {{ ansible_managed }}
+      # Géré par Ansible (deploy/roles/hardening)
       {% for m in hardening_blacklisted_modules %}
       install {{ m }} /bin/false
       blacklist {{ m }}
@@ -39,7 +39,7 @@
 - name: Politique de mots de passe et umask par défaut (login.defs)
   ansible.builtin.lineinfile:
     path: /etc/login.defs
-    regexp: '^#?\s*{{ item.key }}\s'
+    regexp: '^#?{{ item.key }}\s'
     line: "{{ item.key }}\t{{ item.value }}"
   loop: "{{ hardening_login_defs | dict2items }}"
 
@@ -47,7 +47,7 @@
   ansible.builtin.copy:
     dest: /etc/needrestart/conf.d/vigie.conf
     content: |
-      # {{ ansible_managed }}
+      # Géré par Ansible (deploy/roles/hardening)
       $nrconf{restart} = 'l';
     mode: "0644"
 
