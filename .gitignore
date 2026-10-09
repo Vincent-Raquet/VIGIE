@@ -12,6 +12,7 @@ build/
 # Config réelle et secrets (seuls les *.example.* sont versionnés)
 .env
 .env.*
+!.env.example
 config/*.toml
 !config/*.example.toml
 *.key
@@ -30,5 +31,8 @@ deploy/**/vault*.yml
 .claude/settings.local.json
 
 # Divers
+.coverage
+coverage.xml
+htmlcov/
 *.log
 .DS_Store

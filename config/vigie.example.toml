@@ -5,6 +5,10 @@ base_url = "https://vigie.lan"
 holidays_country = "BE"
 paused = false
 
+[database]
+# Socket unix + authentification peer (aucun mot de passe). Dev : postgresql+psycopg:///vigie_dev
+url = "postgresql+psycopg:///vigie"
+
 [llm]
 enabled = true
 model = "claude-sonnet-5-5"
@@ -27,6 +31,9 @@ milestone_window_days = 21
 mail_sender = "itbot@example.be"
 teams_enabled = true
 
+# Sources : un bloc par connecteur. Champs communs : enabled, interval_min ;
+# les autres champs sont validés par le connecteur lui-même.
+# Implémentés en premier : zabbix, veeam. Les autres arrivent au fil de la phase 3.
 [sources.zabbix]
 enabled = true
 base_url = "https://zabbix.lan"
@@ -42,18 +49,18 @@ name = "vbr-main"
 base_url = "https://vbr.lan:9419"
 
 [sources.ninjaone]
-enabled = true
+enabled = false   # connecteur pas encore implémenté
 base_url = "https://eu.ninjarmm.com"   # région à confirmer
 interval_min = 15
 
 [sources.fortianalyzer]
-enabled = true
+enabled = false   # connecteur pas encore implémenté
 base_url = "https://faz.lan"
 adoms = ["root"]
 interval_min = 15
 
 [sources.wazuh]
-enabled = true
+enabled = false   # connecteur pas encore implémenté
 api_url = "https://wazuh.lan:55000"
 indexer_url = "https://wazuh.lan:9200"
 min_rule_level = 10

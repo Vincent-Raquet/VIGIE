@@ -6,7 +6,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - `pyproject.toml` (uv), structure `src/vigie`, ruff, mypy, pytest, pre-commit (ruff, gitleaks), `.gitignore`, `.env.example`.
 - `vigie` CLI (Typer) avec sous-commandes vides.
 - Configuration (`config.py`) : lecture de `vigie.toml` + secrets depuis `$CREDENTIALS_DIRECTORY` ou `.env.local`.
-- Docker Compose **de dev uniquement** pour PostgreSQL 17.
+- PostgreSQL 17 **natif Debian** sur la VM (dev et future prod cohabitent, cf. `docs/DEV.md`) : bases `vigie_dev` et `vigie_test`, authentification peer.
 - **Acceptation** : `uv run pytest` passe ; `vigie --help` liste les commandes ; gitleaks actif.
 
 ## Phase 1 — Modèle de données et seed (1 jour)
@@ -20,7 +20,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - **Acceptation** : tous les tests de sécurité de `SECURITY.md C10` applicables à ce stade passent.
 
 ## Phase 3 — Connecteurs (3–4 jours)
-Ordre : Zabbix → Veeam → NinjaOne → FortiAnalyzer → Wazuh → squelette Veezo. Pour chacun, suivre le skill `add-connector` :
+Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnalyzer → Wazuh → squelette Veezo) sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`). Pour chacun, suivre le skill `add-connector` :
 - vérification de l'API dans la doc de la version ;
 - allowlist + test « appel interdit » ;
 - fixtures anonymisées + tests de contrat ;
@@ -63,6 +63,18 @@ Ordre : Zabbix → Veeam → NinjaOne → FortiAnalyzer → Wazuh → squelette 
 - Mode « brouillon uniquement » (pas d'envoi aux collègues), revue quotidienne par le coordinateur.
 - Ajustement des poids, seuils, catégories et estimations dans `config/scoring.yaml` ; suivi du coût réel.
 - **Acceptation** : le coordinateur juge ≥ 80 % des tâches pertinentes et bien affectées sur 5 jours consécutifs → activation de la diffusion à l'équipe.
+
+## Points à trancher (relevés en phase 0)
+| Réf. | Point | Phase |
+|---|---|---|
+| B | « Tester la connexion » d'une source depuis l'UI : `vigie-web` n'a ni secret ni sortie réseau → demande mise en file en base, exécutée par le worker. | 1 (modèle) / 6 |
+| C | `vigie secrets set/rotate` nécessite `systemd-creds`, or `subprocess` est interdit dans `src/` → script shell dans `deploy/`. | 8 |
+| D | Rôle DB `vigie_web` : ajouter UPDATE limité à `plan.status`, `validated_by`, `validated_at`, `published_at` (validation depuis l'UI). | 1 |
+| F | Calibrage du score : hors override et hors bonus politique, le maximum théorique est ≈ 47 (< seuil P1 60) et un Zabbix *High* standard vaut 10 → P4. `B_policy` non borné. Revoir seuils/poids avant d'écrire les tests de scénarios. | 4 |
+| H | Overrides : préférer des conditions déclaratives (champ, opérateur, valeur) à des expressions `when` interprétées. | 4 |
+| I | `vulnerability` → `patching` (+ `systeme` si serveur) : `category_skill` ne gère qu'une compétence. | 4 |
+| K | Skills `frontend-design` (phase 6) et `product-self-knowledge` (phase 5) absents de l'environnement ; utiliser `claude-api` pour la phase 5. | 5 / 6 |
+| M | OIDC : configurer l'app Entra pour n'émettre que les groupes assignés (éviter le *groups overage* qui imposerait un appel Graph depuis `vigie-web`). | 6 |
 
 ## Évolutions envisagées (v2)
 - Connecteur Microsoft 365 (santé des services, Defender, licences).

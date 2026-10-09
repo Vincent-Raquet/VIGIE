@@ -44,7 +44,7 @@ Les rôles sont dérivés de groupes Entra ID (`SG-Vigie-Admin`, `SG-Vigie-Manag
 ### F2 — Politique IT (axes prioritaires)
 - Liste d'**axes prioritaires** pondérés (poids 1–5) avec description, période de validité, mots-clés et catégories associées. Exemples : « Sauvegardes fiables et testées », « Réduction des vulnérabilités critiques », « Migration M365 SPL ».
 - **Règles de politique** : textes courts injectés dans le contexte du moteur (ex. « Toute vulnérabilité CVSS ≥ 9 exposée Internet est traitée sous 48 h »).
-- **Criticité par société** (0,5 à 1,5) et SLA cibles par priorité.
+- **Criticité par société** (0,5 à 1,5) et SLA cibles par priorité (globaux, `sla_hours` de la politique).
 - Historique des versions de la politique (qui, quand, quoi).
 
 ### F3 — Projets transversaux et jalons
@@ -137,8 +137,8 @@ Composants :
 | `person` | id, name, email, job_role, app_role, weekly_pattern (JSON jour→heures), planning_rate, notes, active, role_skill_id |
 | `person_skill` | person_id, skill_tag, level (1–3), preference |
 | `absence` | person_id, start, end, kind, note |
-| `company` | code (WI…), name, criticality, sla_profile |
-| `asset_rule` | company_code, source, match_type (hostgroup_prefix, org_id, adom, job_prefix, agent_group), pattern, asset_criticality, tags |
+| `company` | code (WI…), name, criticality |
+| `asset_rule` | company_code, source, match_type (clé `match` dans le YAML : hostgroup_prefix, hostgroup_suffix, org_id, adom, devname_prefix, job_prefix, agent_group), company_code facultatif (règle de criticité seule), pattern, asset_criticality, tags |
 | `policy_axis` | id, title, description, weight, valid_from, valid_to, keywords[], categories[] |
 | `policy_rule` | id, text, active, version |
 | `project` | id, name, description, companies[], sponsor, owner_id, axis_ids[], priority, status, start, end |
@@ -287,8 +287,10 @@ Le contenu issu des sources est encapsulé dans `<source_data>…</source_data>`
 | Timer | Fréquence | Commande |
 |---|---|---|
 | `vigie-collect@<source>.timer` | toutes les 15 min (Veeam 30 min) | `vigie collect --source <source>` |
-| `vigie-plan-daily.timer` | lun–ven 07:15 | `vigie plan --kind daily` puis `vigie notify --plan latest-daily` à 07:30 |
-| `vigie-plan-weekly.timer` | lun 06:30 | `vigie plan --kind weekly` ; publication auto 09:00 si non validé |
+| `vigie-plan@daily.timer` | lun–ven 07:15 | `vigie plan --kind daily` |
+| `vigie-notify@daily.timer` | lun–ven 07:30 | `vigie notify --plan latest-daily` (publié avec la mention « non validé » si besoin) |
+| `vigie-plan@weekly.timer` | lun 06:30 | `vigie plan --kind weekly` |
+| `vigie-notify@weekly.timer` | lun 09:00 | `vigie notify --plan latest-weekly` (publication auto si non validé à cette heure) |
 | `vigie-housekeeping.timer` | quotidien 02:30 | purge rétention, `pg_dump` chiffré |
 | `vigie-selfcheck.timer` | toutes les 5 min | écrit l'état pour zabbix-agent2 (âge dernier plan, sources KO, budget) |
 
@@ -323,7 +325,7 @@ Aucun endpoint ne déclenche d'appel en écriture vers une source (il n'en exist
 - Performance : collecte complète < 2 min ; génération du plan < 3 min.
 - Sauvegarde : `pg_dump` quotidien chiffré (age) + VM sauvegardée par Veeam ; restauration documentée et testée.
 - Journaux : JSON vers journald, rotation par journald ; jamais de secret ni de contenu de ticket en clair dans les logs.
-- Qualité : ruff, mypy strict sur `engine/` et `connectors/`, couverture ≥ 80 % global, ≥ 90 % `engine/`.
+- Qualité : ruff, mypy strict sur tout `src/`, couverture ≥ 80 % global, ≥ 90 % `engine/`.
 
 ## 13. Hors périmètre (v1)
 - Toute action sur les systèmes supervisés (acquitter, fermer, redémarrer, modifier).
