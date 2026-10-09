@@ -95,4 +95,12 @@ Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer d
 - Jetons : `~/.config/vigie/mcp-tokens.sh` (droits 600, dossier 700), chargé par `~/.bashrc`. Y coller les valeurs **sans** le préfixe `Bearer `, puis relancer Claude Code depuis un nouveau shell et approuver les serveurs du projet.
 - Rotation : régénérer le jeton côté serveur MCP, remplacer la valeur dans le fichier, relancer Claude Code.
 - Les jetons sont présents dans l'environnement du shell de Claude Code : `.claude/settings.json` doit interdire `Read(~/.config/vigie/**)` et toute commande les mentionnant.
-- ⚠️ Les deux MCP sont en **HTTP clair** : jetons et données circulent en clair sur le LAN. Mettre un reverse proxy TLS devant avant tout usage par Vigie en production (SafeClient impose HTTPS).
+- **Zabbix** (2026-10-09) : passé en **HTTPS** (adresse interne, cf. `claude mcp list`) et déclaré hors de `.mcp.json` (portée locale/utilisateur de Claude Code : `claude mcp list`). Son certificat est **auto-signé** : Node refuse la connexion (`DEPTH_ZERO_SELF_SIGNED_CERT`) de façon intermittente. Correction : certificat émis par l'AC interne, et `export NODE_EXTRA_CA_CERTS=/chemin/ac-interne.pem` dans `~/.bashrc`. **Jamais** `NODE_TLS_REJECT_UNAUTHORIZED=0` (coupe la vérification TLS de toutes les connexions de Claude Code).
+- ⚠️ **Veeam** reste en **HTTP clair** (jeton et données en clair sur le LAN) : reverse proxy TLS à prévoir.
+- Limites du MCP Zabbix : réponses tronquées (≈ 75 objets, marqueur `_truncated`) ; pas d'outil pour `proxy.get` ni `apiinfo.version` ; réponses préfixées d'un avertissement « données non fiables » à retirer avant traitement.
+
+### Capturer des fixtures de contrat
+1. Interroger le MCP (sortie volumineuse → fichier) et extraire le JSON dans le scratchpad, **hors du dépôt**.
+2. Écrire un fichier de correspondance (vrais noms → noms génériques, domaines internes), lui aussi hors du dépôt.
+3. `uv run python scripts/anonymize_fixtures.py BRUT/ tests/contract/<source>/ --map correspondance.json` (échoue si un nom réel subsiste).
+4. Relire les chaînes produites (hôtes, titres, tags), documenter les modifications synthétiques dans le `README.md` du dossier, puis `gitleaks` avant commit.

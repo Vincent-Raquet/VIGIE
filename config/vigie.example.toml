@@ -36,9 +36,15 @@ teams_enabled = true
 # Implémentés en premier : zabbix, veeam. Les autres arrivent au fil de la phase 3.
 [sources.zabbix]
 enabled = true
-base_url = "https://zabbix.lan"
+base_url = "https://zabbix.lan"   # frontend Zabbix (api_jsonrpc.php), pas le serveur MCP
 interval_min = 15
-min_severity = 2
+min_severity = 2           # 2 = Warning ; les « Information » sont ignorées
+aggregate_threshold = 8    # au-delà, les problèmes de sévérité ≤ 3 d'un hôte sont regroupés
+proxy_stale_min = 10       # proxy sans contact depuis N minutes → signal « monitoring »
+# Mots des groupes d'hôtes → catégorie (remplace les défauts du connecteur si présent) :
+# [sources.zabbix.category_by_group]
+# "Réseau" = "network"
+# "SRV-Veeam" = "backup"
 
 [sources.veeam]
 enabled = true

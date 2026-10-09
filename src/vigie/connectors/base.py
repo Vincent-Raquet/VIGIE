@@ -65,6 +65,10 @@ class ForbiddenCallError(Exception):
         self.reason = reason
 
 
+class ConnectorConfigError(ValueError):
+    """Bloc `[sources.<nom>]` invalide (le message nomme les champs, jamais leurs valeurs)."""
+
+
 class SourceCallError(Exception):
     """Échec d'un appel autorisé (réseau, HTTP, réponse invalide). Message sans donnée."""
 
@@ -91,6 +95,9 @@ class AllowedCall:
     params_schema: type[BaseModel] | None = None
     endpoint: str | None = None
     override_reason: str = ""
+    # Méthode accessible sans authentification (ex. apiinfo.version de Zabbix, qui refuse
+    # toute requête authentifiée) : aucun en-tête d'auth n'est alors envoyé.
+    anonymous: bool = False
     _regex: re.Pattern[str] | None = field(default=None, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -188,7 +195,10 @@ class SafeClient:
         self._jsonrpc_version = jsonrpc_version
         self._auth_headers: dict[str, SecretStr] = {}
         self._rpc_id = 0
-        verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
+        try:
+            verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
+        except (OSError, ssl.SSLError):
+            raise SourceCallError(f"{source} : bundle CA illisible ({ca_bundle})") from None
         self._client = httpx.Client(
             timeout=httpx.Timeout(READ_TIMEOUT_S, connect=CONNECT_TIMEOUT_S),
             verify=verify,
@@ -289,7 +299,11 @@ class SafeClient:
         label: str,
         call: AllowedCall,
     ) -> Any:
-        headers = {k: v.get_secret_value() for k, v in self._auth_headers.items()}
+        headers = (
+            {}
+            if call.anonymous
+            else {k: v.get_secret_value() for k, v in self._auth_headers.items()}
+        )
         request = self._client.build_request(
             method, self._base_url + path, params=params, json=body, headers=headers
         )
@@ -353,6 +367,36 @@ class SafeClient:
                 raise SourceCallError(f"{self.source} : réponse trop volumineuse ({label})")
             chunks.append(chunk)
         return b"".join(chunks)
+
+
+def fixture_transport(directory: Path) -> httpx.BaseTransport:
+    """Rejoue des réponses enregistrées (`vigie collect --fixtures`, tests de contrat).
+
+    JSON-RPC : `<méthode>.json` contient la valeur de `result` (ex. `problem.get.json`).
+    REST : `<MÉTHODE>_<chemin avec / remplacés par _>.json` (ex. `GET_api_v1_jobs.json`).
+    Les requêtes passent d'abord par l'allowlist du `SafeClient` : le rejeu ne contourne rien.
+    """
+    root = directory.resolve()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        envelope: dict[str, Any] | None = None
+        if request.method == "POST" and request.content:
+            body = json.loads(request.content)
+            if isinstance(body, dict) and "method" in body and "id" in body:
+                envelope = body
+        if envelope is not None:
+            name = f"{envelope['method']}.json"
+        else:
+            name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
+        path = (root / name).resolve()
+        if path.parent != root or not path.is_file():
+            return httpx.Response(404)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if envelope is not None:
+            data = {"jsonrpc": "2.0", "result": data, "id": envelope["id"]}
+        return httpx.Response(200, json=data)
+
+    return httpx.MockTransport(handler)
 
 
 class Bounded[T](Iterator[T]):
@@ -430,9 +474,27 @@ class CompanyMapper(Protocol):
     def asset_criticality(self, source: str, match_type: str, value: str) -> float | None: ...
 
 
+@dataclass(frozen=True)
+class ConnectorContext:
+    """Ce qu'il faut pour construire un connecteur, sans que la CLI connaisse la source.
+
+    `settings` : bloc `[sources.<nom>]` brut, validé par le modèle du connecteur.
+    `secret` : fournisseur de secrets (`config.get_secret` ; factice en rejeu de fixtures).
+    `transport` : uniquement pour le rejeu (`fixture_transport`) et les tests.
+    """
+
+    settings: Mapping[str, Any]
+    secret: Callable[[str], SecretStr]
+    ca_bundle: Path | None = None
+    transport: httpx.BaseTransport | None = None
+
+
 class Connector(Protocol):
     name: str
     allowlist: Sequence[AllowedCall]
+
+    @classmethod
+    def from_context(cls, ctx: ConnectorContext) -> Connector: ...
 
     def healthcheck(self) -> HealthStatus: ...
 

@@ -236,6 +236,12 @@ def load_seed_data(from_dir: Path, roles_dir: Path) -> SeedData:
     return data
 
 
+def load_companies(from_dir: Path) -> CompaniesFile:
+    """Sociétés et règles d'actifs seules (rattachement sans base, `vigie collect --dry-run`)."""
+    path, _ = pick_file(from_dir, "companies")
+    return _validate(CompaniesFile, _load_yaml(path), path)
+
+
 def _dupes(values: list[str]) -> set[str]:
     return {v for v, n in Counter(values).items() if n > 1}
 

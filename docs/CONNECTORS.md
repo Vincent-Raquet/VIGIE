@@ -35,18 +35,27 @@ Les tests de `tests/security/test_registered_connectors.py` s'appliquent automat
 
 ---
 
-## 1. Zabbix 7.4
-- **Auth** : token API (`Authorization: Bearer`) d'un utilisateur `svc-vigie` dans un groupe ayant un rôle de type *User* avec accès API limité aux méthodes en lecture (Zabbix 7.x : *API methods → Allow list*), et permissions **Read** sur les groupes d'hôtes supervisés.
-- **Endpoint** : `POST {base}/api_jsonrpc.php` (JSON-RPC 2.0).
-- **Allowlist** : `apiinfo.version`, `problem.get`, `event.get`, `trigger.get`, `host.get`, `hostgroup.get`, `item.get` (champs limités), `proxy.get`, `maintenance.get`.
-- **Collecte** :
-  - `problem.get` avec `recent=false`, `severities=[2,3,4,5]` (configurable), `selectTags`, `selectAcknowledges` → problèmes ouverts.
-  - `host.get` pour résoudre hôte → groupes (mapping société par préfixe : `WI`, `SPL`, `WG`, `CC`, `FWD`) ; mise en cache 1 h.
-  - `proxy.get` : proxy sans contact > 10 min → signal `monitoring`.
-  - `maintenance.get` : hôtes en maintenance → signaux rétrogradés d'une priorité et marqués.
-- **Catégorie** : déduite des tags du trigger (`component:network`, `class:os`…) et des groupes (`*-Réseau` → network, `SRV-Veeam` → backup, `Hypervisors` → server…) ; table dans `config/scoring.example.yaml`.
-- **external_id** : `eventid` ; résolution quand le problème disparaît de `problem.get`.
-- **Lien** : `{base}/zabbix.php?action=problem.view&filter_eventids[]={eventid}` ⚠️ vérifier le format en 7.4.
+## 1. Zabbix 7.4 — implémenté (`vigie.connectors.zabbix`)
+- **Auth** : token API (`Authorization: Bearer`, seule méthode en 7.4) d'un utilisateur `svc-vigie` dans un groupe ayant un rôle de type *User* dont l'accès API est limité par *API methods → Allow list* à `problem.get`, `trigger.get`, `proxy.get`, et permissions **Read** sur les groupes d'hôtes supervisés. Secret : `zabbix_api_token`.
+- **Endpoint** : `POST {base}/api_jsonrpc.php` (JSON-RPC 2.0). Certificat vérifié par `[tls] ca_bundle` (AC interne).
+- **Allowlist** (paramètres validés par des schémas stricts, champs `output` énumérés) :
+  | Méthode | Usage |
+  |---|---|
+  | `apiinfo.version` | santé ; **appel anonyme** (la doc 7.4 la réserve aux utilisateurs non authentifiés) : `AllowedCall(anonymous=True)` n'envoie pas l'en-tête |
+  | `problem.get` | problèmes ouverts : `source=0`, `object=0`, `severities ≥ min_severity`, `recent=false`, `selectTags`, `selectAcknowledges="count"`, borné à 5 000 (+1 pour détecter la troncature) |
+  | `trigger.get` | hôte et groupes de chaque problème (`selectHosts`, `selectHostGroups`, `monitored=true`), lots de 500 ids |
+  | `proxy.get` | `name`, `state` (0 inconnu, 1 hors ligne, 2 en ligne), `lastaccess` |
+
+  `host.get`, `hostgroup.get`, `event.get`, `item.get`, `maintenance.get` ne sont **pas** nécessaires : `trigger.get` fournit hôte, groupes et `maintenance_status` (vérifié sur l'instance le 2026-10-09).
+- **Collecte** : instantané des problèmes ouverts (`since` ignoré ; la résolution se déduit de la disparition, phase 4). Les problèmes dont le trigger, l'hôte ou l'item est désactivé (`monitored=true` ne les renvoie pas) sont écartés comme périmés — sur l'instance, environ la moitié des problèmes de sévérité ≥ 2.
+- **Société** : règles `asset_rule` `hostgroup_prefix` sur chaque groupe de l'hôte (préfixe borné par un séparateur, insensible à la casse et aux accents, motif le plus long d'abord : `Switchs/WI`…). Plusieurs sociétés → aucune, mentionnées dans `details`.
+- **Catégorie** : tags du problème d'abord (`Application:Veeam`/`target:veeam` → backup, `Application:VPN`/`scope:vpn` → network, `subclass:virtualization`, `class:os` → server…), puis mots des groupes (`category_by_group` dans `[sources.zabbix]`, défauts dans le code : `Réseau`/`Switchs`/`RUT` → network, `Serveurs`/`Hypervisors`/`IDRAC`/`(vm)` → server, `SRV-Veeam`/`Synology-NAS` → backup, `CAMERAS`/`Printer`/`atelier` → endpoint, `Zabbix servers` → monitoring) ; précédence network > backup > monitoring > endpoint > server ; défaut server.
+- **Agrégation** : un hôte ayant plus de `aggregate_threshold` (8) problèmes de sévérité ≤ 3 donne un seul signal « N problèmes ouverts sur <hôte> » (`external_id = host:<hostid>:agg`, titres regroupés dans `details`) ; les sévérités 4–5 restent individuelles.
+- **Maintenance** : hôte en maintenance ou problème supprimé → sévérité abaissée d'un niveau (min. 1) et mention dans `details`.
+- **Proxy** : `state = 1` ou `lastaccess` plus vieux que `proxy_stale_min` (10 min) → signal `monitoring`, sévérité 4, `external_id = proxy:<proxyid>`.
+- **external_id** : `eventid`. `url_template_params` : `{eventid, triggerid}`.
+- **Lien** : `{base}/tr_events.php?triggerid={triggerid}&eventid={eventid}` — `# TODO verify` en 7.4 (alternative `zabbix.php?action=problem.view&filter_eventids[]={eventid}`).
+- **Fixtures** : `tests/contract/zabbix/` (réelles anonymisées, cf. README du dossier).
 
 ## 2. FortiAnalyzer
 - **Auth** : administrateur API REST `svc-vigie` avec profil **Read-Only** (« Restricted_User » ou profil personnalisé tout en lecture), *Trusted Hosts* limités à l'IP de la VM, clé API (Bearer). ⚠️ Selon la version (7.2/7.4/7.6), l'authentification par clé API ou par session (`sys/login/user`) diffère : vérifier.
@@ -103,7 +112,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 ## 8. Comptes de service — récapitulatif à créer
 | Source | Compte | Rôle / scope | Restriction réseau |
 |---|---|---|---|
-| Zabbix | `svc-vigie` + token | Rôle User, API allowlist `*.get`, groupes en Read | — (token) |
+| Zabbix | `svc-vigie` + token | Rôle User, API allowlist `problem.get`, `trigger.get`, `proxy.get`, groupes en Read | — (token) |
 | FortiAnalyzer | `svc-vigie` (API admin) | Profil Read-Only | Trusted host = IP VM |
 | NinjaOne | API client « Vigie » | `monitoring` (+ `management` seulement si requis pour tickets, technicien RO) | Allowed IP si disponible |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |

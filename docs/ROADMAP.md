@@ -28,6 +28,8 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne → FortiAnaly
 - mapping société et catégorie ;
 - `vigie collect --source X --dry-run --fixtures …`.
 - **Acceptation** : chaque connecteur produit des signaux corrects sur fixtures ; aucun test n'émet d'appel réseau.
+- **Ordre révisé (2026-10-09)** : la phase 3 se clôt avec le **seul connecteur Zabbix** ; les phases 4 à 6 se déroulent sur Zabbix seul ; Veeam puis les autres connecteurs sont ajoutés ensuite (skill `add-connector`, sans toucher au moteur).
+- Réalisé (Zabbix) : connecteur 7.4 (`problem.get` + `trigger.get` + `proxy.get`, `apiinfo.version` anonyme), rattachement société `vigie.mapping.RuleMapper`, agrégation des hôtes bruyants, fixtures réelles anonymisées (`scripts/anonymize_fixtures.py`), rejeu `fixture_transport`, `vigie collect --dry-run [--fixtures]`, `vigie check --sources`. L'enregistrement des signaux en base (fingerprint, résolution) relève de la phase 4.
 
 ## Phase 4 — Moteur déterministe (2–3 jours, TDD)
 - `normalize`, `correlate`, `scoring`, `rules` (overrides), `assign`, `planner` (quotidien et hebdomadaire), report des tâches, backlog.
