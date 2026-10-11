@@ -26,7 +26,12 @@ from typing import Any
 
 from vigie.config import get_secret, load_config, resolve_config_path
 from vigie.connectors import registry
-from vigie.connectors.base import ConnectorConfigError, ConnectorContext, RecordingTransport
+from vigie.connectors.base import (
+    ConnectorConfigError,
+    ConnectorContext,
+    RecordingTransport,
+    SourceCallError,
+)
 
 
 def main() -> int:
@@ -61,12 +66,34 @@ def main() -> int:
         print(f"ERREUR {exc}", file=sys.stderr)
         return 2
 
+    # 1. Sondage de chaque lecture de l'allowlist (1 élément), pour connaître les droits du compte.
+    try:
+        if hasattr(connector, "_login"):
+            connector._login()
+    except SourceCallError as exc:
+        print(f"Authentification : ÉCHEC {exc}")
+        return 1
+    print("Lectures autorisées par l'allowlist :")
+    for call in connector.allowlist:
+        path = call.literal_path
+        if call.method != "GET" or path is None:
+            continue
+        params = {"skip": 0, "limit": 1} if {"skip", "limit"} <= call.query else None
+        try:
+            connector.client.get(path, params)
+            print(f"  OK          GET {path}")
+        except SourceCallError as exc:
+            print(f"  HTTP {exc.status or '???'}    GET {path}")
+    transport.saved.clear()  # les sondes (1 élément) ne servent pas de fixtures
+
+    # 2. Santé et collecte complète ; ce qui a été lu est enregistré même en cas d'échec.
     health = connector.healthcheck()
     print(f"Santé : {'OK' if health.ok else 'ÉCHEC'} {health.version} {health.detail}".rstrip())
-    if not health.ok:
-        return 1
-    raw = list(connector.collect(datetime.now(UTC)))
-    print(f"Collecte : {len(raw)} objet(s) signalé(s), tronquée : {connector.truncated}")
+    try:
+        raw = list(connector.collect(datetime.now(UTC)))
+        print(f"Collecte : {len(raw)} objet(s) signalé(s), tronquée : {connector.truncated}")
+    except SourceCallError as exc:
+        print(f"Collecte : ÉCHEC {exc} (réponses déjà lues enregistrées quand même)")
 
     out.mkdir(parents=True, exist_ok=True, mode=0o700)
     for name, data in sorted(transport.saved.items()):

@@ -180,3 +180,28 @@ def test_pagination_and_truncation(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_invalid_configuration(settings: dict[str, Any]) -> None:
     with pytest.raises(ConnectorConfigError, match=r"\[sources.veeam\] invalide"):
         make(**settings)
+
+
+def test_healthcheck_without_server_info_access() -> None:
+    # Essai réel (VBR 13, rôle Backup Viewer) : serverInfo répond 403, les jobs sont lisibles.
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/api/oauth2/token":
+            return httpx.Response(200, json={"access_token": "t"})
+        if path == "/api/v1/serverInfo":
+            return httpx.Response(403)
+        return httpx.Response(200, json={"data": [], "pagination": {"total": 0, "count": 0}})
+
+    health = make(httpx.MockTransport(handler)).healthcheck()
+    assert health.ok and health.version is None
+    assert health.detail == "version inconnue (serverInfo refusé au rôle)"
+
+
+def test_other_errors_still_fail_the_healthcheck() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/oauth2/token":
+            return httpx.Response(200, json={"access_token": "t"})
+        return httpx.Response(403 if request.url.path == "/api/v1/serverInfo" else 500)
+
+    health = make(httpx.MockTransport(handler)).healthcheck()
+    assert not health.ok and "HTTP 500" in health.detail

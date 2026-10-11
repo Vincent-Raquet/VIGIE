@@ -216,7 +216,18 @@ class VeeamConnector:
             self._login()
             info = self.client.get("/api/v1/serverInfo")
         except SourceCallError as exc:
-            return HealthStatus(ok=False, detail=str(exc))
+            if exc.status != 403:
+                return HealthStatus(ok=False, detail=str(exc))
+            # Backup Viewer n'a pas accès à serverInfo (essai réel, VBR 13) : on valide
+            # l'accès par la lecture des jobs, sans version.
+            try:
+                self.client.get("/api/v1/jobs/states", {"skip": 0, "limit": 1})
+            except SourceCallError as inner:
+                return HealthStatus(ok=False, detail=str(inner))
+            latency = round((time.monotonic() - started) * 1000, 1)
+            return HealthStatus(
+                ok=True, detail="version inconnue (serverInfo refusé au rôle)", latency_ms=latency
+            )
         version = str(info.get("buildVersion", "")) if isinstance(info, dict) else ""
         latency = round((time.monotonic() - started) * 1000, 1)
         detail = "" if version.split(".")[0] == SUPPORTED_MAJOR else "version non testée"

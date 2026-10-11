@@ -74,7 +74,14 @@ class ConnectorConfigError(ValueError):
 
 
 class SourceCallError(Exception):
-    """Échec d'un appel autorisé (réseau, HTTP, réponse invalide). Message sans donnée."""
+    """Échec d'un appel autorisé (réseau, HTTP, réponse invalide). Message sans donnée.
+
+    `status` : code HTTP de la réponse quand il y en a une (ex. 403 = droits insuffisants).
+    """
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 def _check_schema(schema: type[BaseModel] | None, label: str) -> None:
@@ -157,6 +164,14 @@ class AllowedCall:
             )
         if self.query or self.body_schema is not None:
             raise AllowlistDefinitionError(f"{name} : query/body_schema réservés au REST")
+
+    @property
+    def literal_path(self) -> str | None:
+        """Chemin exact si l'expression n'a aucune partie variable (sondage des lectures)."""
+        if self.path is None:
+            return None
+        inner = self.path[1:-1].replace("\\.", ".")
+        return inner if re.fullmatch(r"/[A-Za-z0-9_./-]*", inner) else None
 
     def matches_rest(self, method: str, path: str) -> bool:
         return (
@@ -381,7 +396,7 @@ class SafeClient:
                 if 300 <= status < 400:
                     raise SourceCallError(f"{self.source} : redirection refusée ({label})")
                 if status >= 400:
-                    raise SourceCallError(f"{self.source} : HTTP {status} ({label})")
+                    raise SourceCallError(f"{self.source} : HTTP {status} ({label})", status)
                 raw = self._read_limited(response, label)
             finally:
                 response.close()
