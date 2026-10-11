@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from datetime import date
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -35,8 +36,23 @@ class SourceTestPayload(_Payload):
     source: str = Field(pattern=r"^[a-z][a-z0-9_]{0,31}(:[a-z0-9][a-z0-9_-]{0,31})?$")
 
 
+class PlanGeneratePayload(_Payload):
+    """« Générer le plan maintenant » : le worker génère le plan (avec ou sans IA).
+
+    Le jour est borné par le web (± 14 jours autour d'aujourd'hui) ; ici, format seulement.
+    """
+
+    kind: Literal["daily", "weekly"]
+    day: str = Field(pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+    use_llm: bool
+
+    def target(self) -> date:
+        return date.fromisoformat(self.day)
+
+
 PAYLOAD_SCHEMAS: dict[JobKind, type[_Payload]] = {
     JobKind.source_test: SourceTestPayload,
+    JobKind.plan_generate: PlanGeneratePayload,
 }
 
 

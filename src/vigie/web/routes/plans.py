@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
-from typing import Annotated
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, Response
@@ -11,7 +12,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vigie.db import models
-from vigie.db.enums import AppRole, Category, PlanKind, PlanStatus, Priority, TaskOrigin, TaskStatus
+from vigie.db.enums import (
+    AppRole,
+    Category,
+    JobKind,
+    JobStatus,
+    PlanKind,
+    PlanStatus,
+    Priority,
+    TaskOrigin,
+    TaskStatus,
+)
+from vigie.db.jobs import JobPayloadError, new_job_request
 from vigie.engine.calendar import week_of
 from vigie.planview import (
     TaskView,
@@ -21,6 +33,7 @@ from vigie.planview import (
     plan_view,
     since_yesterday,
 )
+from vigie.rodage import month_spent
 from vigie.web.auth import User, audit, require_role
 from vigie.web.deps import ALL, DB, LEADS, STAFF, render
 
@@ -103,6 +116,8 @@ def today(
             "day": target,
             "view": view,
             "plan_review": session.get(models.PlanReview, plan.id) if plan else None,
+            "generation": generation_context(request, user, session),
+            "flash": request.session.pop("flash", None),
             "p1_count": view.p1_open if view else 0,
             "new_incidents": new_urgent_incidents(session, since_yesterday()),
             "sources_down": failing_sources(session),
@@ -130,6 +145,8 @@ def week(
             "people": people,
             "categories": list(Category),
             "priorities": list(Priority),
+            "generation": generation_context(request, user, session),
+            "flash": request.session.pop("flash", None),
         },
     )
 
@@ -403,3 +420,84 @@ def create_task(
     audit(session, user.email, "task_create", f"task:{task.id}", plan=plan.id)
     session.commit()
     return RedirectResponse(safe_next(next_url, "/semaine"), status_code=303)
+
+
+# --- Génération manuelle (« Générer le plan maintenant ») -------------------------------
+# Le web ne génère rien : il dépose une demande exécutée par vigie-plan-requests (clé IA).
+
+GENERATION_WINDOW_DAYS = 14
+BUDGET_WARN_RATIO = Decimal("0.8")
+ACTIVE = (JobStatus.pending, JobStatus.running)
+
+
+def _latest_generation(session: Session) -> models.JobRequest | None:
+    return session.scalar(
+        select(models.JobRequest)
+        .where(models.JobRequest.kind == JobKind.plan_generate)
+        .order_by(models.JobRequest.requested_at.desc(), models.JobRequest.id.desc())
+        .limit(1)
+    )
+
+
+def generation_context(request: Request, user: User, session: Session) -> dict[str, Any] | None:
+    """Coût de la dernière itération IA, dépense du mois et état de la dernière demande."""
+    if user.role not in LEADS:
+        return None
+    now = datetime.now(UTC)
+    last_call = session.scalar(
+        select(models.LLMCall).order_by(models.LLMCall.at.desc(), models.LLMCall.id.desc()).limit(1)
+    )
+    spent = month_spent(session, now)
+    budget = Decimal(str(request.app.state.cfg.llm.monthly_budget_usd))
+    return {
+        "last_call": last_call,
+        "spent": spent,
+        "budget": budget,
+        "budget_warning": budget > 0 and spent >= budget * BUDGET_WARN_RATIO,
+        "job": _latest_generation(session),
+    }
+
+
+@router.post("/plans/generer")
+def request_generation(
+    request: Request,
+    user: Lead,
+    session: DB,
+    kind: Annotated[PlanKind, Form()],
+    day_value: Annotated[str, Form(alias="day", max_length=10)],
+    use_llm: Annotated[str, Form(max_length=3)],
+    next_url: Annotated[str | None, Form(alias="next")] = None,
+) -> Response:
+    try:
+        target = date.fromisoformat(day_value)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Date attendue au format AAAA-MM-JJ.") from None
+    if abs(target - datetime.now(UTC).date()) > timedelta(days=GENERATION_WINDOW_DAYS):
+        raise HTTPException(status_code=422, detail="Jour hors de la fenêtre de ± 14 jours.")
+    if use_llm not in ("oui", "non"):
+        raise HTTPException(status_code=422, detail="IA : oui ou non.")
+    active = session.scalar(
+        select(models.JobRequest).where(
+            models.JobRequest.kind == JobKind.plan_generate, models.JobRequest.status.in_(ACTIVE)
+        )
+    )
+    if active is not None:
+        raise HTTPException(status_code=409, detail="Une génération est déjà en cours.")
+    payload = {"kind": kind.value, "day": target.isoformat(), "use_llm": use_llm == "oui"}
+    try:
+        job = new_job_request(JobKind.plan_generate, payload, user.email)
+    except JobPayloadError:
+        raise HTTPException(status_code=422, detail="Demande invalide.") from None
+    session.add(job)
+    audit(session, user.email, "plan_generate_requested", f"plan:{kind.value}", **payload)
+    session.commit()
+    request.session["flash"] = (
+        "Génération demandée : elle démarre dans la minute (suivi ci-dessous)."
+    )
+    default = "/aujourdhui" if kind is PlanKind.daily else "/semaine"
+    return RedirectResponse(safe_next(next_url, default), status_code=303)
+
+
+@router.get("/plans/generation/etat")
+def generation_status(request: Request, user: Lead, session: DB) -> Response:
+    return render(request, "_plan_generate_status.html", {"job": _latest_generation(session)})

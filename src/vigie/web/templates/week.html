@@ -7,8 +7,12 @@
       <h1>{% if view %}Semaine du {{ view.plan.period_start.strftime("%d/%m") }} au {{ view.plan.period_end.strftime("%d/%m/%Y") }}{% else %}Semaine{% endif %}</h1>
       {% if view %}{% include "_plan_header.html" %}{% endif %}
     </div>
-    {% include "_plan_actions.html" %}
+    <div class="stack">
+      {% include "_plan_actions.html" %}
+      {% set gen_kind = "weekly" %}{% set job = generation.job if generation else none %}{% include "_plan_generate.html" %}
+    </div>
   </header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
   {% if not view %}
   <div class="panel"><p>Aucun plan hebdomadaire pour cette semaine (<span class="mono">vigie plan --kind weekly</span>, le lundi à 06:30).</p></div>
   {% else %}

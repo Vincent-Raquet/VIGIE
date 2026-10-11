@@ -308,7 +308,7 @@ Jours fériés belges exclus du plan quotidien (paquet `holidays`, calendrier BE
 URL : `https://vigie.local.wallindustries.be` (LAN/VPN uniquement). Direction visuelle validée : `docs/ui/maquette.html`.
 
 Pages (FR, responsive, utilisable sur mobile) :
-1. **Aujourd'hui** — plan du jour : cartes par personne, P1 en tête, nouveautés, sources KO.
+1. **Aujourd'hui** — plan du jour : cartes par personne, P1 en tête, nouveautés, sources KO ; « Générer maintenant… » (admin, manager ; aussi sur Semaine) : coût de la dernière itération IA et dépense du mois affichés, choix avec ou sans IA, demande `job_request` `plan_generate` exécutée par le worker (`vigie-plan-requests`), une seule à la fois, état suivi sur la page.
 2. **Semaine** — vue par personne × jour, jalons, backlog non planifié, bouton « Valider / Publier ».
 3. **Signaux & incidents** — filtres source/société/priorité/statut, détail avec raison du score et lien source.
 4. **Équipe** — personnes, compétences (matrice), modèle hebdo, absences (calendrier).
