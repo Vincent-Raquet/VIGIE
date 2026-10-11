@@ -84,7 +84,9 @@ def main() -> int:
             print(f"  OK          GET {path}")
         except SourceCallError as exc:
             print(f"  HTTP {exc.status or '???'}    GET {path}")
-    transport.saved.clear()  # les sondes (1 élément) ne servent pas de fixtures
+    # Les sondes (1 élément) ne servent pas de fixtures ; le jeton factice est gardé.
+    for name in [n for n in transport.saved if not n.startswith("POST_")]:
+        del transport.saved[name]
 
     # 2. Santé et collecte complète ; ce qui a été lu est enregistré même en cas d'échec.
     health = connector.healthcheck()

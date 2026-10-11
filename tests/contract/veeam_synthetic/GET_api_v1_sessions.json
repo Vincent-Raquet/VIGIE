@@ -1,0 +1,153 @@
+{
+  "data": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "name": "SPL-FS01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000001",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-11T01:00:00Z",
+      "endTime": "2026-10-11T01:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Failed",
+        "message": "Error: failed to connect to host srv-spl-01",
+        "isCanceled": false
+      },
+      "usn": 1001
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "name": "SPL-FS01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000002",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-10T01:00:00Z",
+      "endTime": "2026-10-10T01:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Failed",
+        "message": "Error: failed to connect to host srv-spl-01",
+        "isCanceled": false
+      },
+      "usn": 1002
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "name": "SPL-FS01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000003",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-09T01:00:00Z",
+      "endTime": "2026-10-09T01:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Success",
+        "message": "",
+        "isCanceled": false
+      },
+      "usn": 1003
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000004",
+      "name": "WI-DC01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000004",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-11T01:45:00Z",
+      "endTime": "2026-10-11T01:45:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Warning",
+        "message": "Changed block tracking is disabled",
+        "isCanceled": false
+      },
+      "usn": 1004
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000005",
+      "name": "WI-DC01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000005",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-10T01:45:00Z",
+      "endTime": "2026-10-10T01:45:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Warning",
+        "message": "Changed block tracking is disabled",
+        "isCanceled": false
+      },
+      "usn": 1005
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000006",
+      "name": "WG-SQL01-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000006",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-09T01:00:00Z",
+      "endTime": "2026-10-09T01:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Success",
+        "message": "",
+        "isCanceled": false
+      },
+      "usn": 1006
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000007",
+      "name": "CC-Files-Daily",
+      "activityId": "50000000-0000-4000-8000-000000000007",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-11T02:00:00Z",
+      "endTime": "2026-10-11T02:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Success",
+        "message": "",
+        "isCanceled": false
+      },
+      "usn": 1007
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000008",
+      "name": "WI-Exchange-Hourly",
+      "activityId": "50000000-0000-4000-8000-000000000008",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-11T04:00:00Z",
+      "endTime": "2026-10-11T04:30:00Z",
+      "state": "Stopped",
+      "progressPercent": 100,
+      "result": {
+        "result": "Success",
+        "message": "",
+        "isCanceled": false
+      },
+      "usn": 1008
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000009",
+      "name": "WI-Exchange-Hourly",
+      "activityId": "50000000-0000-4000-8000-000000000009",
+      "sessionType": "BackupJob",
+      "creationTime": "2026-10-11T05:00:00Z",
+      "state": "Working",
+      "progressPercent": 100,
+      "result": {
+        "result": "None",
+        "message": "",
+        "isCanceled": false
+      },
+      "usn": 1009
+    }
+  ],
+  "pagination": {
+    "total": 9,
+    "count": 9,
+    "skip": 0,
+    "limit": 500
+  }
+}

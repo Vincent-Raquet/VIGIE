@@ -1,20 +1,26 @@
-# Fixtures de contrat Veeam B&R
+# Fixtures de contrat Veeam B&R — capture réelle anonymisée
 
-**Synthétiques** (2026-10-11), en attendant les captures réelles (`scripts/record_fixtures.py veeam`,
-puis `scripts/anonymize_fixtures.py`). Structure : modèles du swagger officiel 1.1-rev0
-(`JobStatesResult`, `SessionsResult`, `RepositoryStatesResult`, `ServerInfoModel`, `TokenModel`) ;
-les événements malware suivent le format attendu en 12.1+/13 (`TODO verify` sur capture réelle).
+Capturées le 2026-10-11 vers 13:50 (UTC+2) sur le VBR de production (13.x), compte
+`svcveeamvigie` (rôle **Backup Viewer**), avec `scripts/record_fixtures.py veeam` ; réduites et
+anonymisées hors dépôt (table de correspondance dans `~/vigie-raw/`, jamais committée), puis
+passées par `scripts/anonymize_fixtures.py` et relues.
 
-Heure de référence des tests : 2026-10-11T06:00:00Z.
+Réduction : sessions des seuls types de sauvegarde (`JOB_SESSION_TYPES`) limitées aux 3
+dernières par job et par VM, plus un exemple de chaque type de bruit (découverte, test
+d'identifiants, analyse de conformité…) ; 322 sessions sur 1 357. Descriptions vidées, chemins
+des dépôts remplacés par `/backups`, `initiatedBy` → `svc-backup`, noms de VM et de serveurs →
+`vm-<société>-NN`, `srv-<société>-NN`, `backup-host-*` ; « NAS TCA » → « NAS EXT » ; domaines
+internes → `example.test` ; adresses IPv4 → 192.0.2.0/24. Les noms de sociétés (WI, SPL, WG,
+Wasabi par société) sont conservés : ils sont publics dans le dépôt.
+`POST_api_oauth2_token.json` : jeton factice. `GET /api/v1/serverInfo` répond 403 au rôle
+Backup Viewer : pas de fichier.
 
-| Objet | Cas couvert | Signal attendu |
-|---|---|---|
-| `SPL-FS01-Daily` | 2 échecs consécutifs, préfixe `SPL-` critique (1,3) | sévérité 5, `consecutive_failures` 2, société SPL |
-| `WI-DC01-Daily` | 2 avertissements consécutifs | sévérité 3 |
-| `WG-SQL01-Daily` | dernier succès il y a 52,5 h | sévérité 3, `hours_since_last_success` > 24 |
-| `CC-Files-Daily`, `WI-Exchange-Hourly` | succès récent, session en cours ignorée | aucun |
-| `FWD-Old-Archive` | job désactivé | aucun |
-| `Repo-WI` 92 %, `SPL-Repo` 97 %, `Repo-Archive` 40 % | remplissage | sévérités 3, 4, aucun |
-| malware `srv-wi-02` (Suspicious), `srv-wg-01` (Clean) | détection | `security` sévérité 5, aucun |
+Constats (VBR 13.x, différences avec le swagger 1.1-rev0) :
+- `jobs/states` : statuts `Enabled` / `Stopped` ; jobs Proxmox en type `Unknown`, sans
+  `lastRun` ; les réplications n'y figurent pas (sessions seulement) ;
+- `sessions` : `jobId` présent mais sans lien avec les ids de `jobs/states` ; les copies
+  produisent une session par VM nommée `<job>\<VM> Backup (Incremental)` ; les réplications
+  complètes `<job> (Full)` ;
+- aucun événement malware sur la période (filtre `detectedAfterTimeUtcFilter` accepté).
 
-Les jetons du fichier `POST_api_oauth2_token.json` sont factices.
+Heure de référence des tests : 2026-10-11T12:00:00Z.

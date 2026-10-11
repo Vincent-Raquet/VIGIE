@@ -13,9 +13,11 @@ marqués `TODO verify` et seront confirmés par les captures réelles (scripts/r
 
 from __future__ import annotations
 
+import hashlib
+import re
 import time
-from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -53,6 +55,23 @@ REPO_CRITICAL_PCT = 95.0
 NO_SUCCESS_HOURS = 24.0
 SUCCESS_RESULTS = frozenset({"Success", "Warning"})  # une sauvegarde a bien été produite
 MALWARE_SEVERITIES = frozenset({"Suspicious", "Infected"})  # TODO verify : valeurs 13.x
+# Sessions qui sont de vraies sauvegardes (capture réelle VBR 13, 2026-10-11). Les autres
+# (découverte de volumes, test d'identifiants, analyse de conformité…) sont du bruit.
+# TODO verify : type des sessions des jobs Proxmox, absentes de /sessions en 13.x (le job
+# n'expose alors que lastResult dans jobs/states).
+JOB_SESSION_TYPES = {
+    "BackupJob": "Sauvegarde",
+    "BackupCopyJob": "Copie de sauvegarde",
+    "ReplicaJob": "Réplication",
+    "ArchiveBackup": "Déport vers le stockage objet",
+    "ConfigurationBackup": "Sauvegarde de la configuration VBR",
+    "Retention": "Rétention",
+}
+# Suffixe d'exécution ajouté au nom de session (« REPLICATION - X (Full) »).
+_RUN_SUFFIX = re.compile(
+    r"\s*\((?:full|incremental|retry|active full|synthetic full|health check)\)\s*$", re.I
+)
+MAX_LISTED_OBJECTS = 10
 
 # --- Allowlist (CONNECTORS.md §5) -------------------------------------------------------
 
@@ -110,6 +129,72 @@ class VeeamConfig(BaseModel):
     # Certificat (ou AC) du VBR : remplace le bundle global pour cette source seulement.
     ca_bundle: Path | None = None
     session_window_days: int = Field(7, ge=2, le=30)
+
+
+# --- Historique des sessions -------------------------------------------------------------
+
+
+def _result(session: Mapping[str, Any]) -> str:
+    return str((session.get("result") or {}).get("result", "None"))
+
+
+def _split_session_name(name: str) -> tuple[str, str]:
+    """`job\\objet (Incremental)` → (`job`, `objet`) ; sessions par VM des copies."""
+    job, _, obj = name.partition("\\")
+    obj = re.sub(r"\s+backup$", "", _RUN_SUFFIX.sub("", obj).strip(), flags=re.I)
+    return _RUN_SUFFIX.sub("", job).strip(), obj
+
+
+def _leading(results: Sequence[str], value: str) -> int:
+    count = 0
+    for r in results:
+        if r != value:
+            break
+        count += 1
+    return count
+
+
+@dataclass
+class JobHistory:
+    """Sessions terminées d'un job, par objet (VM), de la plus récente à la plus ancienne."""
+
+    name: str
+    session_type: str
+    objects: dict[str, list[Mapping[str, Any]]] = field(default_factory=dict)
+
+    def latest(self) -> dict[str, Mapping[str, Any]]:
+        return {obj: items[0] for obj, items in self.objects.items() if items}
+
+    def objects_with(self, result: str) -> list[str]:
+        return sorted(o for o, s in self.latest().items() if _result(s) == result)
+
+    def consecutive(self, result: str) -> int:
+        return max(
+            (_leading([_result(s) for s in items], result) for items in self.objects.values()),
+            default=0,
+        )
+
+    def last_success(self) -> datetime | None:
+        ends = [
+            _dt(s.get("endTime"))
+            for items in self.objects.values()
+            for s in items
+            if _result(s) in SUCCESS_RESULTS
+        ]
+        return max((e for e in ends if e is not None), default=None)
+
+    def worst(self) -> str:
+        results = {_result(s) for s in self.latest().values()}
+        return next((r for r in ("Failed", "Warning", "Success") if r in results), "None")
+
+    def message(self) -> str:
+        """Message de la session la plus récente en échec (ou avertissement)."""
+        for result in ("Failed", "Warning"):
+            candidates = [s for s in self.latest().values() if _result(s) == result]
+            if candidates:
+                newest = max(candidates, key=lambda s: str(s.get("creationTime", "")))
+                return str((newest.get("result") or {}).get("message", ""))
+        return ""
 
 
 # --- Connecteur -------------------------------------------------------------------------
@@ -240,17 +325,38 @@ class VeeamConnector:
         now = self._now()
         self.truncated = False
         history = self._job_history(now)
+        seen: set[str] = set()
         out: list[RawSignal] = []
         for job in self._pages("/api/v1/jobs/states"):
-            if not isinstance(job, dict) or job.get("status") == "disabled":
+            if not isinstance(job, dict) or str(job.get("status", "")).lower() == "disabled":
                 continue
-            sessions = history.get(str(job.get("name", "")), [])
-            payload = self._job_payload(job, sessions, now)
+            key = str(job.get("name", "")).casefold()
+            seen.add(key)
+            payload = self._job_payload(
+                job, str(job.get("lastResult", "None")), history.get(key), now
+            )
             if payload is not None:
                 out.append(RawSignal(f"job:{job.get('id')}", payload))
+        # Jobs connus seulement par leurs sessions (réplications, déports…) : absents de
+        # jobs/states en 13.x.
+        for key, h in history.items():
+            if key in seen:
+                continue
+            ref = {"name": h.name, "type": h.session_type}
+            payload = self._job_payload(ref, h.worst(), h, now, stale_check=False)
+            if payload is not None:
+                digest = hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest()[:16]
+                out.append(RawSignal(f"session-job:{digest}", payload))
         for repo in self._pages("/api/v1/backupInfrastructure/repositories/states"):
             if not isinstance(repo, dict):
                 continue
+            if repo.get("isOnline") is False:
+                out.append(
+                    RawSignal(
+                        f"repo:{repo.get('id')}:offline",
+                        {"kind": "repository_offline", "repo": repo, "at": now},
+                    )
+                )
             capacity = float(repo.get("capacityGB") or 0)
             used = float(repo.get("usedSpaceGB") or 0)
             pct = round(used / capacity * 100, 1) if capacity > 0 else 0.0
@@ -273,51 +379,45 @@ class VeeamConnector:
                 )
         return sorted(out, key=lambda r: r.external_id)
 
-    def _job_history(self, now: datetime) -> dict[str, list[Mapping[str, Any]]]:
-        """Sessions terminées par nom de job, de la plus récente à la plus ancienne.
+    def _job_history(self, now: datetime) -> dict[str, JobHistory]:
+        """Sessions de sauvegarde terminées, groupées par job (nom sans suffixe) et par objet.
 
-        TODO verify (13.x) : une session de job porte le nom du job (`name`) ; le swagger
-        1.1-rev0 n'expose pas d'identifiant de job dans SessionModel.
+        Capture réelle (VBR 13) : les copies produisent une session par VM nommée
+        `<job>\\<VM> Backup (Incremental)` ; une réplication complète `<job> (Full)`.
         """
         after = _iso(now - timedelta(days=self.config.session_window_days))
-        by_name: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+        jobs: dict[str, JobHistory] = {}
         for s in self._pages(
             "/api/v1/sessions",
             {"createdAfterFilter": after, "orderColumn": "CreationTime", "orderAsc": "false"},
         ):
             if not isinstance(s, dict) or s.get("state") != "Stopped":
                 continue
-            by_name[str(s.get("name", ""))].append(s)
-        for items in by_name.values():
-            items.sort(
-                key=lambda s: _dt(s.get("endTime")) or _dt(s.get("creationTime")) or now,
-                reverse=True,
-            )
-        return by_name
+            session_type = str(s.get("sessionType", ""))
+            if session_type not in JOB_SESSION_TYPES:
+                continue
+            job, obj = _split_session_name(str(s.get("name", "")))
+            h = jobs.setdefault(job.casefold(), JobHistory(job, session_type))
+            h.objects.setdefault(obj, []).append(s)
+        for h in jobs.values():
+            for items in h.objects.values():
+                items.sort(
+                    key=lambda s: _dt(s.get("endTime")) or _dt(s.get("creationTime")) or now,
+                    reverse=True,
+                )
+        return jobs
 
     def _job_payload(
-        self, job: Mapping[str, Any], sessions: Sequence[Mapping[str, Any]], now: datetime
+        self,
+        job: Mapping[str, Any],
+        last_result: str,
+        history: JobHistory | None,
+        now: datetime,
+        *,
+        stale_check: bool = True,
     ) -> dict[str, Any] | None:
-        results = [str((s.get("result") or {}).get("result", "None")) for s in sessions]
-        consecutive_failures = 0
-        for r in results:
-            if r != "Failed":
-                break
-            consecutive_failures += 1
-        consecutive_warnings = 0
-        for r in results:
-            if r != "Warning":
-                break
-            consecutive_warnings += 1
-        last_success = next(
-            (
-                _dt(s.get("endTime"))
-                for s in sessions
-                if str((s.get("result") or {}).get("result")) in SUCCESS_RESULTS
-            ),
-            None,
-        )
-        last_result = str(job.get("lastResult", "None"))
+        h = history or JobHistory(str(job.get("name", "")), "")
+        last_success = h.last_success()
         if last_success is None and last_result in SUCCESS_RESULTS:
             last_success = _dt(job.get("lastRun"))  # historique vide : on se fie à l'état
         window_h = self.config.session_window_days * 24.0
@@ -326,19 +426,21 @@ class VeeamConnector:
             if last_success is not None
             else window_h  # aucun succès connu dans la fenêtre : au moins sa durée
         )
-        stale = hours > NO_SUCCESS_HOURS and _dt(job.get("lastRun")) is not None
+        # Sans lastRun (jobs Proxmox en 13.x), l'ancienneté n'est pas mesurable.
+        stale = stale_check and hours > NO_SUCCESS_HOURS and _dt(job.get("lastRun")) is not None
         if last_result not in ("Failed", "Warning") and not stale:
             return None
         return {
             "kind": "job",
             "job": dict(job),
+            "session_type": h.session_type,
             "last_result": last_result,
-            "consecutive_failures": max(consecutive_failures, 1 if last_result == "Failed" else 0),
-            "consecutive_warnings": max(consecutive_warnings, 1 if last_result == "Warning" else 0),
+            "consecutive_failures": max(h.consecutive("Failed"), int(last_result == "Failed")),
+            "consecutive_warnings": max(h.consecutive("Warning"), int(last_result == "Warning")),
+            "failed_objects": [o for o in h.objects_with("Failed") if o][:MAX_LISTED_OBJECTS],
+            "warning_objects": [o for o in h.objects_with("Warning") if o][:MAX_LISTED_OBJECTS],
             "hours_since_last_success": hours,
-            "last_message": str((sessions[0].get("result") or {}).get("message", ""))
-            if sessions
-            else "",
+            "last_message": h.message(),
             "at": now,
         }
 
@@ -348,6 +450,8 @@ class VeeamConnector:
         kind = raw.payload["kind"]
         if kind == "repository":
             return self._repo_signal(raw, mapping)
+        if kind == "repository_offline":
+            return self._repo_offline_signal(raw, mapping)
         if kind == "malware":
             return self._malware_signal(raw, mapping)
         return self._job_signal(raw, mapping)
@@ -362,15 +466,20 @@ class VeeamConnector:
         )
         critical = criticality is not None and criticality >= CRITICAL_ASSET
         result = p["last_result"]
+        label = JOB_SESSION_TYPES.get(str(p.get("session_type", "")), "Job")
         if result == "Failed":
-            severity = 5 if critical else 4
-            title = f"Job Veeam en échec : {name}"
+            # Une rétention en échec n'empêche pas les sauvegardes : elle remplit le stockage.
+            severity = 3 if p.get("session_type") == "Retention" else 5 if critical else 4
+            title = f"Veeam — {label} en échec : {name}"
         elif result == "Warning":
             severity = 3 if p["consecutive_warnings"] >= 2 else 2
-            title = f"Job Veeam en avertissement : {name}"
+            title = f"Veeam — {label} en avertissement : {name}"
         else:
             severity = 4 if critical else 3
-            title = f"Job Veeam sans succès depuis {_num(p['hours_since_last_success'])} h : {name}"
+            title = (
+                f"Veeam — {label} sans succès depuis "
+                f"{_num(p['hours_since_last_success'])} h : {name}"
+            )
         lines = [
             f"Job : {name}",
             f"Dernier résultat : {result}",
@@ -380,6 +489,9 @@ class VeeamConnector:
             lines.append(f"Échecs consécutifs : {p['consecutive_failures']}")
         if p["consecutive_warnings"] >= 2:
             lines.append(f"Avertissements consécutifs : {p['consecutive_warnings']}")
+        for key, text in (("failed_objects", "en échec"), ("warning_objects", "en avertissement")):
+            if p.get(key):
+                lines.append(f"Objets {text} : " + ", ".join(p[key]))
         if job.get("repositoryName"):
             lines.append(f"Dépôt : {job['repositoryName']}")
         if p.get("last_message"):
@@ -439,6 +551,31 @@ class VeeamConnector:
             last_seen=p["at"],
             url_template_params={"repository_id": str(repo.get("id", ""))},
             attributes={"kind": "repository", "repo_used_pct": pct},
+        )
+
+    def _repo_offline_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:
+        p = raw.payload
+        repo: Mapping[str, Any] = p["repo"]
+        name = clean_untrusted(str(repo.get("name", "")), 200)
+        companies = companies_for(
+            mapping, SOURCE, MatchType.job_prefix, [str(repo.get("name", ""))]
+        )
+        lines = [f"Dépôt : {name}", f"Type : {repo.get('type', '')}"]
+        if repo.get("hostName"):
+            lines.append(f"Serveur : {repo['hostName']}")
+        return Signal(
+            source=SOURCE,
+            external_id=raw.external_id,
+            company_code=next(iter(companies)) if len(companies) == 1 else None,
+            asset=clean_untrusted(str(repo.get("hostName") or repo.get("name", "")), 200),
+            category=Category.backup,
+            severity=4,
+            title=clean_untrusted(f"Dépôt Veeam hors ligne : {name}", TITLE_MAX),
+            details=clean_untrusted("\n".join(lines), DETAILS_MAX),
+            first_seen=p["at"],
+            last_seen=p["at"],
+            url_template_params={"repository_id": str(repo.get("id", ""))},
+            attributes={"kind": "repository_offline"},
         )
 
     def _malware_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:

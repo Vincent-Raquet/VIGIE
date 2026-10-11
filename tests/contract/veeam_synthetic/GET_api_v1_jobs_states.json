@@ -1,0 +1,100 @@
+{
+  "data": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "name": "SPL-FS01-Daily",
+      "type": "Backup",
+      "description": "",
+      "status": "inactive",
+      "lastRun": "2026-10-11T01:00:00Z",
+      "lastResult": "Failed",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-SPL",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "name": "WI-DC01-Daily",
+      "type": "Backup",
+      "description": "",
+      "status": "inactive",
+      "lastRun": "2026-10-11T01:30:00Z",
+      "lastResult": "Warning",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-WI",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000002"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "name": "WG-SQL01-Daily",
+      "type": "Backup",
+      "description": "",
+      "status": "inactive",
+      "lastRun": "2026-10-09T01:00:00Z",
+      "lastResult": "Success",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-WI",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "name": "CC-Files-Daily",
+      "type": "Backup",
+      "description": "",
+      "status": "inactive",
+      "lastRun": "2026-10-11T02:00:00Z",
+      "lastResult": "Success",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-WI",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "name": "FWD-Old-Archive",
+      "type": "Backup",
+      "description": "",
+      "status": "disabled",
+      "lastRun": "2026-09-01T01:00:00Z",
+      "lastResult": "Failed",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-WI",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000006",
+      "name": "WI-Exchange-Hourly",
+      "type": "Backup",
+      "description": "",
+      "status": "running",
+      "lastRun": "2026-10-11T05:00:00Z",
+      "lastResult": "None",
+      "nextRun": "2026-10-12T01:00:00Z",
+      "workload": "Vm",
+      "repositoryId": "20000000-0000-4000-8000-000000000001",
+      "repositoryName": "Repo-WI",
+      "objectsCount": 3,
+      "sessionId": "30000000-0000-4000-8000-000000000006"
+    }
+  ],
+  "pagination": {
+    "total": 6,
+    "count": 6,
+    "skip": 0,
+    "limit": 500
+  }
+}

@@ -23,7 +23,7 @@ from vigie.db.enums import Category
 from vigie.engine.settings import ScoringConfig
 from vigie.mapping import RuleMapper
 
-FIXTURES = Path(__file__).parent / "veeam"
+FIXTURES = Path(__file__).parent / "veeam_synthetic"
 NOW = datetime(2026, 10, 11, 6, 0, tzinfo=UTC)
 
 
@@ -69,7 +69,7 @@ def test_expected_signals(mapper: RuleMapper) -> None:
 def test_failed_critical_job(mapper: RuleMapper) -> None:
     s = signals(mapper)[job_id(1)]
     assert (s.category, s.severity, s.company_code) == (Category.backup, 5, "SPL")
-    assert s.title == "Job Veeam en échec : SPL-FS01-Daily"
+    assert s.title == "Veeam — Sauvegarde en échec : SPL-FS01-Daily"
     assert s.attributes["consecutive_failures"] == 2
     assert s.attributes["asset_critical"] is True
     assert s.attributes["hours_since_last_success"] == 52.5
