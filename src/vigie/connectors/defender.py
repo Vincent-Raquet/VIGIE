@@ -11,10 +11,11 @@ Authentification : assertion JWT signée par certificat (PS256, `x5t#S256`) éch
 jeton par audience, une fois par collecte. Le POST du jeton passe par le `SafeClient` (allowlist) ;
 MSAL n'est pas utilisé ici car il émet ses propres requêtes hors allowlist.
 
-Sélection des vulnérabilités (analyse de criticité) : Critical et High seulement, appareils
-Windows seulement (Linux → Wazuh, patchs → NinjaOne), agrégées par société et par CVE ; on garde
-les exploitées, les critiques à risque élevé (CVSS, EPSS), les nouvelles et celles qui touchent
-des équipements sensibles (`deviceValue` High), au plus `max_vulns_per_company` par société.
+Sélection des vulnérabilités (analyse de criticité) : Critical et High présentes dans le tenant,
+appareils Windows seulement (Linux → Wazuh, patchs → NinjaOne), agrégées par domaine et par CVE ;
+on garde les exploitées, les critiques à risque élevé (CVSS, EPSS), les nouvelles et celles qui
+touchent des équipements sensibles (`deviceValue` High ou serveur), au plus
+`max_vulns_per_company` par domaine DNS ou étiquette Defender (≈ société).
 """
 
 from __future__ import annotations
@@ -70,6 +71,13 @@ TITLE_MAX = 300
 DETAILS_MAX = 1000
 LISTED = 10
 SEVERITIES = "severity eq 'Critical' or severity eq 'High'"
+# /api/vulnerabilities renvoie tout le catalogue (≈ 100 000 CVE, capture 2026-10-11) : seules
+# celles présentes dans le tenant (statut ≠ NoActionRequired) sont demandées. Filtre sur le statut
+# vérifié sur l'API réelle (`exposedMachines` n'est pas filtrable : HTTP 400).
+VULN_FILTER = (
+    "(severity eq 'Critical' or severity eq 'High') and "
+    "(status eq 'RemediationRequired' or status eq 'PartialException')"
+)
 # Graph n'a pas de gravité « critical » pour les incidents (low, medium, high, informational) :
 # « élevée ou critique » = high.
 INCIDENT_FILTER = "status ne 'resolved' and severity eq 'high'"
@@ -219,6 +227,26 @@ def _dt(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
+def _sensitive(machine: Mapping[str, Any]) -> bool:
+    return (
+        str(machine.get("deviceValue", "")).lower() == "high"
+        or "server" in str(machine.get("osPlatform", "")).lower()
+    )
+
+
+def _domain(machine: Mapping[str, Any]) -> str:
+    """Domaine DNS de l'appareil : seul critère de société fiable dans ce tenant (aucun groupe
+    d'appareils ni étiquette, capture 2026-10-11)."""
+    return str(machine.get("computerDnsName") or "").lower().partition(".")[2]
+
+
+def _group_key(machine: Mapping[str, Any]) -> str:
+    """Regroupement (≈ société) sans la table de correspondance : la première étiquette
+    Defender si l'appareil en a (départage un domaine partagé), sinon le domaine DNS."""
+    tags = machine.get("machineTags") or []
+    return f"tag:{tags[0]}" if tags else _domain(machine)
+
+
 def _num(value: float) -> str:
     return f"{value:g}".replace(".", ",")
 
@@ -243,7 +271,8 @@ class CveGroup:
 
     @property
     def high_value(self) -> bool:
-        return any(str(m.get("deviceValue", "")).lower() == "high" for m in self.machines.values())
+        """Équipement sensible : « valeur élevée » dans Defender, ou serveur."""
+        return any(_sensitive(m) for m in self.machines.values())
 
     def is_new(self, now: datetime, new_days: int) -> bool:
         first = _dt(self.cve.get("firstDetected"))
@@ -477,7 +506,7 @@ class DefenderConnector:
         ]
         by_group: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
         for m in stale:
-            by_group[str(m.get("rbacGroupName") or "")].append(m)
+            by_group[_group_key(m)].append(m)
         return [
             RawSignal(
                 f"inactive:{hashlib.sha1(group.encode(), usedforsecurity=False).hexdigest()[:12]}",
@@ -491,7 +520,7 @@ class DefenderConnector:
     ) -> list[RawSignal]:
         cves = {
             str(v["id"]): v
-            for v in self._mde_rows("/api/vulnerabilities", SEVERITIES, MDE_PAGE)
+            for v in self._mde_rows("/api/vulnerabilities", VULN_FILTER, MDE_PAGE)
             if isinstance(v, dict)
             and v.get("id")
             and v.get("status", "RemediationRequired")
@@ -508,7 +537,7 @@ class DefenderConnector:
             machine = machines.get(str(row.get("machineId")))
             if cve is None or machine is None or not self._windows(machine):
                 continue
-            key = (str(row.get("cveId")), str(machine.get("rbacGroupName") or ""))
+            key = (str(row.get("cveId")), _group_key(machine))
             group = groups.setdefault(key, CveGroup(cve=cve, company=None))
             group.machines[str(machine["id"])] = machine
             if row.get("fixingKbId"):
@@ -516,7 +545,7 @@ class DefenderConnector:
             if row.get("productName"):
                 group.products.add(str(row["productName"]))
         # Analyse de criticité : seules les vulnérabilités qui comptent, au plus
-        # max_vulns_per_company par groupe d'appareils (≈ société), les plus critiques d'abord.
+        # max_vulns_per_company par domaine DNS ou étiquette (≈ société), plus critiques d'abord.
         cfg = self.config
         by_group: dict[str, list[tuple[str, CveGroup]]] = defaultdict(list)
         for (cve_id, grp), g in groups.items():
@@ -529,7 +558,7 @@ class DefenderConnector:
             out.extend(
                 RawSignal(
                     f"cve:{cve_id}:{digest}",
-                    {"kind": "vulnerability", "group": g, "rbac_group": grp, "at": now},
+                    {"kind": "vulnerability", "group": g, "domain": grp, "at": now},
                 )
                 for cve_id, g in items[: cfg.max_vulns_per_company]
             )
@@ -538,14 +567,16 @@ class DefenderConnector:
     # --- Normalisation -----------------------------------------------------------------
 
     def _company(self, mapping: CompanyMapper, machine: Mapping[str, Any]) -> str | None:
-        name = str(machine.get("computerDnsName") or "").split(".")[0]
-        group = str(machine.get("rbacGroupName") or "")
-        tags = [str(t) for t in machine.get("machineTags") or []]
-        for match, value in (
-            (MatchType.devname_prefix, name),
-            (MatchType.hostgroup_prefix, group),
-            *((MatchType.agent_group, t) for t in tags),
-        ):
+        """Étiquette Defender (ex. « FWD », pour départager un domaine partagé), groupe
+        d'appareils, domaine DNS (`hostgroup_suffix` sur le nom complet), préfixe du nom."""
+        fqdn = str(machine.get("computerDnsName") or "")
+        candidates = [(MatchType.agent_group, str(t)) for t in machine.get("machineTags") or []]
+        candidates += [
+            (MatchType.hostgroup_prefix, str(machine.get("rbacGroupName") or "")),
+            (MatchType.hostgroup_suffix, fqdn),
+            (MatchType.devname_prefix, fqdn.split(".")[0]),
+        ]
+        for match, value in candidates:
             if value and (company := mapping.company_for(SOURCE, match, value)) is not None:
                 return company
         return None
@@ -675,7 +706,7 @@ class DefenderConnector:
             "Exemples : " + ", ".join(names[:LISTED]),
         ]
         if p["group"]:
-            lines.append(f"Groupe Defender : {clean_untrusted(p['group'], 100)}")
+            lines.append(f"Domaine ou étiquette : {clean_untrusted(p['group'], 100)}")
         return Signal(
             source=SOURCE,
             external_id=raw.external_id,

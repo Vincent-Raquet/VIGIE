@@ -104,7 +104,8 @@ def _build_connector(name: str, cfg: VigieConfig, fixtures: Path | None) -> Any:
         raise ConnectorConfigError(f"section [sources.{name}] absente de la configuration")
     if fixtures is not None:
         # Rejeu : ni secret ni réseau ; l'allowlist du SafeClient s'applique quand même.
-        settings.setdefault("base_url", FIXTURE_BASE_URL)
+        if name not in cfg.sources:  # Defender : hôtes fixes, pas de base_url
+            settings["base_url"] = FIXTURE_BASE_URL
         context = ConnectorContext(
             settings=settings,
             secret=lambda _name: SecretStr("fixture"),

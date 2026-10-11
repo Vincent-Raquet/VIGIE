@@ -3,9 +3,9 @@
   "value": [
     {
       "id": "a1",
-      "computerDnsName": "pc-wi-01.corp.example",
+      "computerDnsName": "pc-wi-01.fleurinvest.fleurus.be",
       "osPlatform": "Windows11",
-      "rbacGroupName": "WI - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -13,13 +13,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "a2",
-      "computerDnsName": "pc-wi-02.corp.example",
+      "computerDnsName": "pc-wi-02.fleurinvest.fleurus.be",
       "osPlatform": "Windows11",
-      "rbacGroupName": "WI - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -27,27 +28,29 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "a3",
-      "computerDnsName": "srv-wi-01.corp.example",
+      "computerDnsName": "srv-wi-01.fleurinvest.fleurus.be",
       "osPlatform": "WindowsServer2022",
-      "rbacGroupName": "WI - Serveurs",
-      "deviceValue": "High",
+      "rbacGroupName": null,
+      "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
       "onboardingStatus": "Onboarded",
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "b1",
-      "computerDnsName": "pc-spl-01.corp.example",
+      "computerDnsName": "pc-spl-01.egc-sa.local",
       "osPlatform": "Windows11",
-      "rbacGroupName": "SPL - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -55,13 +58,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "b2",
-      "computerDnsName": "pc-spl-02.corp.example",
+      "computerDnsName": "pc-spl-02.egc-sa.local",
       "osPlatform": "Windows11",
-      "rbacGroupName": "SPL - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -69,13 +73,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "b3",
-      "computerDnsName": "pc-spl-03.corp.example",
+      "computerDnsName": "pc-spl-03.egc-sa.local",
       "osPlatform": "Windows11",
-      "rbacGroupName": "SPL - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Inactive",
       "lastSeen": "2026-09-01T08:00:00Z",
@@ -83,13 +88,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "b4",
-      "computerDnsName": "pc-spl-04.corp.example",
+      "computerDnsName": "pc-spl-04.egc-sa.local",
       "osPlatform": "Windows11",
-      "rbacGroupName": "SPL - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "NoSensorData",
       "lastSeen": "2026-09-10T08:00:00Z",
@@ -97,13 +103,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "b5",
-      "computerDnsName": "pc-spl-05.corp.example",
+      "computerDnsName": "pc-spl-05.egc-sa.local",
       "osPlatform": "Windows11",
-      "rbacGroupName": "SPL - Postes",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Inactive",
       "lastSeen": "2026-10-05T08:00:00Z",
@@ -111,13 +118,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "c1",
-      "computerDnsName": "lnx-wg-01.corp.example",
+      "computerDnsName": "lnx-wg-01.fleurus.wallglass.be",
       "osPlatform": "Linux",
-      "rbacGroupName": "WG - Serveurs",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -125,13 +133,14 @@
       "machineTags": [],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     },
     {
       "id": "d1",
-      "computerDnsName": "pc-x-01.corp.example",
+      "computerDnsName": "pc-x-01.fleurinvest.fleurus.be",
       "osPlatform": "Windows11",
-      "rbacGroupName": "Ungrouped machines",
+      "rbacGroupName": null,
       "deviceValue": "Normal",
       "healthStatus": "Active",
       "lastSeen": "2026-10-11T08:00:00Z",
@@ -141,7 +150,8 @@
       ],
       "lastIpAddress": "192.0.2.10",
       "riskScore": "Medium",
-      "exposureLevel": "Medium"
+      "exposureLevel": "Medium",
+      "rbacGroupId": 0
     }
   ]
 }

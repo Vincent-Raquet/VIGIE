@@ -54,12 +54,18 @@ asset_rules:
   - {source: veeam, match: job_prefix, pattern: "WG-",  company: WG}
   - {source: veeam, match: job_prefix, pattern: "CC-",  company: CC}
   - {source: veeam, match: job_prefix, pattern: "FWD-", company: FWD}
-  # Defender : groupe d'appareils (rbacGroupName, préfixe borné comme Zabbix), sinon préfixe du
-  # nom court (devname_prefix) ou étiquette d'appareil (agent_group). À confirmer à la capture.
-  - {source: defender, match: hostgroup_prefix, pattern: "WI",  company: WI}
-  - {source: defender, match: hostgroup_prefix, pattern: "SPL", company: SPL}
-  - {source: defender, match: hostgroup_prefix, pattern: "WG",  company: WG}
-  - {source: defender, match: hostgroup_prefix, pattern: "CC",  company: CC}
-  - {source: defender, match: hostgroup_prefix, pattern: "FWD", company: FWD}
+  # Defender : aucun groupe d'appareils ni étiquette dans le tenant (capture 2026-10-11) ; la
+  # société vient du domaine DNS (hostgroup_suffix sur le nom complet, borné par un point).
+  # fleurinvest.fleurus.be est partagé (WI surtout, mais aussi FWD et d'autres organisations
+  # NinjaOne) : WI par défaut ; une étiquette Defender « FWD » sur un appareil l'emporte.
+  - {source: defender, match: hostgroup_suffix, pattern: "egc-sa.local",              company: SPL}
+  - {source: defender, match: hostgroup_suffix, pattern: "fleurus.wallglass.be",      company: WG}
+  - {source: defender, match: hostgroup_suffix, pattern: "local.construct-center.be", company: CC}
+  - {source: defender, match: hostgroup_suffix, pattern: "fleurinvest.fleurus.be",    company: WI}
+  - {source: defender, match: agent_group, pattern: "WI",  company: WI}
+  - {source: defender, match: agent_group, pattern: "SPL", company: SPL}
+  - {source: defender, match: agent_group, pattern: "WG",  company: WG}
+  - {source: defender, match: agent_group, pattern: "CC",  company: CC}
+  - {source: defender, match: agent_group, pattern: "FWD", company: FWD}
   # Wazuh : groupe d'agents
   - {source: wazuh, match: agent_group, pattern: "wg", company: WG}

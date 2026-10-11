@@ -284,8 +284,9 @@ prod** (`docs/CONNECTORS.md` §9) : `~/vigie-ca/defender.crt` (public) et `~/vig
    `VIGIE_ENV=dev uv run vigie check --sources` et
    `VIGIE_ENV=dev uv run python scripts/record_fixtures.py defender` (capture hors dépôt,
    `~/vigie-raw/defender`).
-2. **Correspondance** : noms des groupes d'appareils Defender → sociétés dans
-   `config/companies.yaml` (règles `hostgroup_prefix`, source `defender`).
+2. **Correspondance** : domaine DNS → société (`config/companies.example.yaml`, règles
+   `hostgroup_suffix` de la source `defender`) ; étiquette Defender « FWD » pour les appareils
+   Fairwind du domaine partagé `fleurinvest.fleurus.be`.
 3. **Production** :
    ```sh
    sudo vigie-secret set defender_private_key < ~/vigie-ca/defender.key

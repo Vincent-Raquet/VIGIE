@@ -137,13 +137,6 @@ DEFAULT_OVERRIDES = [
         ("attr.high_value", "eq", True),
     ),
     _rule(
-        "vuln_exploited",
-        "P2",
-        "vulnérabilité activement exploitée (exploit vérifié ou en kit)",
-        ("category", "eq", "vulnerability"),
-        ("attr.exploited", "eq", True),
-    ),
-    _rule(
         "cert_7d",
         "P1",
         "certificat expirant sous 7 jours",

@@ -121,13 +121,12 @@ def test_vulnerabilities_selected_by_criticity(mapper: RuleMapper, pair: tuple[P
     vulns = by_kind(signals(mapper, make(pair)), "vulnerability")
     got = {(s.attributes["cve"], s.company_code, s.attributes["devices"]) for s in vulns}
     assert got == {
-        ("CVE-2026-0001", "WI", 2),  # exploitée : WI - Postes
-        ("CVE-2026-0001", "WI", 1),  # WI - Serveurs (équipement sensible)
-        ("CVE-2026-0001", "SPL", 2),
-        ("CVE-2026-0001", None, 1),  # groupe sans règle : « Sans société »
+        ("CVE-2026-0001", "WI", 3),  # exploitée : domaine fleurinvest (dont un serveur)
+        ("CVE-2026-0001", "SPL", 2),  # domaine egc-sa.local
+        ("CVE-2026-0001", "FWD", 1),  # même domaine que WI, mais étiquette Defender « FWD »
         ("CVE-2026-0002", "SPL", 2),  # exploit public
         ("CVE-2026-0003", "WI", 1),  # critique et nouvelle
-        ("CVE-2026-0004", "WI", 1),  # High, mais sur un serveur à valeur élevée
+        ("CVE-2026-0004", "WI", 1),  # High, mais sur un serveur (équipement sensible)
     }  # 0005 sans critère, 0006 Linux (Wazuh), 0007 en exception : écartées
     one = {(s.attributes["cve"], s.severity) for s in vulns}
     assert one == {
@@ -136,11 +135,13 @@ def test_vulnerabilities_selected_by_criticity(mapper: RuleMapper, pair: tuple[P
         ("CVE-2026-0003", 4),
         ("CVE-2026-0004", 3),
     }
-    exploited = next(s for s in vulns if s.attributes["devices"] == 2 and s.company_code == "WI")
+    exploited = next(s for s in vulns if s.attributes["devices"] == 3)
     assert exploited.category == Category.vulnerability
-    assert exploited.title == "CVE-2026-0001 [exploitée] sur 2 appareil(s) — CVSS 9,8"
+    assert exploited.title == "CVE-2026-0001 [exploitée] sur 3 appareil(s) — CVSS 9,8"
+    assert exploited.attributes["high_value"]  # serveur
     assert exploited.attributes["exploited"] and exploited.attributes["fix_available"]
-    assert "KB5050001" in exploited.details and "pc-wi-01, pc-wi-02" in exploited.details
+    assert "KB5050001" in exploited.details and "pc-wi-01, pc-wi-02, srv-wi-01" in exploited.details
+    assert "fleurus.be" not in exploited.details  # noms courts seulement
     assert "Texte fourni" not in exploited.details  # description éditeur jamais reprise
     assert "192.0.2" not in exploited.details
     new = next(s for s in vulns if s.attributes["cve"] == "CVE-2026-0003")
@@ -151,8 +152,8 @@ def test_cap_per_device_group_keeps_most_critical(
     mapper: RuleMapper, pair: tuple[Path, Path]
 ) -> None:
     vulns = by_kind(signals(mapper, make(pair, max_vulns_per_company=1)), "vulnerability")
-    wi_postes = [s for s in vulns if s.company_code == "WI" and "pc-wi-01" in s.details]
-    assert [s.attributes["cve"] for s in wi_postes] == ["CVE-2026-0001"]
+    wi = [s for s in vulns if s.company_code == "WI"]
+    assert [s.attributes["cve"] for s in wi] == ["CVE-2026-0001"]
 
 
 def test_os_platform_policy_can_include_linux(mapper: RuleMapper, pair: tuple[Path, Path]) -> None:
@@ -196,7 +197,10 @@ def test_requests_sent(pair: tuple[Path, Path]) -> None:
     assert {r.url.host for r in gets} == {"eu.api.security.microsoft.com", "graph.microsoft.com"}
     assert all(r.headers["Authorization"] == "Bearer fixture-access-token" for r in gets)
     vuln = next(r for r in gets if r.url.path == "/api/vulnerabilities")
-    assert vuln.url.params["$filter"] == "severity eq 'Critical' or severity eq 'High'"
+    assert vuln.url.params["$filter"] == (
+        "(severity eq 'Critical' or severity eq 'High') and "
+        "(status eq 'RemediationRequired' or status eq 'PartialException')"
+    )
     inc = next(r for r in gets if r.url.host == "graph.microsoft.com")
     assert inc.url.params["$filter"] == "status ne 'resolved' and severity eq 'high'"
 
@@ -270,7 +274,7 @@ def test_default_overrides_raise_exploited_vulnerabilities(
     vulns = by_kind(signals(mapper, make(pair)), "vulnerability")
     by_rule = {(s.attributes["cve"], s.attributes["high_value"]): rule(s) for s in vulns}
     assert by_rule[("CVE-2026-0001", True)] == "vuln_exploited_sensitive"  # P1
-    assert by_rule[("CVE-2026-0001", False)] == "vuln_exploited"  # P2
+    assert by_rule[("CVE-2026-0001", False)] is None  # postes : barème (sévérité 5 → P2)
     assert by_rule[("CVE-2026-0002", False)] is None  # exploit public seul : barème
 
 
