@@ -123,7 +123,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |
 | Veeam B&R 13.1 | `svcveeamvigie` (local) | Backup Viewer (jeton confirmé 2026-10-11 ; GET à confirmer) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |
-| Microsoft Defender | App Entra « Vigie Defender » (certificat, sans secret client) | Application : `Vulnerability.Read.All`, `Machine.Read.All` (WindowsDefenderATP), `SecurityIncident.Read.All` (Graph) ; `SecurityAlert.Read.All` accordée mais non utilisée | Squid (`login.microsoftonline.com`, `graph.microsoft.com`, `eu.api.security.microsoft.com`) ; secret `defender_private_key` |
+| Microsoft Defender | App Entra « Vigie Defender » (certificat, sans secret client) | Application : `Vulnerability.Read.All`, `Machine.Read.All` (WindowsDefenderATP), `SecurityIncident.Read.All` (Graph) ; `SecurityAlert.Read.All` accordée mais non utilisée | Squid (`login.microsoftonline.com`, `graph.microsoft.com`, `eu.api.security.microsoft.com`) ; secrets `defender_client_id` (GUID refusé par gitleaks dans le dépôt), `defender_private_key` |
 | Microsoft Graph | App « Vigie Mail » | `Mail.Send` (app) restreint à `itbot@…` | — |
 | Entra SSO | App « Vigie » | OIDC, claims groupes | Accès conditionnel MFA |
 | Anthropic | Clé workspace « vigie » | — | Limite de dépense mensuelle |

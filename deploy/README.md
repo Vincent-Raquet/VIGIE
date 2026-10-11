@@ -64,7 +64,7 @@ sudo vigie-secret rm teams_webhook_url
 | `teams_webhook_url` | vigie-notify@ | `vigie_notify_teams_enabled` |
 | `veeam_password` | vigie-collect@veeam, vigie-jobs | `vigie_veeam_host` renseigné (§11) |
 | `ninjaone_client_id`, `ninjaone_client_secret` | vigie-collect@ninjaone, vigie-jobs | `vigie_ninjaone_enabled: true` (§12) |
-| `defender_private_key` | vigie-collect@defender, vigie-jobs | `vigie_defender_client_id` renseigné (§13) |
+| `defender_client_id`, `defender_private_key` | vigie-collect@defender, vigie-jobs | `vigie_defender_enabled: true` (§13) |
 
 **Rotation** : `vigie-secret set <nom>` avec la nouvelle valeur, puis
 `sudo systemctl restart vigie-web` (les tâches planifiées relisent le secret à chaque
@@ -289,10 +289,11 @@ prod** (`docs/CONNECTORS.md` §9) : `~/vigie-ca/defender.crt` (public) et `~/vig
    Fairwind du domaine partagé `fleurinvest.fleurus.be`.
 3. **Production** :
    ```sh
+   printf '%s' "<GUID de l'app>" | sudo vigie-secret set defender_client_id
    sudo vigie-secret set defender_private_key < ~/vigie-ca/defender.key
    ```
-   puis `vigie_defender_client_id: "<GUID de l'app>"` dans `group_vars/vigie.yml` et le
-   playbook : il copie `vigie_defender_cert_file` (défaut `~/vigie-ca/defender.crt`) dans
+   (le GUID ressemble à une clé : gitleaks le refuse dans le dépôt), puis
+   `vigie_defender_enabled: true` dans `group_vars/vigie.yml` et le playbook : il copie `vigie_defender_cert_file` (défaut `~/vigie-ca/defender.crt`) dans
    `/etc/vigie/ca/defender.crt`, autorise `eu.api.security.microsoft.com` dans Squid et active
    `vigie-collect@defender` (toutes les 60 min).
 4. **Surveillance de l'expiration** : `vigie check` avertit sous 30 jours ; selfcheck

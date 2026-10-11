@@ -44,6 +44,7 @@ SOURCE_SECRETS = {
     "zabbix_api_token",
     "veeam_password",
     "ninjaone_client_id",
+    "defender_client_id",
     "defender_private_key",
     "ninjaone_client_secret",
 }
@@ -273,11 +274,15 @@ def test_ninjaone_source_goes_through_squid_only() -> None:
 
 
 def test_defender_source_certificate_and_key_only() -> None:
-    off = _context()
-    assert "defender" not in [s["name"] for s in off["vigie_sources_enabled"]]  # GUID vide
-    ctx = _context({"vigie_defender_client_id": "11111111-1111-1111-1111-111111111111"})
+    off = _context({"vigie_defender_enabled": False})
+    assert "defender" not in [s["name"] for s in off["vigie_sources_enabled"]]
+    ctx = _context({"vigie_defender_enabled": True})
     [source] = [s for s in ctx["vigie_sources_enabled"] if s["name"] == "defender"]
-    assert source["secrets"] == ["defender_private_key"]  # aucun secret client
+    assert source["secrets"] == [
+        "defender_client_id",
+        "defender_private_key",
+    ]  # pas de secret client
+    assert "client_id" not in source["settings"]  # jamais dans le dépôt
     settings = source["settings"]
     assert settings["tenant_id"] == ctx["vigie_oidc"]["tenant_id"]
     assert settings["certificate"] == "/etc/vigie/ca/defender.crt"
@@ -286,7 +291,7 @@ def test_defender_source_certificate_and_key_only() -> None:
     for domain in ("login.microsoftonline.com", "graph.microsoft.com", settings["api_host"]):
         assert domain in ctx["squid_worker_domains"]
     text = _render("units/credentials.conf.j2", ctx, source=source)
-    assert _credentials(text) == {"defender_private_key"}
+    assert _credentials(text) == {"defender_client_id", "defender_private_key"}
     assert set(_directives(text)["IPAddressAllow"][0].split()) == set(ctx["dns_servers"])
     jobs = _units(ctx)["vigie-jobs.service"]
     assert "defender_private_key" in _credentials(jobs)

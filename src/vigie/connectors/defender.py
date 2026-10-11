@@ -24,6 +24,7 @@ import base64
 import hashlib
 import json
 import math
+import re
 import time
 import uuid
 from collections import defaultdict
@@ -53,6 +54,9 @@ from vigie.redact import clean_untrusted
 
 SOURCE = "defender"
 PRIVATE_KEY_SECRET = "defender_private_key"  # noqa: S105 - nom du secret, pas sa valeur
+# Le GUID de l'app ressemble à une clé pour gitleaks (refusé dans le dépôt) : secret en prod.
+CLIENT_ID_SECRET = "defender_client_id"  # noqa: S105 - nom du secret, pas sa valeur
+GUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 LOGIN_URL = "https://login.microsoftonline.com"
 GRAPH_URL = "https://graph.microsoft.com"
 MDE_SCOPE = "https://api.securitycenter.microsoft.com/.default"  # audience exigée par l'API
@@ -148,7 +152,7 @@ class DefenderConfig(_Strict):
     enabled: bool = False
     interval_min: int = Field(60, ge=15, le=1440)
     tenant_id: str = Field(pattern=r"^[0-9a-f-]{36}$")
-    client_id: str = Field(pattern=r"^[0-9a-f-]{36}$")
+    client_id: str | None = Field(None, pattern=r"^[0-9a-f-]{36}$")  # sinon secret
     api_host: str = Field("eu.api.security.microsoft.com")
     certificate: Path  # certificat public (PEM)
     private_key_file: Path | None = None  # dev seulement ; prod : secret defender_private_key
@@ -338,6 +342,12 @@ class DefenderConnector:
                 f"[sources.defender] invalide : {', '.join(fields)}"
             ) from None
 
+        if config.client_id is None:
+            client_id = ctx.secret(CLIENT_ID_SECRET).get_secret_value().strip().lower()
+            if not GUID.match(client_id):
+                raise ConnectorConfigError(f"secret {CLIENT_ID_SECRET} : GUID attendu")
+            config = config.model_copy(update={"client_id": client_id})
+
         def client(base: str, allowlist: Sequence[AllowedCall]) -> SafeClient:
             return SafeClient(
                 source=SOURCE,
@@ -370,7 +380,7 @@ class DefenderConnector:
                 self.config.certificate.read_bytes(),
                 self._private_key(),
                 self.config.tenant_id,
-                self.config.client_id,
+                self.config.client_id or "",
                 self._now(),
             )
         except (OSError, ValueError) as exc:
@@ -381,7 +391,7 @@ class DefenderConnector:
         data = self.login.post(
             f"/{self.config.tenant_id}/oauth2/v2.0/token",
             {
-                "client_id": self.config.client_id,
+                "client_id": self.config.client_id or "",
                 "client_assertion_type": ASSERTION_TYPE,
                 "client_assertion": SecretStr(assertion),
                 "scope": scope,

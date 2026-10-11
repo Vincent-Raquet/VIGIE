@@ -96,6 +96,8 @@ def make(
         base["private_key_file"] = str(pem)
 
     def secret(name: str) -> SecretStr:
+        if name == "defender_client_id":
+            return SecretStr(" 22222222-2222-2222-2222-222222222222\n")
         assert name == "defender_private_key"
         return SecretStr(pem.read_text().replace("\n", "\\n"))
 
@@ -299,3 +301,24 @@ def test_graph_next_link_followed(pair: tuple[Path, Path]) -> None:
 
     rows = list(make(pair, transport=httpx.MockTransport(handler))._incidents())
     assert rows == [{"id": "1"}, {"id": "2"}] and seen[1] == {"$top": "50", "$skiptoken": "abc"}
+
+
+def test_client_id_from_secret(pair: tuple[Path, Path]) -> None:
+    spy = Spy(fixture_transport(FIXTURES))
+    crt, pem = pair
+    settings = {"tenant_id": TENANT, "certificate": str(crt), "private_key_file": str(pem)}
+
+    def secret(name: str) -> SecretStr:
+        assert name == "defender_client_id"
+        return SecretStr(" 22222222-2222-2222-2222-222222222222\n")
+
+    c = DefenderConnector.from_context(
+        ConnectorContext(settings=settings, secret=secret, transport=spy)
+    )
+    c._login()
+    sent = parse_qs(spy.requests[0].content.decode())
+    assert sent["client_id"] == ["22222222-2222-2222-2222-222222222222"]
+    with pytest.raises(ConnectorConfigError, match="GUID"):
+        DefenderConnector.from_context(
+            ConnectorContext(settings=settings, secret=lambda n: SecretStr("pas-un-guid"))
+        )

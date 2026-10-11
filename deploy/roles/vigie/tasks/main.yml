@@ -137,7 +137,7 @@
     owner: root
     group: vigie
     mode: "0644"
-  when: vigie_defender_client_id | length > 0
+  when: vigie_defender_enabled | bool
 
 # --- Données d'amorçage et migrations ---------------------------------------------------
 - name: Fichiers d'amorçage (équipe, sociétés, politique, scoring)
