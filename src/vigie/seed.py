@@ -249,6 +249,12 @@ def _load_scoring(from_dir: Path, examples: list[str]) -> ScoringConfig | None:
     return _validate(ScoringConfig, _load_yaml(path), path)
 
 
+def load_scoring_file(from_dir: Path) -> tuple[Path, ScoringConfig]:
+    """`scoring.yaml` (ou l'exemple) validé, pour `vigie overrides`."""
+    path, _ = pick_file(from_dir, "scoring")
+    return path, _validate(ScoringConfig, _load_yaml(path), path)
+
+
 def load_companies(from_dir: Path) -> CompaniesFile:
     """Sociétés et règles d'actifs seules (rattachement sans base, `vigie collect --dry-run`)."""
     path, _ = pick_file(from_dir, "companies")
@@ -571,3 +577,50 @@ def apply_seed(
     )
     session.flush()
     return report
+
+
+@dataclass(frozen=True)
+class OverridesSync:
+    added: list[str]
+    removed: list[str]
+    changed: list[str]
+
+    @property
+    def any(self) -> bool:
+        return bool(self.added or self.removed or self.changed)
+
+
+def sync_overrides(session: Session, scoring: ScoringConfig, actor: str = "seed") -> OverridesSync:
+    """Remplace les seules règles d'override du barème enregistré par celles du fichier.
+
+    Les autres réglages (seuils, poids… ajustables depuis la page Barème) sont conservés.
+    """
+    row = session.get(models.Setting, "scoring")
+    raw: dict[str, Any] = dict(row.value) if row is not None else {}
+    before = {r.id: r.model_dump(mode="json") for r in ScoringConfig.model_validate(raw).overrides}
+    after = {r.id: r.model_dump(mode="json") for r in scoring.overrides}
+    result = OverridesSync(
+        added=sorted(after.keys() - before.keys()),
+        removed=sorted(before.keys() - after.keys()),
+        changed=sorted(k for k in after.keys() & before.keys() if after[k] != before[k]),
+    )
+    if result.any:
+        raw["overrides"] = list(after.values())
+        ScoringConfig.model_validate(raw)  # ensemble toujours valide
+        if row is None:
+            session.add(models.Setting(key="scoring", value=raw))
+        else:
+            row.value = raw
+        session.add(
+            models.AuditLog(
+                actor=actor,
+                action="scoring_overrides_sync",
+                object="setting:scoring",
+                details={
+                    "ajoutées": result.added,
+                    "retirées": result.removed,
+                    "modifiées": result.changed,
+                },
+            )
+        )
+    return result

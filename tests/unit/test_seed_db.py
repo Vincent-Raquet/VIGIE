@@ -159,3 +159,49 @@ def test_seed_without_scoring_file_keeps_defaults(db_session: Session, data: See
 
     apply_seed(db_session, replace(data, scoring=None))
     assert load_scoring(db_session) == ScoringConfig()
+
+
+def test_sync_overrides_keeps_ui_settings(db_session: Session) -> None:
+    from vigie.engine.settings import DEFAULT_OVERRIDES, ScoringConfig, load_scoring
+    from vigie.seed import load_scoring_file, sync_overrides
+
+    # Barème de prod : seuils réglés depuis l'interface, overrides d'un ancien amorçage.
+    old = [r.model_dump(mode="json") for r in DEFAULT_OVERRIDES if r.id != "cert_7d"]
+    old[0] = {**old[0], "priority": "P2"}
+    stale = {**old[1], "id": "obsolete_rule"}
+    db_session.add(
+        models.Setting(
+            key="scoring",
+            value={"thresholds": {"P1": 70, "P2": 40, "P3": 15}, "overrides": [*old, stale]},
+        )
+    )
+    db_session.flush()
+    _, scoring = load_scoring_file(REPO_ROOT / "config")
+    result = sync_overrides(db_session, scoring, actor="test")
+    assert result.added == ["cert_7d"] and result.removed == ["obsolete_rule"]
+    assert result.changed == [old[0]["id"]]
+    loaded = load_scoring(db_session)
+    assert loaded.thresholds == {"P1": 70, "P2": 40, "P3": 15}  # réglage de l'interface gardé
+    assert [r.id for r in loaded.overrides] == [r.id for r in scoring.overrides]
+    assert db_session.scalars(
+        select(models.AuditLog).where(models.AuditLog.action == "scoring_overrides_sync")
+    ).first()
+    assert not sync_overrides(db_session, scoring).any  # idempotent
+    assert ScoringConfig.model_validate(db_session.get(models.Setting, "scoring").value)
+
+
+def test_cli_overrides_dry_run(test_config: Path) -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "--config",
+            str(test_config),
+            "overrides",
+            "--from",
+            str(REPO_ROOT / "config"),
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Règles lues dans" in result.output
+    assert "Barème déjà à jour." in result.output or "Simulation" in result.output

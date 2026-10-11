@@ -479,6 +479,56 @@ def seed(
 
 
 @app.command()
+def overrides(
+    ctx: typer.Context,
+    from_dir: Annotated[
+        Path, typer.Option("--from", help="Dossier de scoring.yaml (ou scoring.example.yaml).")
+    ] = Path("config"),
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Affiche sans rien écrire.")] = False,
+) -> None:
+    """Met à jour les seules règles d'override du barème depuis scoring.yaml.
+
+    Les réglages de la page Barème (seuils, poids, âge…) ne sont pas touchés, ni l'équipe,
+    ni les sociétés : contrairement à `seed --update`, rien d'autre n'est réécrit.
+    """
+    from vigie.seed import load_scoring_file, sync_overrides
+
+    _, cfg = _config(ctx)
+    try:
+        path, scoring = load_scoring_file(from_dir)
+    except SeedError as exc:
+        typer.echo(f"ERREUR {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    engine = make_engine(cfg.database.url)
+    try:
+        with Session(engine) as session:
+            result = sync_overrides(session, scoring)
+            if dry_run:
+                session.rollback()
+            else:
+                session.commit()
+    except SQLAlchemyError as exc:
+        typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        engine.dispose()
+    typer.echo(f"Règles lues dans {path} : {len(scoring.overrides)}")
+    for label, ids in (
+        ("ajoutée(s)", result.added),
+        ("retirée(s)", result.removed),
+        ("modifiée(s)", result.changed),
+    ):
+        if ids:
+            typer.echo(f"  {label} : {', '.join(ids)}")
+    if not result.any:
+        typer.echo("Barème déjà à jour.")
+    elif dry_run:
+        typer.echo("Simulation : rien n'a été écrit.")
+    else:
+        typer.echo("Barème mis à jour : il s'applique au prochain plan.")
+
+
+@app.command()
 def budget(ctx: typer.Context) -> None:
     """Affiche la consommation LLM du mois et le budget restant."""
     _, cfg = _config(ctx)

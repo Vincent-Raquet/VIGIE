@@ -25,10 +25,12 @@ def incidents(
     user: Staff,
     session: DB,
     status: Annotated[str, Query(pattern="^(open|resolved|all)$")] = "open",
-    priority: Annotated[Priority | None, Query()] = None,
+    # Le formulaire envoie tous ses champs : « toutes » = valeur vide, pas une erreur 422.
+    priority_raw: Annotated[str, Query(alias="priority", pattern="^(P[1-4])?$")] = "",
     company: Annotated[str | None, Query(max_length=8)] = None,
     source: Annotated[str | None, Query(max_length=64)] = None,
 ) -> Response:
+    priority = Priority(priority_raw) if priority_raw else None
     query = select(models.Incident)
     if status != "all":
         query = query.where(models.Incident.status == IncidentStatus(status))

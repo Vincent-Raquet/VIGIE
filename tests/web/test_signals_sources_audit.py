@@ -52,6 +52,10 @@ def test_signals_list_filters_and_detail(client: TestClient, incidents: Session)
     assert "Aucun incident" in client.get("/signaux", params={"company": "FWD"}).text
     assert "Aucun incident" in client.get("/signaux", params={"source": "veeam"}).text
     assert client.get("/signaux", params={"status": "nimporte"}).status_code == 422
+    # Formulaire complet (« toutes » = champ vide) : filtre par source sans erreur 422.
+    form = {"status": "open", "priority": "", "company": "", "source": "veeam"}
+    assert client.get("/signaux", params=form).status_code == 200
+    assert client.get("/signaux", params={**form, "priority": "P9"}).status_code == 422
 
     incident = incidents.scalars(
         select(models.Incident).where(models.Incident.asset == "sw-wg-ot-01")

@@ -81,6 +81,16 @@ Le playbook installe la nouvelle version dans son propre venv (dépendances vér
 empreinte), applique les migrations en `vigie-migrate`, bascule `/opt/vigie/current` et
 redémarre `vigie-web`. Les trois dernières versions sont gardées.
 
+**Règles de priorité (overrides)** : `vigie seed` ne réécrit pas le barème existant, et
+`seed --update` réécrirait aussi l'équipe et les sociétés. Après une mise à jour qui modifie
+les overrides de `config/scoring.example.yaml` (copié dans `/etc/vigie/seed`) :
+```sh
+sudo -u vigie-migrate /opt/vigie/current/bin/vigie --config /etc/vigie/migrate.toml overrides --from /etc/vigie/seed --dry-run
+sudo -u vigie-migrate /opt/vigie/current/bin/vigie --config /etc/vigie/migrate.toml overrides --from /etc/vigie/seed
+```
+Seules les règles d'override changent ; les réglages de la page Barème sont conservés
+(journal d'audit `scoring_overrides_sync`).
+
 **Retour arrière** (si la migration ne l'empêche pas) :
 ```sh
 sudo ln -sfn /opt/vigie/releases/<version précédente> /opt/vigie/current
