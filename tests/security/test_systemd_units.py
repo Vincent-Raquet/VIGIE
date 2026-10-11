@@ -244,7 +244,13 @@ def test_disabled_features_load_no_secret() -> None:
 
 @pytest.mark.parametrize("veeam_host", ["", "vbr-01.example.test"])
 def test_collect_dropin_gives_only_its_source_secret_and_addresses(veeam_host: str) -> None:
-    ctx = _context({"vigie_veeam_host": veeam_host, "vigie_ninjaone_enabled": False})
+    ctx = _context(
+        {
+            "vigie_veeam_host": veeam_host,
+            "vigie_ninjaone_enabled": False,
+            "vigie_defender_enabled": False,
+        }
+    )
     names = [s["name"] for s in ctx["vigie_sources_enabled"]]
     assert names == (["zabbix", "veeam"] if veeam_host else ["zabbix"])
     for source in ctx["vigie_sources_enabled"]:
