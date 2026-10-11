@@ -92,7 +92,7 @@ Les tests de `tests/security/test_registered_connectors.py` s'appliquent automat
 - **Catégories** : `security`, `vulnerability`, `monitoring` (agents).
 
 ## 5. Veeam Backup & Replication 13.1 (`src/vigie/connectors/veeam.py`)
-- **Auth** : `POST /api/oauth2/token`, corps **form-urlencoded** `grant_type=password`, `username`, `password` (exception documentée, appel anonyme, schéma strict `TokenRequest` : ni `refresh_token`, ni `vbr_token`) ; un jeton par collecte, pas de rafraîchissement. En-tête `x-api-version` sur chaque requête : `1.3-rev1` (13.0.1.180), `1.3-rev2` (13.1). Compte local `svc-vigie`, rôle **Backup Viewer** ⚠️ : la référence 13 ne liste pas les rôles par endpoint et un product manager Veeam indique sur le forum R&D que l'API REST exige Backup Administrator → **à confirmer par un essai réel** avant toute mise en service ; ne jamais élever le rôle sans décision du coordinateur.
+- **Auth** : `POST /api/oauth2/token`, corps **form-urlencoded** `grant_type=password`, `username`, `password` (exception documentée, appel anonyme, schéma strict `TokenRequest` : ni `refresh_token`, ni `vbr_token`) ; un jeton par collecte, pas de rafraîchissement. En-tête `x-api-version` sur chaque requête : `1.3-rev1` (13.0.1.180), `1.3-rev2` (13.1). Compte local `svc-vigie`, rôle **Backup Viewer** : jeton accordé (essai réel du 2026-10-11 sur le VBR de production, HTTP 200), contrairement à ce qu'annonçait le forum R&D ; l'accès de ce rôle à chacun des 5 GET reste à confirmer par la première capture (`scripts/record_fixtures.py`). Ne jamais élever le rôle sans décision du coordinateur.
 - **Allowlist `GET`** (paramètres listés, rien d'autre) : `/api/v1/serverInfo` ; `/api/v1/jobs/states` (`skip`, `limit`) ; `/api/v1/sessions` (`skip`, `limit`, `createdAfterFilter`, `orderColumn`, `orderAsc`) ; `/api/v1/backupInfrastructure/repositories/states` (`skip`, `limit`) ; `/api/v1/malwareDetection/events` (`skip`, `limit`, `detectedAfterTimeUtcFilter` — TODO verify en 13.x).
 - **Interdits** (`tests/security/test_veeam_allowlist.py`) : `jobs/{id}/start|stop|retry|disable|enable`, `sessions/{id}/stop`, `POST /api/v1/jobs`, `oauth2/logout`, toute écriture (PUT/DELETE/PATCH), `/api/v1/credentials`, `/api/v1/backups`, paramètres non listés.
 - **Signaux** (instantané toutes les 30 min, catégorie `backup` sauf malware) :
@@ -118,7 +118,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 | NinjaOne | API client « Vigie » | `monitoring` (+ `management` seulement si requis pour tickets, technicien RO) | Allowed IP si disponible |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |
-| Veeam B&R 13.1 | `svc-vigie` (local) | Backup Viewer (⚠️ à confirmer, cf. §5) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |
+| Veeam B&R 13.1 | `svc-vigie` (local) | Backup Viewer (jeton confirmé 2026-10-11 ; GET à confirmer) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |
 | Microsoft Graph | App « Vigie Mail » | `Mail.Send` (app) restreint à `itbot@…` | — |
 | Entra SSO | App « Vigie » | OIDC, claims groupes | Accès conditionnel MFA |
 | Anthropic | Clé workspace « vigie » | — | Limite de dépense mensuelle |
