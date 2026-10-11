@@ -186,3 +186,7 @@ meter.cap:-moz-meter-sub-sub-optimum::-moz-meter-bar { background: var(--p2); }
 .login { max-width: 420px; margin: 12vh auto; }
 .htmx-indicator { opacity: 0; } .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.plan-gen > summary { list-style: none; display: inline-block; }
+.plan-gen > summary::-webkit-details-marker { display: none; }
+.plan-gen[open] > form { margin-top: 8px; max-width: 560px; }
+#plan-gen-status { margin-top: 6px; }

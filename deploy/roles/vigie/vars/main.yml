@@ -32,10 +32,18 @@ vigie_worker_units:
     unit_proxy: true
   - name: vigie-jobs.service
     unit_description: demandes de l'interface web
-    unit_exec: "{{ vigie_bin }} jobs --run-pending"
+    unit_exec: "{{ vigie_bin }} jobs --run-pending --kind source_test"
     unit_credentials: "{{ vigie_source_secrets }}"
     unit_ips: "{{ dns_servers + vigie_source_ips }}"
     unit_timeout: 5min
+  # « Générer le plan maintenant » (web) : mêmes droits que vigie-plan@ (clé IA, proxy),
+  # aucun secret de source.
+  - name: vigie-plan-requests.service
+    unit_description: générations de plan demandées depuis le web
+    unit_exec: "{{ vigie_bin }} jobs --run-pending --kind plan_generate"
+    unit_credentials: "{{ vigie_plan_credentials }}"
+    unit_proxy: true
+    unit_timeout: 20min
   - name: vigie-housekeeping.service
     unit_description: purge selon les durées de conservation
     unit_exec: "{{ vigie_bin }} housekeeping"
@@ -55,6 +63,8 @@ vigie_timers:
   - {name: vigie-notify@weekly.timer, timer_unit: vigie-notify@weekly.service,
      timer_calendar: "{{ vigie_schedule.notify_weekly }}", enabled: "{{ vigie_notify_enabled }}"}
   - {name: vigie-jobs.timer, timer_unit: vigie-jobs.service, timer_every: 1min, enabled: true}
+  - {name: vigie-plan-requests.timer, timer_unit: vigie-plan-requests.service, timer_every: 1min,
+     enabled: true}
   - {name: vigie-housekeeping.timer, timer_unit: vigie-housekeeping.service,
      timer_calendar: "{{ vigie_schedule.housekeeping }}", timer_jitter: 10min, enabled: true}
   - {name: vigie-selfcheck.timer, timer_unit: vigie-selfcheck.service, timer_every: 5min,

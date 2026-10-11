@@ -93,7 +93,8 @@ sudo systemctl restart vigie-web
 | `vigie-collect@<source>.timer` | vigie-worker | toutes les `interval_min` (zabbix : 15 min) |
 | `vigie-plan@daily.timer` / `@weekly` | vigie-worker | lun–ven 07:15 / lun 06:30 |
 | `vigie-notify@daily.timer` / `@weekly` | vigie-worker | 07:30 / lun 09:00 — **arrêtés** tant que la diffusion est désactivée |
-| `vigie-jobs.timer` | vigie-worker | chaque minute (« Tester la connexion » du web) |
+| `vigie-jobs.timer` | vigie-worker | chaque minute (« Tester la connexion » du web ; secrets des sources) |
+| `vigie-plan-requests.timer` | vigie-worker | chaque minute (« Générer le plan maintenant » du web ; clé IA) |
 | `vigie-housekeeping.timer` | vigie-worker | 02:30 (rétention SPEC §5.2) |
 | `vigie-selfcheck.timer` | vigie-worker | 5 min (état lu par l'agent Zabbix) |
 | `vigie-backup.timer` | root → vigie-migrate | 02:45 |

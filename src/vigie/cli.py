@@ -38,17 +38,16 @@ from vigie.connectors.base import (
     fixture_transport,
 )
 from vigie.db import models
-from vigie.db.enums import PlanKind
+from vigie.db.enums import JobKind, PlanKind
+from vigie.db.jobs import PlanGeneratePayload
 from vigie.db.migrate import current_revision, head_revision
 from vigie.db.session import make_engine
 from vigie.engine.calendar import CalendarError
 from vigie.engine.llm import LLMClient, make_client, month_spend
-from vigie.engine.planner import PlanDraft, build_plan, run_engine, save_plan
-from vigie.engine.refine import Refinement, deterministic, refine
-from vigie.engine.render import render_markdown
 from vigie.logs import configure_logging
 from vigie.mapping import RuleMapper
 from vigie.pause import is_paused
+from vigie.planning import PlanPausedError, generate_plan
 from vigie.seed import SeedError, apply_seed, load_seed_data
 
 app = typer.Typer(
@@ -226,43 +225,6 @@ def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None
 llm_client_factory: Callable[[str, LLMConfig], LLMClient] = make_client
 
 
-def _refine(
-    session: Session, engine: Engine, draft: PlanDraft, cfg: VigieConfig, no_llm: bool
-) -> tuple[Refinement | None, str]:
-    """Raffinement par l'IA, ou raison de s'en passer. L'appel est journalisé dans sa propre
-    transaction : son coût compte dans le budget même en simulation."""
-    if no_llm:
-        return None, ""
-    if not cfg.llm.enabled:
-        return deterministic(draft, "IA désactivée dans la configuration"), ""
-    try:
-        key = get_secret("anthropic_api_key")
-    except SecretError:
-        return deterministic(draft, "clé API Anthropic indisponible"), ""
-    client = llm_client_factory(key.get_secret_value(), cfg.llm)
-    with Session(engine) as log_session:
-        refinement = refine(
-            session,
-            log_session,
-            draft,
-            client,
-            cfg.llm,
-            cfg.plans,
-            country=cfg.general.holidays_country,
-        )
-        note = ""
-        if refinement.llm is not None and refinement.llm.call_id is not None:
-            call = log_session.get(models.LLMCall, refinement.llm.call_id)
-            if call is not None:
-                note = (
-                    f"Appel IA ({call.model}) : {call.outcome.value}, {call.cost_usd} $, "
-                    f"{call.input_tokens} jetons en entrée dont {call.cached_tokens} en cache, "
-                    f"{call.output_tokens} en sortie."
-                )
-        log_session.commit()
-    return refinement, note
-
-
 @app.command()
 def plan(
     ctx: typer.Context,
@@ -278,46 +240,31 @@ def plan(
 ) -> None:
     """Génère un plan de tâches (brouillon), affiné par l'IA sauf --no-llm, et l'affiche."""
     _, cfg = _config(ctx)
-    tz = ZoneInfo(cfg.general.timezone)
     now = datetime.now(UTC)
     try:
-        target = date.fromisoformat(day) if day else now.astimezone(tz).date()
+        target = (
+            date.fromisoformat(day)
+            if day
+            else now.astimezone(ZoneInfo(cfg.general.timezone)).date()
+        )
     except ValueError as exc:
         raise typer.BadParameter("date attendue au format AAAA-MM-JJ", param_hint="--date") from exc
     engine = make_engine(cfg.database.url)
     try:
-        with Session(engine) as session:
-            if not dry_run and is_paused(session, "plan", config_paused=cfg.general.paused):
-                typer.echo("Génération des plans en pause (interface ou [general] paused).")
-                return
-            run_engine(session, now)
-            draft = build_plan(
-                session,
-                kind,
-                target,
-                now,
-                cfg.plans,
-                tz=tz,
-                country=cfg.general.holidays_country,
-            )
-            refinement, ai_note = _refine(session, engine, draft, cfg, no_llm)
-            if refinement is None:
-                markdown = render_markdown(draft)
-                final, call_id = draft, None
-                ai: dict[str, object] = {"by_llm": False, "without_ai_reason": "option --no-llm"}
-            else:
-                markdown = render_markdown(
-                    draft, refinement.plan, without_ai=refinement.without_ai_reason
-                )
-                final = refinement.plan.draft
-                call_id = refinement.llm.call_id if refinement.by_llm and refinement.llm else None
-                ai = refinement.plan.ai_data(refinement.without_ai_reason)
-            plan_id = None
-            if dry_run:
-                session.rollback()
-            else:
-                plan_id = save_plan(session, final, markdown, llm_call_id=call_id, ai=ai).id
-                session.commit()
+        result = generate_plan(
+            engine,
+            cfg,
+            kind,
+            target,
+            now,
+            client_factory=lambda key, llm: llm_client_factory(key, llm),
+            secret=lambda name: get_secret(name),
+            no_llm=no_llm,
+            dry_run=dry_run,
+        )
+    except PlanPausedError:
+        typer.echo("Génération des plans en pause (interface ou [general] paused).")
+        return
     except CalendarError as exc:
         typer.echo(f"ERREUR {exc}", err=True)
         raise typer.Exit(code=1) from exc
@@ -326,13 +273,13 @@ def plan(
         raise typer.Exit(code=1) from exc
     finally:
         engine.dispose()
-    typer.echo(markdown)
-    if ai_note:
-        typer.echo(ai_note)
-    if plan_id is None:
+    typer.echo(result.markdown)
+    if result.ai_note:
+        typer.echo(result.ai_note)
+    if result.plan_id is None:
         typer.echo("Simulation : rien n'a été écrit.")
     else:
-        typer.echo(f"Plan {plan_id} enregistré en brouillon.")
+        typer.echo(f"Plan {result.plan_id} enregistré en brouillon.")
 
 
 @app.command()
@@ -585,8 +532,17 @@ def jobs(
     run_pending: Annotated[
         bool, typer.Option("--run-pending", help="Exécute les demandes du web en attente.")
     ] = False,
+    kinds: Annotated[
+        list[JobKind] | None,
+        typer.Option(
+            "--kind",
+            help="Types traités (répétable) ; défaut : source_test. Chaque unité systemd ne "
+            "traite que les types dont elle détient les secrets.",
+        ),
+    ] = None,
 ) -> None:
-    """Demandes déposées par l'interface web (ex. « Tester la connexion »), exécutées ici."""
+    """Demandes déposées par l'interface web (« Tester la connexion », « Générer le plan
+    maintenant »), exécutées ici."""
     from vigie.jobs_runner import run_pending as run
 
     if not run_pending:
@@ -596,19 +552,65 @@ def jobs(
     engine = make_engine(cfg.database.url)
     try:
         with Session(engine) as session:
-            done = run(session, lambda name: _build_connector(name, cfg, None))
+            done = run(
+                session,
+                lambda name: _build_connector(name, cfg, None),
+                kinds=kinds or [JobKind.source_test],
+                generate_plan=lambda payload: _plan_job(engine, cfg, payload),
+            )
             session.commit()
+            # Lu avant la fermeture de la session (l'exécuteur valide après chaque demande).
+            lines = [
+                f"{job.kind.value} {job.payload} : {job.status.value} — "
+                f"{(job.result or {}).get('detail') or 'OK'}"
+                for job in done
+            ]
     except SQLAlchemyError as exc:
         typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
         raise typer.Exit(code=1) from exc
     finally:
         engine.dispose()
-    for job in done:
-        result = job.result or {}
-        typer.echo(
-            f"{job.kind.value} {job.payload} : {job.status.value} — {result.get('detail') or 'OK'}"
+    for line in lines:
+        typer.echo(line)
+    typer.echo(f"{len(lines)} demande(s) traitée(s).")
+
+
+PLAN_REQUEST_WINDOW_DAYS = 14
+
+
+def _plan_job(engine: Engine, cfg: VigieConfig, payload: PlanGeneratePayload) -> dict[str, Any]:
+    """« Générer le plan maintenant » : résultat sans secret ni contenu du plan."""
+    now = datetime.now(UTC)
+    target = payload.target()
+    today = now.astimezone(ZoneInfo(cfg.general.timezone)).date()
+    if abs((target - today).days) > PLAN_REQUEST_WINDOW_DAYS:
+        return {"ok": False, "detail": "jour hors de la fenêtre autorisée (± 14 jours)"}
+    try:
+        result = generate_plan(
+            engine,
+            cfg,
+            PlanKind(payload.kind),
+            target,
+            now,
+            client_factory=lambda key, llm: llm_client_factory(key, llm),
+            secret=lambda name: get_secret(name),
+            no_llm=not payload.use_llm,
         )
-    typer.echo(f"{len(done)} demande(s) traitée(s).")
+    except PlanPausedError:
+        return {"ok": False, "detail": "génération des plans en pause"}
+    except CalendarError as exc:
+        return {"ok": False, "detail": str(exc)[:300]}
+    except Exception as exc:  # erreur base, IA… : type seulement, jamais de contenu
+        return {"ok": False, "detail": f"échec ({type(exc).__name__})"}
+    by = "affiné par l'IA" if result.by_llm else f"sans IA ({result.without_ai_reason})"
+    return {
+        "ok": True,
+        "plan_id": result.plan_id,
+        "by_llm": result.by_llm,
+        "outcome": result.outcome,
+        "cost_usd": str(result.cost_usd) if result.cost_usd is not None else None,
+        "detail": f"plan n° {result.plan_id} {by}"[:300],
+    }
 
 
 @app.command()

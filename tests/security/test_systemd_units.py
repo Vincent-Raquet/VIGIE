@@ -48,6 +48,7 @@ ALLOWED = {
     "vigie-plan@.service": {"anthropic_api_key"},
     "vigie-notify@.service": {"graph_certificate", "teams_webhook_url"},
     "vigie-jobs.service": SOURCE_SECRETS,
+    "vigie-plan-requests.service": {"anthropic_api_key"},
     "vigie-housekeeping.service": set(),
     "vigie-selfcheck.service": set(),
 }
@@ -251,11 +252,22 @@ def test_collect_dropin_gives_only_its_source_secret_and_addresses(veeam_host: s
         assert "10.10.10.27" in _directives(jobs)["IPAddressAllow"][0].split()
 
 
+def test_plan_requests_never_get_source_secrets() -> None:
+    # La génération demandée depuis le web a la clé IA, jamais les secrets des sources ;
+    # vigie-jobs garde les secrets des sources, jamais la clé IA.
+    units = _units(_context({**ALL_ON, "vigie_veeam_host": "10.10.10.27"}))
+    assert _credentials(units["vigie-plan-requests.service"]) == {"anthropic_api_key"}
+    assert "--kind plan_generate" in units["vigie-plan-requests.service"]
+    assert "anthropic_api_key" not in _credentials(units["vigie-jobs.service"])
+    assert "--kind source_test" in units["vigie-jobs.service"]
+
+
 def test_only_internet_units_use_the_worker_proxy(ctx: dict[str, Any]) -> None:
     port = ctx["squid_worker_port"]
     for name, text in _units(ctx).items():
         has_proxy = f"HTTPS_PROXY=http://127.0.0.1:{port}" in text
-        assert has_proxy == (name in {"vigie-plan@.service", "vigie-notify@.service"}), name
+        internet = {"vigie-plan@.service", "vigie-notify@.service", "vigie-plan-requests.service"}
+        assert has_proxy == (name in internet), name
 
 
 def test_timers_are_valid_and_reference_existing_units() -> None:

@@ -122,6 +122,7 @@ class LLMOutcome(StrEnum):
 
 class JobKind(StrEnum):
     source_test = "source_test"
+    plan_generate = "plan_generate"
 
 
 class JobStatus(StrEnum):
