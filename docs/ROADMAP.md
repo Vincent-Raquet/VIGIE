@@ -21,7 +21,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - Réalisé : `SafeClient`/`AllowedCall` (contrôles à la définition et à l'appel, redirections refusées), `vigie.redact` (masquage), journaux JSON masqués (`vigie.logs`), tests statiques AST, tests appliqués automatiquement à chaque connecteur enregistré.
 
 ## Phase 3 — Connecteurs (3–4 jours)
-Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur, capture réelle anonymisée, scope monitoring suffisant, 2026-10-11 → FortiAnalyzer → Wazuh → squelette Veezo) sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`). Pour chacun, suivre le skill `add-connector` :
+Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur, capture réelle anonymisée, scope monitoring suffisant, 2026-10-11 ; vulnérabilités : l'API NinjaOne ne relit pas les CVE importées → **connecteur Microsoft Defender Vulnerability Management à créer** (lecture seule, sélection : exploitées, CVSS élevé avec correctif, nouvelles) et patchs de sécurité NinjaOne en attente > 7 jours → FortiAnalyzer → Wazuh → squelette Veezo) sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`). Pour chacun, suivre le skill `add-connector` :
 - vérification de l'API dans la doc de la version ;
 - allowlist + test « appel interdit » ;
 - fixtures anonymisées + tests de contrat ;
