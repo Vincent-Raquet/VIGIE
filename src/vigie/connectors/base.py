@@ -477,10 +477,13 @@ class RecordingTransport(httpx.BaseTransport):
             inner = httpx.HTTPTransport(verify=verify)
         self._inner = inner
         self.saved: dict[str, Any] = {}
+        # Bilan de tous les appels (méthode, chemin, statut, taille), même sans corps.
+        self.calls: list[tuple[str, str, int, int]] = []
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         response = self._inner.handle_request(request)
         body = response.read()
+        self.calls.append((request.method, request.url.path, response.status_code, len(body)))
         name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
         if response.status_code == 200 and body.strip():
             if request.url.path in TOKEN_PATHS:

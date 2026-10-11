@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -104,6 +105,19 @@ def main() -> int:
         print(f"Collecte : ÉCHEC {exc} (réponses déjà lues enregistrées quand même)")
     for name, data in probed.items():
         transport.saved.setdefault(name, data)
+
+    # Bilan par famille d'appels (identifiants numériques regroupés) : statuts et réponses vides.
+    summary: dict[tuple[str, str, int], list[int]] = {}
+    for method, path, status, size in transport.calls:
+        family = re.sub(r"/[0-9]+(?=/|$)", "/{id}", path)
+        summary.setdefault((method, family, status), []).append(size)
+    print("Appels :")
+    for (method, family, status), sizes in sorted(summary.items()):
+        empty = sum(1 for s in sizes if s == 0)
+        print(
+            f"  {len(sizes):4d} × {method} {family} → HTTP {status}"
+            + (f" ({empty} vides)" if empty else "")
+        )
 
     out.mkdir(parents=True, exist_ok=True, mode=0o700)
     for name, data in sorted(transport.saved.items()):
