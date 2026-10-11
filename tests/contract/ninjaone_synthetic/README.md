@@ -16,3 +16,9 @@ ninjaone`, puis anonymisation). Heure de référence des tests : 2026-10-11T12:0
 
 Organisations 2, 3, 4 = WI, SPL, WG (correspondance réelle) ; appareils lus par organisation
 (`/v2/organization/{id}/devices`). Les jetons sont factices ; aucun nom réel.
+
+Cas repris de la capture réelle (2026-10-11) : lignes de board avec `description`, `requester`,
+`assignedAppUser`, `tags` (NinjaOne ignore `includeColumns` ; le connecteur doit les retirer dès
+réception — valeurs factices) ; ticket 503 sans `clientId` (organisation par son nom) ; alerte
+sur `pc-wg-09` (id 999) absent des listes d'organisation, lu par `GET /v2/device/999`.
+

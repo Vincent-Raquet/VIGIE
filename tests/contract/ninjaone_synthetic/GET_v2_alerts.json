@@ -197,5 +197,20 @@
       "displayName": "fw-wg-01",
       "offline": true
     }
+  },
+  {
+    "uid": "10000000-0000-4000-8000-000000000041",
+    "deviceId": "999",
+    "message": "Espace libre de C: sous 10 %",
+    "createTime": 1791702000.0,
+    "updateTime": 1791702000.0,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceConfigUid": "00000000-0000-4000-8000-0000000000aa",
+    "sourceName": "Espace disque C:",
+    "subject": "Mémoire",
+    "severity": "NONE",
+    "priority": "NONE",
+    "conditionName": "Memory > 90 %",
+    "conditionHealthStatus": "UNHEALTHY"
   }
 ]

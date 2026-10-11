@@ -45,6 +45,7 @@ PAGE_SIZE = 100
 TITLE_MAX = 300
 DETAILS_MAX = 1000
 LISTED_DEVICES = 10
+MAX_DEVICE_LOOKUPS = 200  # appareils d'alerte absents des listes d'organisation
 
 # Gravité NinjaOne → 0-5. Capture réelle : toutes les alertes en « NONE » ; la sévérité vient
 # alors du type d'alerte (SOURCE_SEVERITY). TODO verify : autres valeurs que NONE.
@@ -144,6 +145,9 @@ ALLOWLIST: tuple[AllowedCall, ...] = (
     # réelle 2026-10-11 : 36 appareils non gérés seulement).
     AllowedCall(method="GET", path=r"^/v2/organization/[0-9]{1,9}/devices$", query=PAGED),
     AllowedCall(method="GET", path=r"^/v2/alerts$"),
+    # Détails d'un appareil d'alerte absent des listes d'organisation (capture réelle : les
+    # appareils gérés de certaines organisations n'y figurent pas). PATCH reste interdit.
+    AllowedCall(method="GET", path=r"^/v2/device/[0-9]{1,9}$"),
     AllowedCall(method="GET", path=r"^/v2/queries/os-patches$", query=CURSOR),
     AllowedCall(method="GET", path=r"^/v2/queries/software-patches$", query=CURSOR),
     AllowedCall(method="GET", path=r"^/v2/ticketing/trigger/boards$"),
@@ -355,8 +359,15 @@ class NinjaOneConnector:
             if last is not None:
                 body["lastCursorId"] = last
             page = self.client.post(path, body)
-            rows = page.get("data", []) if isinstance(page, dict) else []
-            rows = rows if isinstance(rows, list) else []
+            raw_rows = page.get("data", []) if isinstance(page, dict) else []
+            # NinjaOne ignore includeColumns (capture réelle) : description, demandeur,
+            # technicien… arrivent quand même. On ne garde que les colonnes autorisées,
+            # avant tout autre traitement.
+            rows = [
+                {k: r[k] for k in TICKET_COLUMNS if k in r}
+                for r in (raw_rows if isinstance(raw_rows, list) else [])
+                if isinstance(r, dict)
+            ]
             yield from self._bounded(rows, seen)
             meta = page.get("metadata") if isinstance(page, dict) else None
             last = (meta or {}).get("lastCursorId") if isinstance(meta, dict) else None
@@ -407,17 +418,32 @@ class NinjaOneConnector:
             )
         return sorted(out, key=lambda r: r.external_id)
 
+    def _device_details(self, dev_id: int, done: int) -> Mapping[str, Any]:
+        if done >= MAX_DEVICE_LOOKUPS:
+            self.truncated = True
+            return {}
+        data = self.client.get(f"/v2/device/{dev_id}")
+        if not isinstance(data, dict):
+            return {}
+        keep = ("id", "organizationId", "nodeClass", "systemName", "displayName", "offline")
+        return {k: data[k] for k in keep if k in data}
+
     def _alert_signals(
         self, orgs: Mapping[int, str], devices: Mapping[int, Mapping[str, Any]], now: datetime
     ) -> list[RawSignal]:
         self._login()
         alerts: list[dict[str, Any]] = []
+        looked_up: dict[int, Mapping[str, Any]] = {}
         for a in self.client.get("/v2/alerts") or []:
             if not isinstance(a, dict):
                 continue
             # L'alerte réelle ne porte que deviceId (en texte) : l'appareil vient de la liste
-            # de son organisation.
-            device = {**_device(devices, _int(a.get("deviceId"))), **_dict(a.get("device"))}
+            # de son organisation, sinon de sa fiche (lecture bornée).
+            dev_id = _int(a.get("deviceId"))
+            known = _device(devices, dev_id)
+            if not known and dev_id is not None and dev_id not in looked_up:
+                looked_up[dev_id] = self._device_details(dev_id, len(looked_up))
+            device = {**known, **looked_up.get(dev_id or -1, {}), **_dict(a.get("device"))}
             alerts.append({**a, "device": device})
         groups: dict[tuple[int | None, str], list[Mapping[str, Any]]] = defaultdict(list)
         for a in alerts:
@@ -613,6 +639,9 @@ class NinjaOneConnector:
         org = row.get("clientId")
         if org is None and isinstance(row.get("organization"), dict):
             org = row["organization"].get("id")
+        if org is None:  # capture réelle : clientId vide, organisation donnée par son nom
+            name = _text(row.get("organization")).casefold()
+            org = next((i for i, n in p["orgs"].items() if n.casefold() == name), None)
         summary = clean_untrusted(_text(row.get("summary")), 200)
         created = _ts(row.get("createTime")) or p["at"]
         lines = [f"Ticket n° {ticket_id}", f"Statut : {status}"]

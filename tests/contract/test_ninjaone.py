@@ -62,7 +62,7 @@ def by_kind(sigs: dict[str, Signal], kind: str) -> list[Signal]:
 def test_alerts_single_and_aggregated(mapper: RuleMapper) -> None:
     sigs = signals(mapper)
     single = {s.asset: s for s in by_kind(sigs, "alert")}
-    assert set(single) == {"srv-wi-01", "pc-spl-07", "fw-wg-01"}
+    assert set(single) == {"srv-wi-01", "pc-spl-07", "fw-wg-01", "pc-wg-09"}
     disk, av, fw = single["srv-wi-01"], single["pc-spl-07"], single["fw-wg-01"]
     assert disk.severity == 3  # gravité NONE (réel) : sévérité selon le type, espace disque
     assert (disk.category, disk.company_code) == (Category.server, "WI")
@@ -182,3 +182,25 @@ def test_pagination_and_truncation(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ninja, "MAX_OBJECTS", 3)
     c2 = make(httpx.MockTransport(handler))
     assert len(list(c2._by_id("/v2/organizations"))) == 3 and c2.truncated
+
+
+def test_ticket_rows_are_stripped_on_receipt(mapper: RuleMapper) -> None:
+    # NinjaOne ignore includeColumns : description, demandeur… ne doivent survivre nulle part.
+    raw = list(make().collect(NOW))
+    tickets = [r for r in raw if r.payload["kind"] == "ticket"]
+    assert tickets
+    dumped = repr([r.payload["row"] for r in tickets])
+    for forbidden in ("Soleil2026", "Jean Dupont", "Technicien Un", "description", "requester"):
+        assert forbidden not in dumped
+    signals_text = repr([make().to_signal(r, mapper) for r in tickets])
+    assert "Soleil2026" not in signals_text and "Dupont" not in signals_text
+
+
+def test_ticket_company_from_organization_name(mapper: RuleMapper) -> None:
+    t503 = next(s for s in by_kind(signals(mapper), "ticket") if s.attributes["ticket_id"] == "503")
+    assert t503.company_code == "WI"  # clientId vide, « WallIndustries » → organisation 2
+
+
+def test_unknown_alert_device_is_read_from_its_details(mapper: RuleMapper) -> None:
+    ghost = next(s for s in by_kind(signals(mapper), "alert") if s.asset == "pc-wg-09")
+    assert (ghost.company_code, ghost.category, ghost.severity) == ("WG", Category.endpoint, 2)

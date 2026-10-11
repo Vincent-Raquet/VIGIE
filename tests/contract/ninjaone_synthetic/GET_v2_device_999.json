@@ -1,0 +1,11 @@
+{
+  "id": 999,
+  "organizationId": 4,
+  "nodeClass": "WINDOWS_WORKSTATION",
+  "systemName": "pc-wg-09",
+  "displayName": "pc-wg-09",
+  "offline": false,
+  "userData": {
+    "x": "jamais gardé"
+  }
+}
