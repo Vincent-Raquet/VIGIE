@@ -36,6 +36,7 @@ squid_worker_domains:
   - login.microsoftonline.com
   - graph.microsoft.com
   - eu.ninjarmm.com             # API NinjaOne (jeton et lectures)
+  - eu.api.security.microsoft.com   # API Defender for Endpoint, région UE (jeton : login, incidents : graph)
 squid_teams_domains: []         # ex. .westeurope.logic.azure.com quand Teams sera activé
 squid_web_domains:
   - login.microsoftonline.com
@@ -85,10 +86,33 @@ vigie_source_ninjaone:
       ticket_board_id: "{{ vigie_ninjaone_board_id | int }}"
       ticket_statuses: "{{ vigie_ninjaone_statuses }}"
       proxy: "http://127.0.0.1:{{ squid_worker_port }}"
+# Microsoft Defender (app Entra « Vigie Defender », même tenant que la connexion : vigie_oidc).
+# Authentification par certificat, sans secret client. Le même certificat sert en dev et en
+# prod : le public (~/vigie-ca/defender.crt, poste qui lance Ansible) est copié dans
+# /etc/vigie/ca/defender.crt ; la clé privée est le secret defender_private_key
+# (`sudo vigie-secret set defender_private_key < defender.key`, jamais copiée par Ansible).
+# Vide = source Defender non déployée.
+vigie_defender_client_id: ""        # GUID de l'app « Vigie Defender » (non secret)
+vigie_defender_cert_file: "~/vigie-ca/defender.crt"
+vigie_defender_api_host: eu.api.security.microsoft.com
+vigie_source_defender:
+  - name: defender
+    interval_min: 60
+    secrets: [defender_private_key]
+    settings:
+      tenant_id: "{{ vigie_oidc.tenant_id }}"
+      client_id: "{{ vigie_defender_client_id }}"
+      api_host: "{{ vigie_defender_api_host }}"
+      certificate: /etc/vigie/ca/defender.crt
+      os_platform_prefixes: [Windows]   # Linux → Wazuh, patchs manquants → NinjaOne
+      inactive_days: 14
+      max_vulns_per_company: 10
+      proxy: "http://127.0.0.1:{{ squid_worker_port }}"
 vigie_sources_enabled: >-
   {{ vigie_sources_base
      + (vigie_source_veeam if vigie_veeam_host else [])
-     + (vigie_source_ninjaone if vigie_ninjaone_enabled else []) }}
+     + (vigie_source_ninjaone if vigie_ninjaone_enabled else [])
+     + (vigie_source_defender if vigie_defender_client_id else []) }}
 vigie_llm_enabled: true
 vigie_llm_budget_usd: 30
 vigie_notify_mail_enabled: false

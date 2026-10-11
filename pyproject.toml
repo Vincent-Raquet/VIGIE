@@ -8,6 +8,7 @@ dependencies = [
     "alembic>=1.20.0",
     "anthropic>=1.13.0",
     "authlib>=1.8.0",
+    "cryptography>=46",
     "fastapi>=0.143.0",
     "httpx>=0.28",
     "itsdangerous>=2.2.0",
@@ -33,6 +34,7 @@ vigie = "vigie.cli:app"
 zabbix = "vigie.connectors.zabbix:ZabbixConnector"
 veeam = "vigie.connectors.veeam:VeeamConnector"
 ninjaone = "vigie.connectors.ninjaone:NinjaOneConnector"
+defender = "vigie.connectors.defender:DefenderConnector"
 
 [dependency-groups]
 deploy = [

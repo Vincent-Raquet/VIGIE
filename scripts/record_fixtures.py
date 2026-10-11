@@ -3,6 +3,7 @@
 Usage (outil de développement, lancé par le coordinateur, hors du paquet `vigie`) :
 
     VIGIE_ENV=dev uv run python scripts/record_fixtures.py veeam [--out ~/vigie-raw/veeam]
+    VIGIE_ENV=dev uv run python scripts/record_fixtures.py defender
 
 - Passe par le connecteur et son `SafeClient` : l'allowlist s'applique, l'enregistrement est
   en lecture seule comme la collecte (healthcheck puis une collecte complète).
@@ -31,6 +32,7 @@ from vigie.connectors.base import (
     ConnectorConfigError,
     ConnectorContext,
     RecordingTransport,
+    SafeClient,
     SourceCallError,
 )
 
@@ -74,6 +76,12 @@ def main() -> int:
     except SourceCallError as exc:
         print(f"Authentification : ÉCHEC {exc}")
         return 1
+    # Un client par hôte (Defender : API Defender et Graph), sinon `client`.
+    clients = [
+        c
+        for c in (getattr(connector, n, None) for n in ("client", "mde", "graph"))
+        if isinstance(c, SafeClient)
+    ]
     print("Lectures autorisées par l'allowlist :")
     for call in connector.allowlist:
         path = call.literal_path
@@ -84,8 +92,11 @@ def main() -> int:
             params = {"skip": 0, "limit": 1}  # Veeam
         elif "pageSize" in call.query:
             params = {"pageSize": 1}  # NinjaOne
+        elif "$top" in call.query:
+            params = {"$top": 1}  # OData (Defender, Graph)
+        client = next(c for c in clients if call in c._allowlist)
         try:
-            connector.client.get(path, params)
+            client.get(path, params)
             print(f"  OK          GET {path}")
         except SourceCallError as exc:
             print(f"  HTTP {exc.status or '???'}    GET {path}")

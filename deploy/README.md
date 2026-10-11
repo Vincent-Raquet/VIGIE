@@ -64,6 +64,7 @@ sudo vigie-secret rm teams_webhook_url
 | `teams_webhook_url` | vigie-notify@ | `vigie_notify_teams_enabled` |
 | `veeam_password` | vigie-collect@veeam, vigie-jobs | `vigie_veeam_host` renseigné (§11) |
 | `ninjaone_client_id`, `ninjaone_client_secret` | vigie-collect@ninjaone, vigie-jobs | `vigie_ninjaone_enabled: true` (§12) |
+| `defender_private_key` | vigie-collect@defender, vigie-jobs | `vigie_defender_client_id` renseigné (§13) |
 
 **Rotation** : `vigie-secret set <nom>` avec la nouvelle valeur, puis
 `sudo systemctl restart vigie-web` (les tâches planifiées relisent le secret à chaque
@@ -268,3 +269,54 @@ pare-feu Windows ouvrant 9419/tcp depuis `vigie_ip` (192.168.10.17).
    ninjaone_client_id` et `sudo vigie-secret set ninjaone_client_secret` (le client id
    ressemble à une clé : gitleaks le refuse dans le dépôt) ; playbook (Squid autorise `eu.ninjarmm.com` au worker, timer
    `vigie-collect@ninjaone` toutes les 15 min).
+
+## 13. Source Microsoft Defender (vulnérabilités, incidents, appareils inactifs)
+
+App Entra « Vigie Defender » (tenant de `vigie_oidc`), permissions d'**application** accordées
+par un administrateur : `WindowsDefenderATP` → `Vulnerability.Read.All`, `Machine.Read.All` ;
+`Microsoft Graph` → `SecurityIncident.Read.All` (et `SecurityAlert.Read.All`, non utilisée).
+Authentification par **certificat**, aucun secret client. **Le même certificat sert en dev et en
+prod** (`docs/CONNECTORS.md` §9) : `~/vigie-ca/defender.crt` (public) et `~/vigie-ca/defender.key`
+(privée, 0600, dossier 0700).
+
+1. **Dev** : `[sources.defender]` dans `config/vigie.toml` (modèle : `config/vigie.example.toml`,
+   `tenant_id`, `client_id`, `certificate` et `private_key_file` vers `~/vigie-ca`), puis
+   `VIGIE_ENV=dev uv run vigie check --sources` et
+   `VIGIE_ENV=dev uv run python scripts/record_fixtures.py defender` (capture hors dépôt,
+   `~/vigie-raw/defender`).
+2. **Correspondance** : domaine DNS → société (`config/companies.example.yaml`, règles
+   `hostgroup_suffix` de la source `defender`) ; étiquette Defender « FWD » pour les appareils
+   Fairwind du domaine partagé `fleurinvest.fleurus.be`.
+3. **Production** :
+   ```sh
+   sudo vigie-secret set defender_private_key < ~/vigie-ca/defender.key
+   ```
+   puis `vigie_defender_client_id: "<GUID de l'app>"` dans `group_vars/vigie.yml` et le
+   playbook : il copie `vigie_defender_cert_file` (défaut `~/vigie-ca/defender.crt`) dans
+   `/etc/vigie/ca/defender.crt`, autorise `eu.api.security.microsoft.com` dans Squid et active
+   `vigie-collect@defender` (toutes les 60 min).
+4. **Surveillance de l'expiration** : `vigie check` avertit sous 30 jours ; selfcheck
+   `/var/lib/vigie/selfcheck/cert.defender.days_left` (item Zabbix
+   `vfs.file.contents[/var/lib/vigie/selfcheck/cert.defender.days_left]`, déclencheurs
+   `< 30` avertissement, `< 7` haute, `= -1` certificat illisible) ; signal Vigie
+   « Certificat de l'application Vigie Defender » (P2 sous 21 jours, P1 sous 7).
+
+### Renouvellement du certificat (aux deux endroits)
+Entra accepte plusieurs certificats sur l'app : on ajoute le nouveau avant de retirer l'ancien,
+sans interruption.
+```sh
+cd ~/vigie-ca && umask 077
+openssl req -x509 -newkey rsa:3072 -sha256 -days 365 -nodes -subj "/CN=Vigie Defender" \
+  -keyout defender.key.new -out defender.crt.new
+```
+1. Entra → app « Vigie Defender » → *Certificats et secrets* → *Certificats* → téléverser
+   `defender.crt.new` (jamais la clé).
+2. Bascule **dev** : `mv defender.key.new defender.key && mv defender.crt.new defender.crt`,
+   puis `VIGIE_ENV=dev uv run vigie check --sources` (OK, nouveau nombre de jours).
+3. Bascule **prod**, coup sur coup (entre les deux, une collecte peut échouer sans dommage) :
+   `sudo vigie-secret set defender_private_key < ~/vigie-ca/defender.key`, puis le playbook
+   (nouveau certificat dans `/etc/vigie/ca/defender.crt`) ; vérifier avec « Tester la
+   connexion » (page Sources, exécuté par `vigie-jobs` qui reçoit le secret).
+4. Entra : supprimer l'ancien certificat. En cas de fuite de la clé : supprimer d'abord le
+   certificat compromis dans Entra (coupe dev **et** prod), puis refaire 1 à 3.
+

@@ -422,6 +422,13 @@ class SafeClient:
         return b"".join(chunks)
 
 
+def split_link(url: str) -> tuple[str, str, dict[str, str]]:
+    """Hôte, chemin et paramètres d'un lien de pagination (`@odata.nextLink`), à revérifier
+    par l'appelant (hôte attendu) puis par l'allowlist (chemin et paramètres)."""
+    parsed = httpx.URL(url)
+    return parsed.host, parsed.path, dict(parsed.params.items())
+
+
 def fixture_transport(directory: Path) -> httpx.BaseTransport:
     """Rejoue des réponses enregistrées (`vigie collect --fixtures`, tests de contrat).
 
@@ -456,6 +463,7 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
 
 
 TOKEN_PATHS = frozenset({"/api/oauth2/token", "/ws/oauth/token"})  # Veeam, NinjaOne
+TOKEN_SUFFIX = "/oauth2/v2.0/token"  # noqa: S105 - Entra (Defender), tenant dans le chemin
 FAKE_TOKEN = {
     "access_token": "fixture-access-token",
     "token_type": "bearer",
@@ -486,7 +494,7 @@ class RecordingTransport(httpx.BaseTransport):
         self.calls.append((request.method, request.url.path, response.status_code, len(body)))
         name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
         if response.status_code == 200 and body.strip():
-            if request.url.path in TOKEN_PATHS:
+            if request.url.path in TOKEN_PATHS or request.url.path.endswith(TOKEN_SUFFIX):
                 self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
             else:
                 self._merge(name, json.loads(body))
@@ -501,12 +509,13 @@ class RecordingTransport(httpx.BaseTransport):
 
     def _merge(self, name: str, data: Any) -> None:
         """Pages successives d'un même chemin cumulées : liste brute (NinjaOne), `data`
-        (Veeam, boards NinjaOne) ou `results` (rapports NinjaOne à curseur)."""
+        (Veeam, boards NinjaOne), `results` (rapports NinjaOne à curseur) ou `value` (OData,
+        Defender et Graph)."""
         previous = self.saved.get(name)
         if isinstance(previous, list) and isinstance(data, list):
             self.saved[name] = previous + data
             return
-        for key in ("data", "results"):
+        for key in ("data", "results", "value"):
             if (
                 isinstance(previous, dict)
                 and isinstance(data, dict)
@@ -515,6 +524,7 @@ class RecordingTransport(httpx.BaseTransport):
             ):
                 merged = previous[key] + data[key]
                 self.saved[name] = {**data, key: merged}
+                self.saved[name].pop("@odata.nextLink", None)
                 if "pagination" in data:
                     self.saved[name]["pagination"] = {
                         "total": len(merged),

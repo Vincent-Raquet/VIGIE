@@ -44,6 +44,7 @@ SOURCE_SECRETS = {
     "zabbix_api_token",
     "veeam_password",
     "ninjaone_client_id",
+    "defender_private_key",
     "ninjaone_client_secret",
 }
 # Secrets autorisés par unité : tout ce qui n'est pas listé ici est interdit.
@@ -269,6 +270,26 @@ def test_ninjaone_source_goes_through_squid_only() -> None:
     # Aucune IP directe : seulement le DNS (Squid est joint par la boucle locale).
     assert set(_directives(text)["IPAddressAllow"][0].split()) == set(ctx["dns_servers"])
     assert "ninjaone" not in {e["name"] for e in ctx["vigie_source_egress"]}
+
+
+def test_defender_source_certificate_and_key_only() -> None:
+    off = _context()
+    assert "defender" not in [s["name"] for s in off["vigie_sources_enabled"]]  # GUID vide
+    ctx = _context({"vigie_defender_client_id": "11111111-1111-1111-1111-111111111111"})
+    [source] = [s for s in ctx["vigie_sources_enabled"] if s["name"] == "defender"]
+    assert source["secrets"] == ["defender_private_key"]  # aucun secret client
+    settings = source["settings"]
+    assert settings["tenant_id"] == ctx["vigie_oidc"]["tenant_id"]
+    assert settings["certificate"] == "/etc/vigie/ca/defender.crt"
+    assert "private_key_file" not in settings  # prod : la clé vient de systemd-creds
+    assert settings["proxy"] == f"http://127.0.0.1:{ctx['squid_worker_port']}"
+    for domain in ("login.microsoftonline.com", "graph.microsoft.com", settings["api_host"]):
+        assert domain in ctx["squid_worker_domains"]
+    text = _render("units/credentials.conf.j2", ctx, source=source)
+    assert _credentials(text) == {"defender_private_key"}
+    assert set(_directives(text)["IPAddressAllow"][0].split()) == set(ctx["dns_servers"])
+    jobs = _units(ctx)["vigie-jobs.service"]
+    assert "defender_private_key" in _credentials(jobs)
 
 
 def test_plan_requests_never_get_source_secrets() -> None:
