@@ -64,3 +64,20 @@ def test_refuses_unsafe_runs(
     monkeypatch.setattr(sys, "argv", argv)
     assert script.main() == 2
     assert message in capsys.readouterr().err
+
+
+def test_compressed_responses_are_replayed_decoded() -> None:
+    # NinjaOne compresse ses réponses (gzip) : la réponse recréée ne doit pas l'être deux fois.
+    import gzip
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=gzip.compress(b'[{"id": 1}]'),
+            headers={"Content-Encoding": "gzip", "Content-Type": "application/json"},
+        )
+
+    recorder = RecordingTransport(None, inner=httpx.MockTransport(handler))
+    with httpx.Client(transport=recorder) as client:
+        assert client.get("https://ninja.test/v2/organizations").json() == [{"id": 1}]
+    assert recorder.saved["GET_v2_organizations.json"] == [{"id": 1}]

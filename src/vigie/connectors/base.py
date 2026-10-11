@@ -487,9 +487,14 @@ class RecordingTransport(httpx.BaseTransport):
                 self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
             else:
                 self._merge(name, json.loads(body))
-        return httpx.Response(
-            response.status_code, headers=response.headers, content=body, request=request
-        )
+        # `body` est déjà décompressé : ne pas transmettre Content-Encoding (sinon httpx
+        # décompresse une seconde fois) ni l'ancienne longueur.
+        headers = [
+            (k, v)
+            for k, v in response.headers.multi_items()
+            if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")
+        ]
+        return httpx.Response(response.status_code, headers=headers, content=body, request=request)
 
     def _merge(self, name: str, data: Any) -> None:
         previous = self.saved.get(name)
