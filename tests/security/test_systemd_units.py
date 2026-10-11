@@ -39,7 +39,8 @@ SANDBOX = {
     "CapabilityBoundingSet": "",
     "IPAddressDeny": "any",
 }
-SOURCE_SECRETS = {"zabbix_api_token"}
+# Secrets de sources connus : seuls autorisés pour vigie-jobs (et chacun pour sa collecte).
+SOURCE_SECRETS = {"zabbix_api_token", "veeam_password"}
 # Secrets autorisés par unité : tout ce qui n'est pas listé ici est interdit.
 ALLOWED = {
     "vigie-web.service": {"web_session_key", "entra_client_secret"},
@@ -204,8 +205,10 @@ def test_credentials_are_limited_per_unit(ctx: dict[str, Any]) -> None:
 
 def test_credentials_are_exact_when_everything_is_enabled() -> None:
     # Égalité (pas seulement inclusion) : un secret manquant ferait échouer l'unité en prod.
-    for name, text in _units(_context(ALL_ON)).items():
-        assert _credentials(text) == ALLOWED[name], name
+    ctx = _context(ALL_ON)
+    expected = {**ALLOWED, "vigie-jobs.service": set(ctx["vigie_source_secrets"])}
+    for name, text in _units(ctx).items():
+        assert _credentials(text) == expected[name], name
 
 
 def test_web_never_gets_source_or_llm_secrets() -> None:
