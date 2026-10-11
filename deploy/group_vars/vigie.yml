@@ -65,7 +65,7 @@ vigie_source_veeam:
     secrets: [veeam_password]
     settings:
       base_url: "https://{{ vigie_veeam_host }}:9419"
-      username: svc-vigie
+      username: svcveeamvigie
       api_version: "1.3-rev2"   # 13.1 ; 1.3-rev1 pour 13.0.1 (build affiché par « Tester la connexion »)
       ca_bundle: /etc/vigie/ca/veeam.pem
 vigie_sources_enabled: "{{ vigie_sources_base + (vigie_source_veeam if vigie_veeam_host else []) }}"

@@ -204,7 +204,7 @@ processus, sysstat, debsums, needrestart (liste seule), rkhunter, bannières, SS
 
 ## 11. Source Veeam B&R (10.10.10.27, API REST 9419)
 
-Prérequis côté VBR : compte local `svc-vigie` (rôle Backup Viewer, à confirmer à l'étape 1),
+Prérequis côté VBR : compte local `svcveeamvigie` (rôle Backup Viewer, jeton confirmé le 2026-10-11),
 pare-feu Windows ouvrant 9419/tcp depuis `vigie_ip` (192.168.10.17).
 
 1. **Certificat du VBR** (auto-signé) : le récupérer, puis comparer son empreinte avec celle
@@ -224,7 +224,7 @@ pare-feu Windows ouvrant 9419/tcp depuis `vigie_ip` (192.168.10.17).
    VBR=nom-du-certificat; read -rs VPW && printf '%s' "$VPW" | curl -s -o /dev/null \
      -w '%{http_code}\n' --cacert ~/vigie-ca/veeam.pem --resolve "$VBR:9419:10.10.10.27" \
      "https://$VBR:9419/api/oauth2/token" -H 'x-api-version: 1.3-rev1' \
-     --data-urlencode grant_type=password --data-urlencode username=svc-vigie \
+     --data-urlencode grant_type=password --data-urlencode username=svcveeamvigie \
      --data-urlencode password@-; unset VPW
    ```
    `200` : on continue. `400`/`401`/`403` : s'arrêter et décider du rôle (voir
