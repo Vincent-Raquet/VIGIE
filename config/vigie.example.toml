@@ -43,7 +43,7 @@ draft_only = true                          # rodage : tout part au coordinateur 
 
 # Sources : un bloc par connecteur. Champs communs : enabled, interval_min ;
 # les autres champs sont validés par le connecteur lui-même.
-# Implémentés en premier : zabbix, veeam. Les autres arrivent au fil de la phase 3.
+# Implémentés : zabbix, veeam. Les autres arrivent au fil de la phase 3.
 [sources.zabbix]
 enabled = true
 base_url = "https://zabbix.lan"   # frontend Zabbix (api_jsonrpc.php), pas le serveur MCP
@@ -57,12 +57,13 @@ proxy_stale_min = 10       # proxy sans contact depuis N minutes → signal « m
 # "SRV-Veeam" = "backup"
 
 [sources.veeam]
-enabled = true
+enabled = false
 interval_min = 30
-api_version = "1.2-rev0"   # TODO verify selon la version de VBR
-[[sources.veeam.instances]]
-name = "vbr-main"
-base_url = "https://vbr.lan:9419"
+base_url = "https://vbr.lan:9419"  # nom porté par le certificat du VBR (pas l'IP, sauf si dans le certificat)
+username = "svc-vigie"             # compte local VBR ; mot de passe : secret « veeam_password »
+api_version = "1.3-rev1"           # x-api-version : 1.3-rev1 (13.0.1), 1.3-rev2 (13.1) ; voir serverInfo
+# ca_bundle = "/etc/vigie/ca/veeam.pem"   # certificat auto-signé du VBR (sinon [tls] ca_bundle)
+session_window_days = 7            # historique des sessions lu pour le dernier succès et les échecs consécutifs
 
 [sources.ninjaone]
 enabled = false   # connecteur pas encore implémenté

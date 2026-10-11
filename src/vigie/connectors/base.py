@@ -17,7 +17,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, NoReturn, Protocol
+from typing import Any, Literal, NoReturn, Protocol
 
 import httpx
 from pydantic import BaseModel, RootModel, SecretStr, ValidationError
@@ -102,6 +102,8 @@ class AllowedCall:
     # Méthode accessible sans authentification (ex. apiinfo.version de Zabbix, qui refuse
     # toute requête authentifiée) : aucun en-tête d'auth n'est alors envoyé.
     anonymous: bool = False
+    # Encodage du corps d'un POST : JSON (défaut) ou formulaire (OAuth2 « password » de Veeam).
+    body_format: Literal["json", "form"] = "json"
     _regex: re.Pattern[str] | None = field(default=None, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -134,6 +136,8 @@ class AllowedCall:
                 )
         elif self.body_schema is not None:
             raise AllowlistDefinitionError(f"GET {self.path} : pas de corps")
+        if self.body_format not in ("json", "form"):
+            raise AllowlistDefinitionError(f"{self.path} : body_format json ou form")
         _check_schema(self.body_schema, f"body_schema de {self.path}")
         if self.params_schema is not None or self.endpoint is not None:
             raise AllowlistDefinitionError("params_schema/endpoint réservés au JSON-RPC")
@@ -186,6 +190,7 @@ class SafeClient:
         sleep: Callable[[float], None] = time.sleep,
         max_response_bytes: int = MAX_RESPONSE_BYTES,
         jsonrpc_version: str | None = "2.0",
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         if not base_url.startswith("https://"):
             raise ValueError(f"{source} : HTTPS obligatoire")
@@ -199,6 +204,12 @@ class SafeClient:
         self._jsonrpc_version = jsonrpc_version
         self._auth_headers: dict[str, SecretStr] = {}
         self._rpc_id = 0
+        fixed = dict(headers or {})
+        # En-têtes fixes non secrets (ex. x-api-version) ; l'authentification passe par
+        # set_auth_header (SecretStr), jamais par ici.
+        forbidden = {"authorization", "cookie", "proxy-authorization", "host"}
+        if any(name.lower() in forbidden for name in fixed):
+            raise ValueError(f"{source} : en-tête réservé dans headers")
         try:
             verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
         except (OSError, ssl.SSLError):
@@ -210,7 +221,11 @@ class SafeClient:
             trust_env=False,
             follow_redirects=False,
             transport=transport,
-            headers={"Accept": "application/json", "User-Agent": f"vigie/{__version__}"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": f"vigie/{__version__}",
+                **fixed,
+            },
         )
 
     # --- API publique ---------------------------------------------------------
@@ -226,7 +241,15 @@ class SafeClient:
         call = self._authorize_rest("POST", path, params)
         if call.body_schema is None:  # impossible : garanti par AllowedCall
             raise AllowlistDefinitionError(f"POST {path} sans body_schema")
-        body = self._validated(call.body_schema, json_body, f"POST {path}")
+        model = self._validated_model(call.body_schema, json_body, f"POST {path}")
+        if call.body_format == "form":
+            # Formulaire : valeurs en clair au seul moment de l'envoi (SecretStr révélé ici).
+            body: Any = {
+                k: v.get_secret_value() if isinstance(v, SecretStr) else str(v)
+                for k, v in model.model_dump(by_alias=True, exclude_unset=True).items()
+            }
+        else:
+            body = model.model_dump(mode="json", by_alias=True, exclude_unset=True)
         return self._send("POST", path, params=params, body=body, label=path, call=call)
 
     def jsonrpc(self, method: str, params: Any) -> Any:
@@ -282,13 +305,16 @@ class SafeClient:
             self._forbid(target, f"paramètres non autorisés : {', '.join(unknown)}")
         return call
 
-    def _validated(self, schema: type[BaseModel], payload: Any, target: str) -> Any:
+    def _validated_model(self, schema: type[BaseModel], payload: Any, target: str) -> BaseModel:
         try:
-            model = schema.model_validate(payload)
+            return schema.model_validate(payload)
         except ValidationError as exc:
             fields = sorted({".".join(str(p) for p in e["loc"]) for e in exc.errors()})
             self._forbid(target, f"corps hors schéma ({', '.join(fields)})")
+
+    def _validated(self, schema: type[BaseModel], payload: Any, target: str) -> Any:
         # On envoie la forme re-sérialisée par le schéma, jamais l'objet de l'appelant.
+        model = self._validated_model(schema, payload, target)
         return model.model_dump(mode="json", by_alias=True, exclude_unset=True)
 
     # --- Envoi -------------------------------------------------------------------
@@ -308,8 +334,14 @@ class SafeClient:
             if call.anonymous
             else {k: v.get_secret_value() for k, v in self._auth_headers.items()}
         )
+        form = call.body_format == "form" and body is not None
         request = self._client.build_request(
-            method, self._base_url + path, params=params, json=body, headers=headers
+            method,
+            self._base_url + path,
+            params=params,
+            json=None if form else body,
+            data=body if form else None,
+            headers=headers,
         )
         log_extra = {
             "source": self.source,
@@ -387,7 +419,10 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
     def handler(request: httpx.Request) -> httpx.Response:
         envelope: dict[str, Any] | None = None
         if request.method == "POST" and request.content:
-            body = json.loads(request.content)
+            try:
+                body = json.loads(request.content)
+            except ValueError:
+                body = None  # corps de formulaire (jeton OAuth2) : rejeu par le seul chemin
             if isinstance(body, dict) and "method" in body and "id" in body:
                 envelope = body
         if envelope is not None:
@@ -403,6 +438,60 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
         return httpx.Response(200, json=data)
 
     return httpx.MockTransport(handler)
+
+
+TOKEN_PATHS = frozenset({"/api/oauth2/token"})
+FAKE_TOKEN = {
+    "access_token": "fixture-access-token",
+    "token_type": "bearer",
+    "refresh_token": "fixture-refresh-token",
+    "expires_in": 900,
+}
+
+
+class RecordingTransport(httpx.BaseTransport):
+    """Transport réel (TLS vérifié) qui garde une copie des réponses JSON.
+
+    Outil de capture des fixtures (`scripts/record_fixtures.py`) : placé ici, seul module
+    autorisé à importer httpx. Les requêtes passent toujours par l'allowlist du SafeClient.
+    """
+
+    def __init__(self, ca_bundle: Path | None, inner: httpx.BaseTransport | None = None) -> None:
+        if inner is None:
+            verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
+            inner = httpx.HTTPTransport(verify=verify)
+        self._inner = inner
+        self.saved: dict[str, Any] = {}
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        response = self._inner.handle_request(request)
+        body = response.read()
+        name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
+        if response.status_code == 200 and body.strip():
+            if request.url.path in TOKEN_PATHS:
+                self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
+            else:
+                self._merge(name, json.loads(body))
+        return httpx.Response(
+            response.status_code, headers=response.headers, content=body, request=request
+        )
+
+    def _merge(self, name: str, data: Any) -> None:
+        previous = self.saved.get(name)
+        if (
+            isinstance(previous, dict)
+            and isinstance(data, dict)
+            and isinstance(previous.get("data"), list)
+            and isinstance(data.get("data"), list)
+        ):
+            merged = previous["data"] + data["data"]
+            self.saved[name] = {
+                **data,
+                "data": merged,
+                "pagination": {"total": len(merged), "count": len(merged), "skip": 0},
+            }
+        else:
+            self.saved[name] = data
 
 
 class Bounded[T](Iterator[T]):

@@ -91,17 +91,18 @@ Les tests de `tests/security/test_registered_connectors.py` s'appliquent automat
 - **Mapping** : groupe d'agent Wazuh ou préfixe de nom d'agent.
 - **Catégories** : `security`, `vulnerability`, `monitoring` (agents).
 
-## 5. Veeam Backup & Replication (12.x / 13)
-- **Auth** : `POST {base}:9419/api/oauth2/token` (grant `password`, exception documentée), en-tête `x-api-version` (ex. `1.2-rev0` ⚠️ selon version). Compte local `svc-vigie` avec le rôle **Veeam Backup Viewer** ⚠️ vérifier que ce rôle est accepté par l'API REST de la version installée ; sinon, utiliser le rôle minimal accepté, documenter, et compenser par l'allowlist. Si un serveur Veeam ONE existe, préférer son API (rôle *Read-Only User*).
-- **Allowlist `GET`** : `/api/v1/serverInfo`, `/api/v1/jobs/states`, `/api/v1/sessions` (filtres `createdAfterFilter`, `resultFilter`), `/api/v1/backupInfrastructure/repositories/states`, `/api/v1/backups`, `/api/v1/malwareDetection/events` ⚠️ (v12.1+).
-- **Interdits explicitement** (test dédié) : tout `POST` sauf token, notamment `/jobs/{id}/start|stop|retry|disable`, `/sessions/{id}/stop`.
-- **Collecte** :
-  - État de chaque job : dernier résultat, dernière exécution réussie, prochain lancement.
-  - Repositories : capacité, espace libre.
-  - Détections de malware éventuelles → `security` P1.
-- **Règles** : voir SPEC §7.4 (> 24 h sans succès, 2 échecs consécutifs, repository > 90/95 %).
-- **Mapping** : préfixe du nom de job (`WI-`, `SPL-`…) ou serveur VBR par société (plusieurs instances = plusieurs entrées de source `veeam:<nom>`).
-- Plusieurs serveurs VBR : le connecteur est multi-instance (`[sources.veeam.instances]`).
+## 5. Veeam Backup & Replication 13.1 (`src/vigie/connectors/veeam.py`)
+- **Auth** : `POST /api/oauth2/token`, corps **form-urlencoded** `grant_type=password`, `username`, `password` (exception documentée, appel anonyme, schéma strict `TokenRequest` : ni `refresh_token`, ni `vbr_token`) ; un jeton par collecte, pas de rafraîchissement. En-tête `x-api-version` sur chaque requête : `1.3-rev1` (13.0.1.180), `1.3-rev2` (13.1). Compte local `svc-vigie`, rôle **Backup Viewer** ⚠️ : la référence 13 ne liste pas les rôles par endpoint et un product manager Veeam indique sur le forum R&D que l'API REST exige Backup Administrator → **à confirmer par un essai réel** avant toute mise en service ; ne jamais élever le rôle sans décision du coordinateur.
+- **Allowlist `GET`** (paramètres listés, rien d'autre) : `/api/v1/serverInfo` ; `/api/v1/jobs/states` (`skip`, `limit`) ; `/api/v1/sessions` (`skip`, `limit`, `createdAfterFilter`, `orderColumn`, `orderAsc`) ; `/api/v1/backupInfrastructure/repositories/states` (`skip`, `limit`) ; `/api/v1/malwareDetection/events` (`skip`, `limit`, `detectedAfterTimeUtcFilter` — TODO verify en 13.x).
+- **Interdits** (`tests/security/test_veeam_allowlist.py`) : `jobs/{id}/start|stop|retry|disable|enable`, `sessions/{id}/stop`, `POST /api/v1/jobs`, `oauth2/logout`, toute écriture (PUT/DELETE/PATCH), `/api/v1/credentials`, `/api/v1/backups`, paramètres non listés.
+- **Signaux** (instantané toutes les 30 min, catégorie `backup` sauf malware) :
+  - job (hors désactivés) : dernier résultat Failed → 4 (5 si job critique : `asset_criticality` ≥ 1,2 par règle `job_prefix`) ; Warning → 2 (3 si ≥ 2 de suite) ; aucun succès depuis > 24 h → 3 (4 si critique). Attributs `consecutive_failures`, `hours_since_last_success`, `asset_critical` (overrides `backup_two_failures`, `backup_no_success_24h`) ; historique lu dans les sessions des `session_window_days` derniers jours (TODO verify : la session porte le nom du job) ;
+  - dépôt > 85 % → 2, > 90 % → 3, > 95 % → 4, attribut `repo_used_pct` (overrides `repo_90`, `repo_95`) ;
+  - détection malware (`Suspicious`, `Infected` ; TODO verify des valeurs en 13.x) → `security`, sévérité 5.
+- **Société** : préfixe du nom de job ou de dépôt (`asset_rule` `job_prefix` : `WI-`, `SPL-`…).
+- **Certificat** : le VBR présente un certificat auto-signé ; `ca_bundle` propre à la source (`/etc/vigie/ca/veeam.pem`), vérification TLS toujours active ; l'URL utilise le nom porté par le certificat.
+- **Un seul serveur VBR** : configuration à plat `[sources.veeam]` (`base_url`, `username`, `api_version`, `ca_bundle`, `session_window_days`) ; un second serveur demanderait une seconde source.
+- **Fixtures** : synthétiques d'après le swagger officiel 1.1-rev0 ; captures réelles avec `VIGIE_ENV=dev uv run python scripts/record_fixtures.py veeam` (sortie hors dépôt, jeton remplacé), puis `scripts/anonymize_fixtures.py`.
 
 ## 6. Veezo
 ⚠️ Produit à identifier (question ouverte n° 1 de la SPEC). Le connecteur est créé comme **squelette désactivé** (`enabled=false`), avec healthcheck renvoyant « non configuré ». À compléter avec le skill `add-connector` dès que l'éditeur, la version et la documentation API sont connus.
@@ -117,7 +118,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 | NinjaOne | API client « Vigie » | `monitoring` (+ `management` seulement si requis pour tickets, technicien RO) | Allowed IP si disponible |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |
-| Veeam B&R | `svc-vigie` (local) | Backup Viewer (⚠️) | Pare-feu Windows : 9419 depuis IP VM |
+| Veeam B&R 13.1 | `svc-vigie` (local) | Backup Viewer (⚠️ à confirmer, cf. §5) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |
 | Microsoft Graph | App « Vigie Mail » | `Mail.Send` (app) restreint à `itbot@…` | — |
 | Entra SSO | App « Vigie » | OIDC, claims groupes | Accès conditionnel MFA |
 | Anthropic | Clé workspace « vigie » | — | Limite de dépense mensuelle |

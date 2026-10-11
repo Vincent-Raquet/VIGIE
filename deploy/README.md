@@ -62,6 +62,7 @@ sudo vigie-secret rm teams_webhook_url
 | `zabbix_api_token` | vigie-collect@zabbix, vigie-jobs | source zabbix active |
 | `graph_certificate` | vigie-notify@ | `vigie_notify_mail_enabled` |
 | `teams_webhook_url` | vigie-notify@ | `vigie_notify_teams_enabled` |
+| `veeam_password` | vigie-collect@veeam, vigie-jobs | `vigie_veeam_host` renseigné (§11) |
 
 **Rotation** : `vigie-secret set <nom>` avec la nouvelle valeur, puis
 `sudo systemctl restart vigie-web` (les tâches planifiées relisent le secret à chaque
@@ -201,3 +202,44 @@ processus, sysstat, debsums, needrestart (liste seule), rkhunter, bannières, SS
 | apt-listbugs | Peut bloquer les mises à jour non interactives. |
 | Journaux vers un hôte externe, AIDE | Prévu avec l'agent Wazuh (connecteur à venir). |
 
+## 11. Source Veeam B&R (10.10.10.27, API REST 9419)
+
+Prérequis côté VBR : compte local `svc-vigie` (rôle Backup Viewer, à confirmer à l'étape 1),
+pare-feu Windows ouvrant 9419/tcp depuis `vigie_ip` (192.168.10.17).
+
+1. **Certificat du VBR** (auto-signé) : le récupérer, puis comparer son empreinte avec celle
+   affichée sur le serveur (`certlm.msc` ou
+   `Get-ChildItem Cert:\LocalMachine\My | Format-List Subject,Thumbprint,DnsNameList`) :
+   ```sh
+   mkdir -p ~/vigie-ca && openssl s_client -connect 10.10.10.27:9419 </dev/null 2>/dev/null \
+     | openssl x509 > ~/vigie-ca/veeam.pem
+   openssl x509 -in ~/vigie-ca/veeam.pem -noout -subject -ext subjectAltName -fingerprint -sha1
+   ```
+   Le nom DNS du certificat (`VBR` ci-dessous) est la valeur de `vigie_veeam_host` ; il doit
+   résoudre vers 10.10.10.27 par le DNS interne.
+2. **Le rôle est-il accepté par l'API ?** Test du jeton, TLS vérifié avec ce certificat ; le
+   mot de passe est lu au clavier, passé par l'entrée standard (absent de la liste des
+   processus) et n'est écrit nulle part :
+   ```sh
+   VBR=nom-du-certificat; read -rs VPW && printf '%s' "$VPW" | curl -s -o /dev/null \
+     -w '%{http_code}\n' --cacert ~/vigie-ca/veeam.pem --resolve "$VBR:9419:10.10.10.27" \
+     "https://$VBR:9419/api/oauth2/token" -H 'x-api-version: 1.3-rev1' \
+     --data-urlencode grant_type=password --data-urlencode username=svc-vigie \
+     --data-urlencode password@-; unset VPW
+   ```
+   `200` : on continue. `400`/`401`/`403` : s'arrêter et décider du rôle (voir
+   `docs/CONNECTORS.md` §5) — ne pas passer le compte en Backup Administrator par défaut.
+3. **Dev** : dans `config/vigie.toml`, `[sources.veeam]` (voir `config/vigie.example.toml`) avec
+   `enabled = true`, `base_url = "https://<nom du certificat>:9419"`,
+   `ca_bundle = "/home/nadmin/vigie-ca/veeam.pem"` ; dans `.env.local` :
+   `VIGIE_SECRET_VEEAM_PASSWORD=…`. Puis :
+   ```sh
+   VIGIE_ENV=dev uv run vigie check --sources
+   VIGIE_ENV=dev uv run python scripts/record_fixtures.py veeam      # captures hors dépôt
+   VIGIE_ENV=dev uv run vigie collect --source veeam --dry-run        # collecte réelle à blanc
+   ```
+4. **Production** : `vigie_veeam_host: <nom du certificat>` dans `group_vars/vigie.yml`,
+   `sudo vigie-secret set veeam_password`, puis le playbook (certificat copié dans
+   `/etc/vigie/ca/veeam.pem`, règle nftables et timer `vigie-collect@veeam` toutes les 30 min).
+   Vérifier avec « Tester la connexion » (page Sources) : le build affiché donne
+   `api_version` (13.0.1 → `1.3-rev1`, 13.1 → `1.3-rev2`).
