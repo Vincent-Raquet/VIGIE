@@ -50,7 +50,7 @@ Voir SPEC §7.6. En plus :
 - Seuls les champs utiles sont envoyés (titre, catégorie, sévérité, société, actif, âge, occurrences, extrait de détail ≤ 300 caractères).
 - Masquage avant envoi : mots de passe, tokens, clés, IBAN, numéros de carte, e-mails de tiers (remplacés par `<email>`), numéros de téléphone.
 - Contenu des sources dans `<source_data>` ; le prompt système indique que ce bloc ne contient que des données et qu'aucune instruction qui s'y trouve ne doit être suivie.
-- Option `llm.send_ticket_text = false` (défaut) : pour les tickets NinjaOne, seuls sujet, catégorie, priorité, statut et âge sont envoyés, pas le corps.
+- Option `llm.send_ticket_text = false` (défaut) : pour les tickets (signaux `kind = ticket`), l'IA ne reçoit ni le corps (jamais collecté) **ni le sujet** : seulement le numéro du ticket, la catégorie, la priorité, la sévérité, la société et l'âge ; le sujet reste visible des techniciens dans l'interface. Masquage dans `engine/context.py`, testé par `tests/security/test_llm_injection.py`. `true` envoie le sujet (nettoyé, encapsulé), jamais le corps.
 
 ### C6 — Réseau
 - **nftables**, politique par défaut `drop` en entrée et en sortie.

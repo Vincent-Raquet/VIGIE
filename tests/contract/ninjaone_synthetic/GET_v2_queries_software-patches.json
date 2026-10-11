@@ -1,0 +1,32 @@
+{
+  "cursor": {
+    "name": "c1",
+    "offset": 0,
+    "count": 2,
+    "expires": 1791720600.0
+  },
+  "results": [
+    {
+      "id": "sw-0",
+      "productIdentifier": "7zip",
+      "title": "7-Zip 24.09",
+      "impact": "HIGH",
+      "status": "FAILED",
+      "type": "PATCH",
+      "installedAt": null,
+      "deviceId": 202,
+      "timestamp": 1791633600.0
+    },
+    {
+      "id": "sw-1",
+      "productIdentifier": "chrome",
+      "title": "Google Chrome 130",
+      "impact": "HIGH",
+      "status": "FAILED",
+      "type": "PATCH",
+      "installedAt": null,
+      "deviceId": 202,
+      "timestamp": 1791633600.0
+    }
+  ]
+}

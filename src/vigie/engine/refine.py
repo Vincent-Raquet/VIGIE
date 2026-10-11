@@ -47,7 +47,12 @@ def refine(
 ) -> Refinement:
     """`data_session` lit le contexte ; `log_session` journalise l'appel (validé à part,
     pour que le coût soit compté même si le plan n'est pas enregistré)."""
-    prompt = build_prompt(data_session, draft, load_scoring(data_session))
+    prompt = build_prompt(
+        data_session,
+        draft,
+        load_scoring(data_session),
+        send_ticket_text=llm_cfg.send_ticket_text,
+    )
     refiner = PlanRefiner(client, llm_cfg, log_session)
     result = refiner.refine(prompt, draft.kind, draft.generated_at)
     if result.outcome is not LLMOutcome.ok or result.plan is None:

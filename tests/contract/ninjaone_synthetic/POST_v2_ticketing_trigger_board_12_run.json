@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "id": 501,
+      "summary": "Imprimante HS au 2e étage",
+      "status": {
+        "displayName": "Ouvert",
+        "statusId": 2000
+      },
+      "priority": "HIGH",
+      "severity": "MAJOR",
+      "clientId": 3,
+      "organization": "Splifar",
+      "type": "PROBLEM",
+      "createTime": 1791648000.0,
+      "lastUpdated": 1791712800.0,
+      "description": "Bonjour, mon mot de passe est Soleil2026, merci de rappeler au 0470 12 34 56.",
+      "requester": "Jean Dupont",
+      "assignedAppUser": "Technicien Un",
+      "tags": [
+        "vip"
+      ]
+    },
+    {
+      "id": 502,
+      "summary": "Ancien ticket",
+      "status": {
+        "displayName": "Fermé",
+        "statusId": 6000
+      },
+      "priority": "LOW",
+      "clientId": 2,
+      "organization": "WallIndustries",
+      "type": "QUESTION",
+      "createTime": 1791000000.0,
+      "lastUpdated": 1791360000.0,
+      "description": "Bonjour, mon mot de passe est Soleil2026, merci de rappeler au 0470 12 34 56.",
+      "requester": "Jean Dupont",
+      "assignedAppUser": "Technicien Un",
+      "tags": [
+        "vip"
+      ]
+    },
+    {
+      "id": 503,
+      "summary": "Accès VPN impossible",
+      "status": "En attente",
+      "priority": "MEDIUM",
+      "clientId": null,
+      "organization": "WallIndustries",
+      "type": "INCIDENT",
+      "createTime": 1791540000.0,
+      "lastUpdated": 1791702000.0,
+      "description": "Bonjour, mon mot de passe est Soleil2026, merci de rappeler au 0470 12 34 56.",
+      "requester": "Jean Dupont",
+      "assignedAppUser": "Technicien Un",
+      "tags": [
+        "vip"
+      ]
+    }
+  ],
+  "metadata": {
+    "columns": [
+      "id",
+      "summary",
+      "status",
+      "priority",
+      "severity",
+      "clientId",
+      "organization",
+      "type",
+      "createTime",
+      "lastUpdated"
+    ],
+    "lastCursorId": 503
+  }
+}

@@ -113,7 +113,17 @@ def organisation_block(session: Session, draft: PlanDraft, cfg: ScoringConfig) -
     )
 
 
-def _incident_facts(session: Session, ids: set[int], now: datetime) -> dict[int, dict[str, Any]]:
+TICKET_MASK = "Texte du ticket non transmis ([llm] send_ticket_text = false)."
+
+
+def _ticket_id(signal: models.Signal) -> str | None:
+    attrs = signal.attributes or {}
+    return str(attrs.get("ticket_id")) if attrs.get("kind") == "ticket" else None
+
+
+def _incident_facts(
+    session: Session, ids: set[int], now: datetime, *, send_ticket_text: bool = False
+) -> dict[int, dict[str, Any]]:
     if not ids:
         return {}
     rows = session.execute(
@@ -139,17 +149,30 @@ def _incident_facts(session: Session, ids: set[int], now: datetime) -> dict[int,
         lead = facts.pop("_lead")
         facts["sources"] = sorted(facts["sources"])
         facts["severity"] = lead.severity
-        facts["detail"] = clean_untrusted(lead.details, DETAIL_MAX)
+        ticket = _ticket_id(lead)
+        # Ticket rédigé par un utilisateur : ni texte ni données personnelles vers l'IA sans
+        # accord explicite (SECURITY.md C5) ; le numéro suffit pour planifier.
+        if ticket is not None and not send_ticket_text:
+            facts["ticket_id"] = ticket
+            facts["detail"] = TICKET_MASK
+        else:
+            facts["detail"] = clean_untrusted(lead.details, DETAIL_MAX)
         facts["asset"] = clean_untrusted(facts["asset"], TITLE_MAX)
     return out
 
 
 def _task(a: Assignment, status: str, facts: dict[int, dict[str, Any]]) -> dict[str, Any]:
     c = a.candidate
+    tickets = [facts[i]["ticket_id"] for i in c.incident_ids if "ticket_id" in facts.get(i, {})]
+    title = (
+        "Ticket n° " + ", ".join(tickets) + " (texte non transmis)"
+        if tickets
+        else clean_untrusted(c.title, TITLE_MAX)
+    )
     return {
         "ref": c.ref,
         "status": status,
-        "title": clean_untrusted(c.title, TITLE_MAX),
+        "title": title,
         "category": c.category.value,
         "priority": c.priority.value,
         "priority_reason": clean_untrusted(c.reason, DETAIL_MAX),
@@ -171,7 +194,9 @@ def _task(a: Assignment, status: str, facts: dict[int, dict[str, Any]]) -> dict[
 DETAILED_BACKLOG = (Priority.P1, Priority.P2)
 
 
-def tasks_payload(session: Session, draft: PlanDraft) -> list[dict[str, Any]]:
+def tasks_payload(
+    session: Session, draft: PlanDraft, *, send_ticket_text: bool = False
+) -> list[dict[str, Any]]:
     """Détail pour les tâches planifiées, prévues et le backlog P1/P2 ; le reste du backlog
     est résumé par `backlog_summary` (coût : le détail de 150 tâches double le prompt)."""
     groups = (
@@ -183,7 +208,7 @@ def tasks_payload(session: Session, draft: PlanDraft) -> list[dict[str, Any]]:
     ordered.sort(key=lambda sa: (sa[1].candidate.priority.value, -sa[1].candidate.score))
     kept = ordered[:MAX_TASKS_SENT]
     ids = {i for _, a in kept for i in a.candidate.incident_ids}
-    facts = _incident_facts(session, ids, draft.generated_at)
+    facts = _incident_facts(session, ids, draft.generated_at, send_ticket_text=send_ticket_text)
     return [_task(a, status, facts) for status, a in kept]
 
 
@@ -199,7 +224,7 @@ def backlog_summary(draft: PlanDraft) -> dict[str, dict[str, int]]:
     return out
 
 
-def variable_message(session: Session, draft: PlanDraft) -> str:
+def variable_message(session: Session, draft: PlanDraft, *, send_ticket_text: bool = False) -> str:
     availability = {
         str(m.id): {d.isoformat(): draft.result.capacity.get((m.id, d), 0) for d in draft.window}
         for m in sorted(draft.members.values(), key=lambda m: m.id)
@@ -211,7 +236,7 @@ def variable_message(session: Session, draft: PlanDraft) -> str:
             "period_end": draft.period_end.isoformat(),
         },
         "capacity_hours": availability,
-        "tasks": tasks_payload(session, draft),
+        "tasks": tasks_payload(session, draft, send_ticket_text=send_ticket_text),
         "backlog_not_detailed": backlog_summary(draft),
         "milestones_at_risk": [
             {
@@ -232,12 +257,14 @@ def variable_message(session: Session, draft: PlanDraft) -> str:
     )
 
 
-def build_prompt(session: Session, draft: PlanDraft, cfg: ScoringConfig) -> Prompt:
+def build_prompt(
+    session: Session, draft: PlanDraft, cfg: ScoringConfig, *, send_ticket_text: bool = False
+) -> Prompt:
     system = [
         _block(instructions_block(session, draft.kind), cached=True),
         _block(organisation_block(session, draft, cfg), cached=True),
     ]
-    user = variable_message(session, draft)
+    user = variable_message(session, draft, send_ticket_text=send_ticket_text)
     digest = hashlib.sha256(
         json.dumps({"system": system, "user": user}, sort_keys=True).encode()
     ).hexdigest()

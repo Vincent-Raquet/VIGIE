@@ -1,0 +1,1131 @@
+[
+  {
+    "uid": "951a2ea8-80c6-4f11-8348-6382f82c0118",
+    "deviceId": 2766,
+    "message": "Le temps d’activité du disque pour 'C:' est supérieur à 90% de 2026-08-04T18:15:04Z à 2026-08-04T18:30:10Z",
+    "createTime": 1785868264.264194,
+    "updateTime": 1785868264.264194,
+    "sourceType": "CONDITION_AGENT_DISK_IO",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_act_gt",
+        "params": {
+          "volume": "C:",
+          "threshold": "90",
+          "start_date": "2026-08-04T18:15:04Z",
+          "end_date": "2026-08-04T18:30:10Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk Active Time is greater than 90  % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "09f12ab2-ee3b-4b41-8aac-cec7d693bd4a",
+    "deviceId": 2775,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-02T06:25:01Z à 2026-10-02T06:39:02Z\r\nLes 5 principaux processus :\r\nSiemens.Automation.Portal.exe PID 32092(1209184256 bytes)\nchrome.exe PID 13220(1203101696 bytes)\nchrome.exe PID 28260(1026641920 bytes)\nSiemens.MC.Drives.Common.StartdriveIntegrityService.exe PID 21064(696496128 bytes)\nSiemens.Automation.Portal.exe PID 27832(649617408 bytes)",
+    "createTime": 1790923183.712084,
+    "updateTime": 1790923183.712084,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-02T06:25:01Z",
+          "end_date": "2026-10-02T06:39:02Z",
+          "unit": "PERCENT",
+          "top_processes": "Siemens.Automation.Portal.exe PID 32092(1209184256 bytes)\nchrome.exe PID 13220(1203101696 bytes)\nchrome.exe PID 28260(1026641920 bytes)\nSiemens.MC.Drives.Common.StartdriveIntegrityService.exe PID 21064(696496128 bytes)\nSiemens.Automation.Portal.exe PID 27832(649617408 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "a5dc78e5-d24e-418e-b820-8354529a2dbb",
+    "deviceId": 2763,
+    "message": "Le temps d’activité du disque pour 'D:' est supérieur à 90% de 2026-10-07T15:58:56Z à 2026-10-08T06:38:27Z",
+    "createTime": 1791441657.69393,
+    "updateTime": 1791441657.69393,
+    "sourceType": "CONDITION_AGENT_DISK_IO",
+    "sourceName": "",
+    "subject": "D:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_act_gt",
+        "params": {
+          "volume": "D:",
+          "threshold": "90",
+          "start_date": "2026-10-07T15:58:56Z",
+          "end_date": "2026-10-08T06:38:27Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk Active Time is greater than 90  % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "c58c9305-b968-411e-9f45-a89d35a5b4f9",
+    "deviceId": 2763,
+    "message": "Le temps d’activité du disque pour 'C:' est supérieur à 90% de 2026-10-07T15:58:56Z à 2026-10-08T06:38:27Z",
+    "createTime": 1791441657.694667,
+    "updateTime": 1791441657.694667,
+    "sourceType": "CONDITION_AGENT_DISK_IO",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_act_gt",
+        "params": {
+          "volume": "C:",
+          "threshold": "90",
+          "start_date": "2026-10-07T15:58:56Z",
+          "end_date": "2026-10-08T06:38:27Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk Active Time is greater than 90  % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "3629f740-95db-47a3-a882-3fd3c63d29ea",
+    "deviceId": 253,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-08T07:32:19Z à 2026-10-08T07:32:19Z",
+    "createTime": 1791444761.656799,
+    "updateTime": 1791444761.656799,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-08T07:32:19Z",
+          "end_date": "2026-10-08T07:32:19Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "70646bd2-74cd-4b9c-bc52-cccead0d38a1",
+    "deviceId": 201,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-08T07:42:00Z à 2026-10-08T07:42:00Z",
+    "createTime": 1791445952.639186,
+    "updateTime": 1791445952.639186,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-08T07:42:00Z",
+          "end_date": "2026-10-08T07:42:00Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "19bc3a78-80fa-457c-be02-910eecbf1d17",
+    "deviceId": 110,
+    "message": "L’utilisation du CPU est supérieure ou égale à 90% de 2026-10-08T13:39:46Z à 2026-10-08T14:21:50Z\r\nLes 5 principaux processus :\r\nSystem PID 4(1.625%)\nexplorer.exe PID 14212(0.75%)\nsvchost.exe PID 2220(0.5%)\nNinjaRMMAgent.exe PID 9560(0.375%)\nsvchost.exe PID 9476(0.375%)",
+    "createTime": 1791469340.918495,
+    "updateTime": 1791469340.918495,
+    "sourceType": "CONDITION_AGENT_CPU",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_cpu_ge",
+        "params": {
+          "threshold": "90",
+          "unit": "%",
+          "start_date": "2026-10-08T13:39:46Z",
+          "end_date": "2026-10-08T14:21:50Z",
+          "top_processes": "System PID 4(1.625%)\nexplorer.exe PID 14212(0.75%)\nsvchost.exe PID 2220(0.5%)\nNinjaRMMAgent.exe PID 9560(0.375%)\nsvchost.exe PID 9476(0.375%)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "CPU is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "38a77e7a-f662-4063-9eaf-be3ebc75eda4",
+    "deviceId": 256,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T06:02:04Z à 2026-10-09T06:02:04Z",
+    "createTime": 1791525771.144244,
+    "updateTime": 1791525771.144244,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T06:02:04Z",
+          "end_date": "2026-10-09T06:02:04Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "b102df11-944e-461d-8ae0-ec9b31e7b851",
+    "deviceId": 298,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T07:39:30Z à 2026-10-09T07:39:30Z",
+    "createTime": 1791531608.08876,
+    "updateTime": 1791531608.08876,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T07:39:30Z",
+          "end_date": "2026-10-09T07:39:30Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "f463ba6a-ae25-459f-8e0f-c82dee202005",
+    "deviceId": 324,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T07:50:55Z à 2026-10-09T07:50:55Z",
+    "createTime": 1791532304.689995,
+    "updateTime": 1791532304.689995,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T07:50:55Z",
+          "end_date": "2026-10-09T07:50:55Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "22088dcc-172a-4e7c-b2da-5b489f2be343",
+    "deviceId": 141,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T07:51:26Z à 2026-10-09T07:51:26Z",
+    "createTime": 1791532624.857407,
+    "updateTime": 1791532624.857407,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T07:51:26Z",
+          "end_date": "2026-10-09T07:51:26Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "61d5b8af-8ea2-430e-a489-48d2a54ea6a7",
+    "deviceId": 211,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T08:03:31Z à 2026-10-09T08:03:31Z",
+    "createTime": 1791533195.222088,
+    "updateTime": 1791533195.222088,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T08:03:31Z",
+          "end_date": "2026-10-09T08:03:31Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "87ea7fbb-54f0-4e37-8144-4391cc28d67b",
+    "deviceId": 219,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T09:06:07Z à 2026-10-09T09:06:07Z",
+    "createTime": 1791536828.254618,
+    "updateTime": 1791536828.254618,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T09:06:07Z",
+          "end_date": "2026-10-09T09:06:07Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "7ce421c5-7e61-4de8-8aec-eed526998b44",
+    "deviceId": 259,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-09T09:47:11Z à 2026-10-09T09:47:11Z",
+    "createTime": 1791539279.381157,
+    "updateTime": 1791539279.381157,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-09T09:47:11Z",
+          "end_date": "2026-10-09T09:47:11Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "9cee6b3b-f8ff-44fa-8170-229b9e2bff3d",
+    "deviceId": 289,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-09T11:28:05Z à 2026-10-09T11:42:07Z\r\nLes 5 principaux processus :\r\nSiemens.Automation.Portal.exe PID 28604(2142375936 bytes)\nSiemens.Automation.Portal.exe PID 12612(1709981696 bytes)\nSiemens.Automation.Portal.exe PID 32452(1485017088 bytes)\nSiemens.Automation.Portal.exe PID 7804(1276170240 bytes)\nSiemens.Automation.Portal.exe PID 19344(1093951488 bytes)",
+    "createTime": 1791546158.740044,
+    "updateTime": 1791546158.740044,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-09T11:28:05Z",
+          "end_date": "2026-10-09T11:42:07Z",
+          "unit": "PERCENT",
+          "top_processes": "Siemens.Automation.Portal.exe PID 28604(2142375936 bytes)\nSiemens.Automation.Portal.exe PID 12612(1709981696 bytes)\nSiemens.Automation.Portal.exe PID 32452(1485017088 bytes)\nSiemens.Automation.Portal.exe PID 7804(1276170240 bytes)\nSiemens.Automation.Portal.exe PID 19344(1093951488 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "f93d8601-ab66-41d2-a264-878029db7526",
+    "deviceId": 161,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-09T16:32:57Z à 2026-10-09T16:47:59Z\r\nLes 5 principaux processus :\r\nmsedgewebview2.exe PID 26940(301043712 bytes)\nmstsc.exe PID 8288(245698560 bytes)\nWhatsApp.Root.exe PID 4500(163000320 bytes)\nOUTLOOK.EXE PID 9088(162242560 bytes)\nexplorer.exe PID 3400(135917568 bytes)",
+    "createTime": 1791564508.42842,
+    "updateTime": 1791564508.42842,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-09T16:32:57Z",
+          "end_date": "2026-10-09T16:47:59Z",
+          "unit": "PERCENT",
+          "top_processes": "msedgewebview2.exe PID 26940(301043712 bytes)\nmstsc.exe PID 8288(245698560 bytes)\nWhatsApp.Root.exe PID 4500(163000320 bytes)\nOUTLOOK.EXE PID 9088(162242560 bytes)\nexplorer.exe PID 3400(135917568 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "07747524-6001-430f-9b07-0461c6410a36",
+    "deviceId": 324,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-09T17:18:34Z à 2026-10-09T17:33:46Z\r\nLes 5 principaux processus :\r\nDuckDuckGo.exe PID 45680(591413248 bytes)\nexplorer.exe PID 17500(541446144 bytes)\nChatGPT.exe PID 21084(458285056 bytes)\nNordVPN.exe PID 28568(390938624 bytes)\nmsedgewebview2.exe PID 55944(384311296 bytes)",
+    "createTime": 1791567263.104868,
+    "updateTime": 1791567263.104868,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-09T17:18:34Z",
+          "end_date": "2026-10-09T17:33:46Z",
+          "unit": "PERCENT",
+          "top_processes": "DuckDuckGo.exe PID 45680(591413248 bytes)\nexplorer.exe PID 17500(541446144 bytes)\nChatGPT.exe PID 21084(458285056 bytes)\nNordVPN.exe PID 28568(390938624 bytes)\nmsedgewebview2.exe PID 55944(384311296 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "a8f5866f-a088-46f0-b405-78c7e0bdcd32",
+    "deviceId": 289,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-10T06:27:36Z à 2026-10-10T06:27:36Z",
+    "createTime": 1791613709.912374,
+    "updateTime": 1791613709.912374,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-10T06:27:36Z",
+          "end_date": "2026-10-10T06:27:36Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "cc985d41-54dd-4846-9c1c-4d5efe7cf0d3",
+    "deviceId": 151,
+    "message": "L’utilisation du CPU est supérieure ou égale à 90% de 2026-10-10T13:04:46Z à 2026-10-10T13:20:47Z\r\nLes 5 principaux processus :\r\nSystem PID 4(0.875%)\nNinjaRMMAgent.exe PID 10608(0.5%)\nmsedgewebview2.exe PID 23064(0.5%)\nexplorer.exe PID 14040(0.25%)\nmsedgewebview2.exe PID 24700(0.25%)",
+    "createTime": 1791638477.582423,
+    "updateTime": 1791638477.582423,
+    "sourceType": "CONDITION_AGENT_CPU",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_cpu_ge",
+        "params": {
+          "threshold": "90",
+          "unit": "%",
+          "start_date": "2026-10-10T13:04:46Z",
+          "end_date": "2026-10-10T13:20:47Z",
+          "top_processes": "System PID 4(0.875%)\nNinjaRMMAgent.exe PID 10608(0.5%)\nmsedgewebview2.exe PID 23064(0.5%)\nexplorer.exe PID 14040(0.25%)\nmsedgewebview2.exe PID 24700(0.25%)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "CPU is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "d11ddc9d-765c-4b39-9397-c8e5a29246c3",
+    "deviceId": 157,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-10T14:42:45Z à 2026-10-10T14:56:47Z\r\nLes 5 principaux processus :\r\nchrome.exe PID 12564(983502848 bytes)\nmsedgewebview2.exe PID 25352(453861376 bytes)\nchrome.exe PID 22596(339992576 bytes)\nchrome.exe PID 17692(199876608 bytes)\nexplorer.exe PID 8944(136261632 bytes)",
+    "createTime": 1791644233.139036,
+    "updateTime": 1791644233.139036,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-10T14:42:45Z",
+          "end_date": "2026-10-10T14:56:47Z",
+          "unit": "PERCENT",
+          "top_processes": "chrome.exe PID 12564(983502848 bytes)\nmsedgewebview2.exe PID 25352(453861376 bytes)\nchrome.exe PID 22596(339992576 bytes)\nchrome.exe PID 17692(199876608 bytes)\nexplorer.exe PID 8944(136261632 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "b057e8a3-df93-4ebd-9e0c-689fc2514337",
+    "deviceId": 138,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-10T15:24:36Z à 2026-10-10T15:40:44Z\r\nLes 5 principaux processus :\r\nexplorer.exe PID 11096(88567808 bytes)\nNinjaRMMAgent.exe PID 63112(74674176 bytes)\nsvchost.exe PID 4392(57352192 bytes)\nsvchost.exe PID 1540(56881152 bytes)\nsvchost.exe PID 1400(45809664 bytes)",
+    "createTime": 1791646886.040046,
+    "updateTime": 1791646886.040046,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-10T15:24:36Z",
+          "end_date": "2026-10-10T15:40:44Z",
+          "unit": "PERCENT",
+          "top_processes": "explorer.exe PID 11096(88567808 bytes)\nNinjaRMMAgent.exe PID 63112(74674176 bytes)\nsvchost.exe PID 4392(57352192 bytes)\nsvchost.exe PID 1540(56881152 bytes)\nsvchost.exe PID 1400(45809664 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "abc92727-b1b5-41e0-80a0-e77939395b17",
+    "deviceId": 241,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-10T16:15:10Z à 2026-10-10T16:15:10Z",
+    "createTime": 1791650147.890897,
+    "updateTime": 1791650147.890897,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-10T16:15:10Z",
+          "end_date": "2026-10-10T16:15:10Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "4a7ab710-3295-4d4d-87a0-773eb82f517a",
+    "deviceId": 291,
+    "message": "Le temps d’activité du disque pour 'C:' est supérieur à 90% de 2026-10-10T15:52:02Z à 2026-10-10T16:08:28Z",
+    "createTime": 1791651489.569088,
+    "updateTime": 1791651489.569088,
+    "sourceType": "CONDITION_AGENT_DISK_IO",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_act_gt",
+        "params": {
+          "volume": "C:",
+          "threshold": "90",
+          "start_date": "2026-10-10T15:52:02Z",
+          "end_date": "2026-10-10T16:08:28Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk Active Time is greater than 90  % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "c20ce399-1c71-4469-b5b4-fe4966822ea3",
+    "deviceId": 60,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-10T18:02:26Z à 2026-10-10T18:02:26Z",
+    "createTime": 1791655953.83949,
+    "updateTime": 1791655953.83949,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-10T18:02:26Z",
+          "end_date": "2026-10-10T18:02:26Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "9e0cdc38-95ac-4345-bb81-c71a0eddb2f7",
+    "deviceId": 75,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-10T18:05:04Z à 2026-10-10T18:19:09Z\r\nLes 5 principaux processus :\r\nwlanext.exe PID 8780(235843584 bytes)\nexplorer.exe PID 8080(116649984 bytes)\nNinjaRMMAgent.exe PID 7680(108593152 bytes)\nsvchost.exe PID 1652(95031296 bytes)\nsvchost.exe PID 4716(79257600 bytes)",
+    "createTime": 1791656376.642503,
+    "updateTime": 1791656376.642503,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-10T18:05:04Z",
+          "end_date": "2026-10-10T18:19:09Z",
+          "unit": "PERCENT",
+          "top_processes": "wlanext.exe PID 8780(235843584 bytes)\nexplorer.exe PID 8080(116649984 bytes)\nNinjaRMMAgent.exe PID 7680(108593152 bytes)\nsvchost.exe PID 1652(95031296 bytes)\nsvchost.exe PID 4716(79257600 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "e61dd94c-5963-4062-8612-dc48da3c6547",
+    "deviceId": 190,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-10T19:05:04Z à 2026-10-10T19:05:04Z",
+    "createTime": 1791659177.843019,
+    "updateTime": 1791659177.843019,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-10T19:05:04Z",
+          "end_date": "2026-10-10T19:05:04Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "b7b98492-8212-417d-ba04-e9e12bd1259d",
+    "deviceId": 127,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-11T00:52:11Z à 2026-10-11T01:06:19Z\r\nLes 5 principaux processus :\r\nsvchost.exe PID 1556(153808896 bytes)\nexplorer.exe PID 11396(100614144 bytes)\nNinjaRMMAgent.exe PID 3356(97914880 bytes)\nsvchost.exe PID 11212(82395136 bytes)\nsvchost.exe PID 4552(76435456 bytes)",
+    "createTime": 1791680821.250627,
+    "updateTime": 1791680821.250627,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-11T00:52:11Z",
+          "end_date": "2026-10-11T01:06:19Z",
+          "unit": "PERCENT",
+          "top_processes": "svchost.exe PID 1556(153808896 bytes)\nexplorer.exe PID 11396(100614144 bytes)\nNinjaRMMAgent.exe PID 3356(97914880 bytes)\nsvchost.exe PID 11212(82395136 bytes)\nsvchost.exe PID 4552(76435456 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "cf916227-dc64-473f-a75f-42bbd207736a",
+    "deviceId": 13,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T01:17:46Z à 2026-10-11T01:17:46Z",
+    "createTime": 1791681515.65289,
+    "updateTime": 1791681515.65289,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T01:17:46Z",
+          "end_date": "2026-10-11T01:17:46Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "00653d61-aa8c-4b3b-9f74-f2e4685423d2",
+    "deviceId": 241,
+    "message": "Le temps d’activité du disque pour 'C:' est supérieur à 90% de 2026-10-11T04:45:09Z à 2026-10-11T03:25:37Z",
+    "createTime": 1791695720.692847,
+    "updateTime": 1791695720.692847,
+    "sourceType": "CONDITION_AGENT_DISK_IO",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_act_gt",
+        "params": {
+          "volume": "C:",
+          "threshold": "90",
+          "start_date": "2026-10-11T04:45:09Z",
+          "end_date": "2026-10-11T03:25:37Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk Active Time is greater than 90  % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "5b2fabbd-7580-4ef6-87b6-9fd65b1bbca9",
+    "deviceId": 55,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-11T06:20:51Z à 2026-10-11T06:34:56Z\r\nLes 5 principaux processus :\r\nNinjaRMMAgent.exe PID 8120(94236672 bytes)\nsvchost.exe PID 1128(90644480 bytes)\nLogonUI.exe PID 3540(89296896 bytes)\nexplorer.exe PID 11008(85663744 bytes)\nSenseNDR.exe PID 6064(83738624 bytes)",
+    "createTime": 1791700533.780383,
+    "updateTime": 1791700533.780383,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-11T06:20:51Z",
+          "end_date": "2026-10-11T06:34:56Z",
+          "unit": "PERCENT",
+          "top_processes": "NinjaRMMAgent.exe PID 8120(94236672 bytes)\nsvchost.exe PID 1128(90644480 bytes)\nLogonUI.exe PID 3540(89296896 bytes)\nexplorer.exe PID 11008(85663744 bytes)\nSenseNDR.exe PID 6064(83738624 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "0e6009fe-a794-4d2f-a9d9-ef47712993b1",
+    "deviceId": 2775,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T02:53:36Z à 2026-10-11T02:53:36Z",
+    "createTime": 1791702896.509583,
+    "updateTime": 1791702896.509583,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T02:53:36Z",
+          "end_date": "2026-10-11T02:53:36Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "ab58ccc8-1e09-4e50-a882-ee1773441287",
+    "deviceId": 184,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T07:35:47Z à 2026-10-11T07:35:47Z",
+    "createTime": 1791704198.7863,
+    "updateTime": 1791704198.7863,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T07:35:47Z",
+          "end_date": "2026-10-11T07:35:47Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "2f855cf5-6897-46dc-9dfd-c21754773bbe",
+    "deviceId": 37,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-11T08:16:23Z à 2026-10-11T08:30:30Z\r\nLes 5 principaux processus :\r\nX4.exe PID 17360(493875200 bytes)\nEPSecurityService.exe PID 5216(406720512 bytes)\nexplorer.exe PID 14632(142843904 bytes)\nmsedgewebview2.exe PID 12804(107900928 bytes)\nNinjaRMMAgent.exe PID 8996(91734016 bytes)",
+    "createTime": 1791707468.906563,
+    "updateTime": 1791707468.906563,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-11T08:16:23Z",
+          "end_date": "2026-10-11T08:30:30Z",
+          "unit": "PERCENT",
+          "top_processes": "X4.exe PID 17360(493875200 bytes)\nEPSecurityService.exe PID 5216(406720512 bytes)\nexplorer.exe PID 14632(142843904 bytes)\nmsedgewebview2.exe PID 12804(107900928 bytes)\nNinjaRMMAgent.exe PID 8996(91734016 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "ee8decc6-f213-4d48-aa79-cab8fb1cf64f",
+    "deviceId": 115,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T09:05:02Z à 2026-10-11T09:05:02Z",
+    "createTime": 1791709546.7781,
+    "updateTime": 1791709546.7781,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T09:05:02Z",
+          "end_date": "2026-10-11T09:05:02Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "0425b28f-f389-4f13-b72b-3e131d51483e",
+    "deviceId": 235,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T09:39:05Z à 2026-10-11T09:39:05Z",
+    "createTime": 1791711593.850561,
+    "updateTime": 1791711593.850561,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T09:39:05Z",
+          "end_date": "2026-10-11T09:39:05Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "2d4561f7-d79b-4516-850e-0ab20a7d7b0e",
+    "deviceId": 269,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-11T09:27:52Z à 2026-10-11T09:41:58Z\r\nLes 5 principaux processus :\r\nServiceShell.exe PID 10796(306638848 bytes)\nSupportAssistAgent.exe PID 11036(190640128 bytes)\nDell.TechHub.Instrumentation.SubAgent.exe PID 5256(145694720 bytes)\nexplorer.exe PID 2784(115740672 bytes)\nDell.TechHub.Analytics.SubAgent.exe PID 7824(112177152 bytes)",
+    "createTime": 1791711763.363049,
+    "updateTime": 1791711763.363049,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-11T09:27:52Z",
+          "end_date": "2026-10-11T09:41:58Z",
+          "unit": "PERCENT",
+          "top_processes": "ServiceShell.exe PID 10796(306638848 bytes)\nSupportAssistAgent.exe PID 11036(190640128 bytes)\nDell.TechHub.Instrumentation.SubAgent.exe PID 5256(145694720 bytes)\nexplorer.exe PID 2784(115740672 bytes)\nDell.TechHub.Analytics.SubAgent.exe PID 7824(112177152 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "66c7a9fd-7897-422a-bf4a-7309151f78f8",
+    "deviceId": 102,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T09:55:01Z à 2026-10-11T09:55:01Z",
+    "createTime": 1791712544.208389,
+    "updateTime": 1791712544.208389,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T09:55:01Z",
+          "end_date": "2026-10-11T09:55:01Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "c8ba18dc-015d-484a-a0af-7fa48ecf6efa",
+    "deviceId": 228,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T11:38:57Z à 2026-10-11T11:38:57Z",
+    "createTime": 1791718775.956612,
+    "updateTime": 1791718775.956612,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T11:38:57Z",
+          "end_date": "2026-10-11T11:38:57Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "78c6dcec-3067-4520-94b1-5bdf8459b766",
+    "deviceId": 160,
+    "message": "L’utilisation de la mémoire est supérieure ou égale à 90% de 2026-10-11T11:59:35Z à 2026-10-11T12:13:41Z\r\nLes 5 principaux processus :\r\nmsedgewebview2.exe PID 14104(409886720 bytes)\nmsedge.exe PID 24388(248889344 bytes)\nNinjaRMMAgent.exe PID 8356(110485504 bytes)\nmsedgewebview2.exe PID 22332(95604736 bytes)\nexplorer.exe PID 10256(93224960 bytes)",
+    "createTime": 1791720859.753856,
+    "updateTime": 1791720859.753856,
+    "sourceType": "CONDITION_AGENT_MEMORY",
+    "sourceName": "",
+    "subject": "",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_mem_ge",
+        "params": {
+          "threshold": "90",
+          "start_date": "2026-10-11T11:59:35Z",
+          "end_date": "2026-10-11T12:13:41Z",
+          "unit": "PERCENT",
+          "top_processes": "msedgewebview2.exe PID 14104(409886720 bytes)\nmsedge.exe PID 24388(248889344 bytes)\nNinjaRMMAgent.exe PID 8356(110485504 bytes)\nmsedgewebview2.exe PID 22332(95604736 bytes)\nexplorer.exe PID 10256(93224960 bytes)"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Memory is greater than or equal to 90 % for 15 minutes",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "8eeeac1a-323c-4b41-8717-f130824c40b7",
+    "deviceId": 160,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T12:29:32Z à 2026-10-11T12:29:32Z",
+    "createTime": 1791721828.128967,
+    "updateTime": 1791721828.128967,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T12:29:32Z",
+          "end_date": "2026-10-11T12:29:32Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "6c29e019-ac56-44b6-8bce-e35684f4b3db",
+    "deviceId": 175,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T12:55:23Z à 2026-10-11T12:55:23Z",
+    "createTime": 1791723308.846212,
+    "updateTime": 1791723308.846212,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T12:55:23Z",
+          "end_date": "2026-10-11T12:55:23Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  },
+  {
+    "uid": "38bc531b-b394-44e6-b566-ed233c0310c0",
+    "deviceId": 93,
+    "message": "L’espace disque disponible pour 'C:' est inférieur ou égal à 15% de 2026-10-11T13:30:59Z à 2026-10-11T13:30:59Z",
+    "createTime": 1791725514.418571,
+    "updateTime": 1791725514.418571,
+    "sourceType": "CONDITION_AGENT_DISK_FREE_SPACE",
+    "sourceName": "",
+    "subject": "C:",
+    "data": {
+      "message": {
+        "code": "agent_win_cond_disk_free_le",
+        "params": {
+          "volume": "C:",
+          "unit": "%",
+          "threshold": "15",
+          "start_date": "2026-10-11T13:30:59Z",
+          "end_date": "2026-10-11T13:30:59Z"
+        }
+      }
+    },
+    "priority": "NONE",
+    "severity": "NONE",
+    "conditionName": "Disk free space is less than or equal to 15 % for 15 minutes  Exclude recovery volume for window device(s) Exclude removable disk for window device(s)",
+    "conditionHealthStatus": "NEEDS_ATTENTION",
+    "useGlobalHealthStatus": false
+  }
+]

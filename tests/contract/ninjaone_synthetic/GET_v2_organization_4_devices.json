@@ -1,0 +1,10 @@
+[
+  {
+    "id": 301,
+    "organizationId": 4,
+    "nodeClass": "NMS_FIREWALL",
+    "systemName": "fw-wg-01",
+    "displayName": "fw-wg-01",
+    "offline": false
+  }
+]

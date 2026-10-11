@@ -1,0 +1,26 @@
+[
+  {
+    "id": 2117,
+    "organizationId": 15,
+    "nodeClass": "UNMANAGED_DEVICE",
+    "displayName": "pc-org15-01",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 2118,
+    "organizationId": 15,
+    "nodeClass": "UNMANAGED_DEVICE",
+    "displayName": "pc-org15-02",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 2154,
+    "organizationId": 15,
+    "nodeClass": "UNMANAGED_DEVICE",
+    "displayName": "pc-org15-03",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  }
+]

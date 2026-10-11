@@ -455,7 +455,7 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
     return httpx.MockTransport(handler)
 
 
-TOKEN_PATHS = frozenset({"/api/oauth2/token"})
+TOKEN_PATHS = frozenset({"/api/oauth2/token", "/ws/oauth/token"})  # Veeam, NinjaOne
 FAKE_TOKEN = {
     "access_token": "fixture-access-token",
     "token_type": "bearer",
@@ -477,36 +477,52 @@ class RecordingTransport(httpx.BaseTransport):
             inner = httpx.HTTPTransport(verify=verify)
         self._inner = inner
         self.saved: dict[str, Any] = {}
+        # Bilan de tous les appels (méthode, chemin, statut, taille), même sans corps.
+        self.calls: list[tuple[str, str, int, int]] = []
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         response = self._inner.handle_request(request)
         body = response.read()
+        self.calls.append((request.method, request.url.path, response.status_code, len(body)))
         name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
         if response.status_code == 200 and body.strip():
             if request.url.path in TOKEN_PATHS:
                 self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
             else:
                 self._merge(name, json.loads(body))
-        return httpx.Response(
-            response.status_code, headers=response.headers, content=body, request=request
-        )
+        # `body` est déjà décompressé : ne pas transmettre Content-Encoding (sinon httpx
+        # décompresse une seconde fois) ni l'ancienne longueur.
+        headers = [
+            (k, v)
+            for k, v in response.headers.multi_items()
+            if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")
+        ]
+        return httpx.Response(response.status_code, headers=headers, content=body, request=request)
 
     def _merge(self, name: str, data: Any) -> None:
+        """Pages successives d'un même chemin cumulées : liste brute (NinjaOne), `data`
+        (Veeam, boards NinjaOne) ou `results` (rapports NinjaOne à curseur)."""
         previous = self.saved.get(name)
-        if (
-            isinstance(previous, dict)
-            and isinstance(data, dict)
-            and isinstance(previous.get("data"), list)
-            and isinstance(data.get("data"), list)
-        ):
-            merged = previous["data"] + data["data"]
-            self.saved[name] = {
-                **data,
-                "data": merged,
-                "pagination": {"total": len(merged), "count": len(merged), "skip": 0},
-            }
-        else:
-            self.saved[name] = data
+        if isinstance(previous, list) and isinstance(data, list):
+            self.saved[name] = previous + data
+            return
+        for key in ("data", "results"):
+            if (
+                isinstance(previous, dict)
+                and isinstance(data, dict)
+                and isinstance(previous.get(key), list)
+                and isinstance(data.get(key), list)
+            ):
+                merged = previous[key] + data[key]
+                self.saved[name] = {**data, key: merged}
+                if "pagination" in data:
+                    self.saved[name]["pagination"] = {
+                        "total": len(merged),
+                        "count": len(merged),
+                        "skip": 0,
+                    }
+                return
+        self.saved[name] = data
 
 
 class Bounded[T](Iterator[T]):

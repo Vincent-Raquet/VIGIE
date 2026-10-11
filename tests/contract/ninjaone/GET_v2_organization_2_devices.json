@@ -1,0 +1,26 @@
+[
+  {
+    "id": 33,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-wi-01",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 38,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-wi-03",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 45,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-wi-05",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  }
+]

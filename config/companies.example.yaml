@@ -31,8 +31,13 @@ asset_rules:
   - {source: zabbix, match: hostname_contains, pattern: "wifi bridge",   asset_criticality: 0.9}
   - {source: zabbix, match: hostname_contains, pattern: "iLO",           asset_criticality: 1.3}
   - {source: zabbix, match: hostname_contains, pattern: "UPS",           asset_criticality: 1.2}
-  # NinjaOne : organisationId → société (ids à compléter)
-  - {source: ninjaone, match: org_id, pattern: "TODO", company: WI}
+  # NinjaOne : id d'organisation → société (relevés le 2026-10-11 ; les autres organisations
+  # — Splifar Tôlerie, TCA, Splicar… — restent sans société, décision du coordinateur)
+  - {source: ninjaone, match: org_id, pattern: "2", company: WI}   # WALLINDUSTRIES
+  - {source: ninjaone, match: org_id, pattern: "3", company: SPL}  # SPLIFAR VERRERIE
+  - {source: ninjaone, match: org_id, pattern: "4", company: WG}   # WALLGLASS
+  - {source: ninjaone, match: org_id, pattern: "5", company: CC}   # CONSTRUCT-CENTER
+  - {source: ninjaone, match: org_id, pattern: "6", company: FWD}  # FAIRWIND
   # FortiAnalyzer : ADOM ou préfixe de devname
   - {source: fortianalyzer, match: devname_prefix, pattern: "WI-", company: WI}
   # Veeam : préfixe de nom de job

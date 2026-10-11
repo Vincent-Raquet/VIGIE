@@ -66,9 +66,15 @@ api_version = "1.3-rev1"           # x-api-version : 1.3-rev1 (13.0.1), 1.3-rev2
 session_window_days = 7            # historique des sessions lu pour le dernier succès et les échecs consécutifs
 
 [sources.ninjaone]
-enabled = false   # connecteur pas encore implémenté
-base_url = "https://eu.ninjarmm.com"   # région à confirmer
+enabled = false
 interval_min = 15
+base_url = "https://eu.ninjarmm.com"   # région de l'instance (app, eu, ca, oc, us2)
+# client_id = "…"                    # dev seulement ; en prod : secret « ninjaone_client_id » (hors dépôt)
+scope = "monitoring"                   # lecture seule ; management jamais demandé
+ticket_board_id = 0                    # 0 = tickets non collectés ; id relevé par record_fixtures
+ticket_statuses = []                   # ex. ["Nouveau", "Ouvert", "En attente"] (noms affichés)
+aggregate_threshold = 5                # au-delà, alertes d'un même type regroupées par société
+# proxy = "http://127.0.0.1:3128"      # production : sortie Internet par Squid
 
 [sources.fortianalyzer]
 enabled = false   # connecteur pas encore implémenté

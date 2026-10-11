@@ -64,3 +64,41 @@ def test_refuses_unsafe_runs(
     monkeypatch.setattr(sys, "argv", argv)
     assert script.main() == 2
     assert message in capsys.readouterr().err
+
+
+def test_compressed_responses_are_replayed_decoded() -> None:
+    # NinjaOne compresse ses réponses (gzip) : la réponse recréée ne doit pas l'être deux fois.
+    import gzip
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=gzip.compress(b'[{"id": 1}]'),
+            headers={"Content-Encoding": "gzip", "Content-Type": "application/json"},
+        )
+
+    recorder = RecordingTransport(None, inner=httpx.MockTransport(handler))
+    with httpx.Client(transport=recorder) as client:
+        assert client.get("https://ninja.test/v2/organizations").json() == [{"id": 1}]
+    assert recorder.saved["GET_v2_organizations.json"] == [{"id": 1}]
+
+
+@pytest.mark.parametrize(
+    ("pages", "expected"),
+    [
+        ([[{"id": 1}], [{"id": 2}]], [{"id": 1}, {"id": 2}]),  # liste brute (NinjaOne)
+        (
+            [{"cursor": {"name": "c"}, "results": [1]}, {"cursor": {}, "results": [2]}],
+            {"cursor": {}, "results": [1, 2]},
+        ),  # rapport à curseur (NinjaOne)
+    ],
+)
+def test_all_page_shapes_are_accumulated(pages: list[object], expected: object) -> None:
+    responses = iter(pages)
+    recorder = RecordingTransport(
+        None, inner=httpx.MockTransport(lambda r: httpx.Response(200, json=next(responses)))
+    )
+    with httpx.Client(transport=recorder) as client:
+        for _ in pages:
+            client.get("https://ninja.test/v2/organization/2/devices")
+    assert recorder.saved["GET_v2_organization_2_devices.json"] == expected
