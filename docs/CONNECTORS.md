@@ -67,19 +67,19 @@ Les tests de `tests/security/test_registered_connectors.py` s'appliquent automat
 - **Mapping société** : ADOM ou nom d'appareil (`devname` préfixé).
 - **Catégories** : `firewall`, `network` (VPN, SD-WAN), `security` (IPS, AV, botnet).
 
-## 3. NinjaOne
-- **Auth** : API client *Client Credentials* dans NinjaOne (Administration → Apps → API), scope **`monitoring`** (lecture). Token sur `POST https://{region}.ninjarmm.com/ws/oauth/token`. ⚠️ La lecture des tickets peut nécessiter le scope `management` : si c'est le cas, créer un client distinct, l'associer à un technicien dont le rôle est limité à la lecture, et s'appuyer sur l'allowlist.
-- **Allowlist** (`GET` sauf mention) :
-  - `/v2/alerts` — alertes actives (conditions).
-  - `/v2/organizations`, `/v2/devices` (champs limités) — mapping organisation → société.
-  - `/v2/queries/os-patches` et `/v2/queries/software-patches` (statut `FAILED`/`PENDING` approuvés) — patchs manquants.
-  - `/v2/queries/antivirus-threats`, `/v2/queries/antivirus-status`.
-  - `/v2/queries/backup/jobs` — si NinjaOne Backup est utilisé.
-  - Vulnérabilités : ⚠️ endpoint du module *Vulnerability Management* à confirmer dans la doc API de l'instance.
-  - Tickets : `GET /v2/ticketing/trigger/boards`, puis **exception documentée** `POST /v2/ticketing/trigger/board/{id}/run` (la liste des tickets d'un board s'obtient en POST ; corps validé : uniquement `pageSize`, `lastCursorId`, `sortBy`, filtres) ⚠️ vérifier ; `GET /v2/ticketing/ticket/{id}` pour le détail.
-- **Collecte** : alertes ouvertes ; tickets ouverts (sujet, statut, priorité, sévérité, organisation, assigné, âge, dernière mise à jour) — **pas le corps** par défaut (`SECURITY.md C5`) ; agrégats patchs/vulnérabilités par société (un signal par société et catégorie, pas un par poste, pour éviter le bruit : « 34 postes WG avec patchs critiques manquants > 14 j »).
-- **Catégories** : `user_support` (tickets), `endpoint`, `vulnerability`, `backup`, `server` (selon rôle de l'appareil).
-- **Mapping société** : `organizationId` → code société (table `asset_rule`).
+## 3. NinjaOne (`src/vigie/connectors/ninjaone.py`)
+Référence : spécification officielle NinjaOne Public API 2.0 (2.0.9-draft, `https://app.ninjarmm.com/apidocs/NinjaRMM-API-v2.yaml`), instance **eu.ninjarmm.com**.
+- **Auth** : app API « Vigie » en *client credentials* ; `POST /ws/oauth/token` en formulaire (`grant_type=client_credentials`, `client_id`, `client_secret`, **`scope=monitoring`** seul : schéma strict, `management`/`control` refusés avant envoi). La spécification n'indique pas le scope par opération : `monitoring` = lecture seule selon la doc « OAuth token configuration » ; TODO verify que la lecture des tickets (`board/run`) passe avec `monitoring` — sinon décision du coordinateur avant d'élargir.
+- **Allowlist `GET`** : `/v2/organizations`, `/v2/devices` (`pageSize`, `after`) ; `/v2/alerts` (aucun paramètre) ; `/v2/queries/os-patches`, `/v2/queries/software-patches` (`pageSize`, `cursor`, `status`) ; `/v2/ticketing/trigger/boards`, `/v2/ticketing/statuses`.
+- **Exception `POST` de lecture** : `/v2/ticketing/trigger/board/{id}/run` (l'API n'offre que POST), corps strict : `includeColumns` choisis dans une liste fermée (`id`, `summary`, `status`, `priority`, `severity`, `organization`, `clientId`, `type`, `createTime`, `lastUpdated` — jamais description, demandeur, contact), `pageSize` ≤ 100, `lastCursorId` ; ni filtre, ni recherche, ni tri (statuts filtrés localement).
+- **Interdits** (`tests/security/test_ninjaone_allowlist.py`) : création, modification, commentaire de ticket, `GET /v2/ticketing/ticket/{id}` (corps), journal du ticket, contacts et utilisateurs finaux, reset/suppression d'alerte, scans et installations de patchs, scripts, organisations, installeurs, sauvegardes (NinjaOne Backup non utilisé), toute écriture.
+- **Signaux** :
+  - alertes : une par alerte ; au-delà de `aggregate_threshold` (5) alertes de même condition dans une organisation → un signal agrégé (nombre, exemples d'appareils). Gravité `CRITICAL/MAJOR/MODERATE/MINOR/NONE` → 5/4/3/2/1 (TODO verify, chaîne libre dans la spécification) ; catégorie : antivirus/BitLocker → `security`, CVSS/patch → `vulnerability`, `NMS_FIREWALL` → `firewall`, autres `NMS_*` → `network`, serveurs → `server`, sinon `endpoint` ;
+  - patchs en échec (`patch_status`, `FAILED` par défaut ; TODO verify) agrégés par société et type (OS → 3, 4 si un patch CRITICAL ; logiciels → 2, 3 si CRITICAL) ;
+  - tickets du board `ticket_board_id`, statuts `ticket_statuses` (noms affichés) : `user_support`, sévérité selon la priorité ; **titre conservé pour les techniciens mais jamais envoyé à l'IA** tant que `[llm] send_ticket_text = false` (attribut `kind = ticket`, masquage dans `engine/context.py`, testé).
+- **Réseau** : Internet via Squid (`proxy` de la source → port worker 3128 ; `eu.ninjarmm.com` dans `squid_worker_domains`).
+- **Mapping société** : id d'organisation → règle `asset_rule` `org_id`.
+- **Fixtures** : synthétiques (`tests/contract/ninjaone_synthetic`) ; capture réelle par `scripts/record_fixtures.py ninjaone`, qui relève aussi organisations, boards et statuts.
 
 ## 4. Wazuh (4.x)
 - **Deux API** :
@@ -118,7 +118,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 |---|---|---|---|
 | Zabbix | `svc-vigie` + token | Rôle User, API allowlist `problem.get`, `trigger.get`, `proxy.get`, groupes en Read | — (token) |
 | FortiAnalyzer | `svc-vigie` (API admin) | Profil Read-Only | Trusted host = IP VM |
-| NinjaOne | API client « Vigie » | `monitoring` (+ `management` seulement si requis pour tickets, technicien RO) | Allowed IP si disponible |
+| NinjaOne | app API « Vigie » (client credentials) | `monitoring` seul (`management` uniquement sur décision si les tickets l'exigent) | Squid (`eu.ninjarmm.com`) ; secret `ninjaone_client_secret` |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |
 | Veeam B&R 13.1 | `svcveeamvigie` (local) | Backup Viewer (jeton confirmé 2026-10-11 ; GET à confirmer) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |

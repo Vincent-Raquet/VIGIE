@@ -1,0 +1,22 @@
+[
+  {
+    "name": "NEW",
+    "displayName": "Nouveau",
+    "statusId": 1000
+  },
+  {
+    "name": "OPEN",
+    "displayName": "Ouvert",
+    "statusId": 2000
+  },
+  {
+    "name": "WAITING",
+    "displayName": "En attente",
+    "statusId": 3000
+  },
+  {
+    "name": "CLOSED",
+    "displayName": "Fermé",
+    "statusId": 6000
+  }
+]

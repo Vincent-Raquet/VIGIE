@@ -35,6 +35,7 @@ squid_worker_domains:
   - api.anthropic.com
   - login.microsoftonline.com
   - graph.microsoft.com
+  - eu.ninjarmm.com             # API NinjaOne (jeton et lectures)
 squid_teams_domains: []         # ex. .westeurope.logic.azure.com quand Teams sera activé
 squid_web_domains:
   - login.microsoftonline.com
@@ -68,7 +69,26 @@ vigie_source_veeam:
       username: svcveeamvigie
       api_version: "1.3-rev2"   # VBR 13.1.1.18 (2026-10-11) ; 1.3-rev1 pour 13.0.1
       ca_bundle: /etc/vigie/ca/veeam.pem
-vigie_sources_enabled: "{{ vigie_sources_base + (vigie_source_veeam if vigie_veeam_host else []) }}"
+# NinjaOne (eu.ninjarmm.com, via Squid) : client id de l'app API « Vigie » (non secret ;
+# secret : ninjaone_client_secret). Vide = source NinjaOne non déployée.
+vigie_ninjaone_client_id: ""
+vigie_ninjaone_board_id: 0          # board des tickets (0 = pas de tickets)
+vigie_ninjaone_statuses: []         # statuts à traiter (noms affichés dans NinjaOne)
+vigie_source_ninjaone:
+  - name: ninjaone
+    interval_min: 15
+    secrets: [ninjaone_client_secret]
+    settings:
+      base_url: "https://eu.ninjarmm.com"
+      client_id: "{{ vigie_ninjaone_client_id }}"
+      scope: monitoring
+      ticket_board_id: "{{ vigie_ninjaone_board_id | int }}"
+      ticket_statuses: "{{ vigie_ninjaone_statuses }}"
+      proxy: "http://127.0.0.1:{{ squid_worker_port }}"
+vigie_sources_enabled: >-
+  {{ vigie_sources_base
+     + (vigie_source_veeam if vigie_veeam_host else [])
+     + (vigie_source_ninjaone if vigie_ninjaone_client_id else []) }}
 vigie_llm_enabled: true
 vigie_llm_budget_usd: 30
 vigie_notify_mail_enabled: false

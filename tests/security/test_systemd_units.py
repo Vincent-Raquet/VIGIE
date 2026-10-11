@@ -40,7 +40,7 @@ SANDBOX = {
     "IPAddressDeny": "any",
 }
 # Secrets de sources connus : seuls autorisés pour vigie-jobs (et chacun pour sa collecte).
-SOURCE_SECRETS = {"zabbix_api_token", "veeam_password"}
+SOURCE_SECRETS = {"zabbix_api_token", "veeam_password", "ninjaone_client_secret"}
 # Secrets autorisés par unité : tout ce qui n'est pas listé ici est interdit.
 ALLOWED = {
     "vigie-web.service": {"web_session_key", "entra_client_secret"},
@@ -250,6 +250,19 @@ def test_collect_dropin_gives_only_its_source_secret_and_addresses(veeam_host: s
         jobs = _units(ctx)["vigie-jobs.service"]
         assert _credentials(jobs) == {"zabbix_api_token", "veeam_password"}
         assert "10.10.10.27" in _directives(jobs)["IPAddressAllow"][0].split()
+
+
+def test_ninjaone_source_goes_through_squid_only() -> None:
+    ctx = _context({"vigie_ninjaone_client_id": "client-vigie"})
+    [source] = [s for s in ctx["vigie_sources_enabled"] if s["name"] == "ninjaone"]
+    assert source["secrets"] == ["ninjaone_client_secret"]
+    assert source["settings"]["proxy"] == f"http://127.0.0.1:{ctx['squid_worker_port']}"
+    assert "eu.ninjarmm.com" in ctx["squid_worker_domains"]
+    text = _render("units/credentials.conf.j2", ctx, source=source)
+    assert _credentials(text) == {"ninjaone_client_secret"}
+    # Aucune IP directe : seulement le DNS (Squid est joint par la boucle locale).
+    assert set(_directives(text)["IPAddressAllow"][0].split()) == set(ctx["dns_servers"])
+    assert "ninjaone" not in {e["name"] for e in ctx["vigie_source_egress"]}
 
 
 def test_plan_requests_never_get_source_secrets() -> None:

@@ -455,7 +455,7 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
     return httpx.MockTransport(handler)
 
 
-TOKEN_PATHS = frozenset({"/api/oauth2/token"})
+TOKEN_PATHS = frozenset({"/api/oauth2/token", "/ws/oauth/token"})  # Veeam, NinjaOne
 FAKE_TOKEN = {
     "access_token": "fixture-access-token",
     "token_type": "bearer",

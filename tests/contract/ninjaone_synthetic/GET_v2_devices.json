@@ -1,0 +1,74 @@
+[
+  {
+    "id": 101,
+    "organizationId": 1,
+    "nodeClass": "WINDOWS_SERVER",
+    "systemName": "srv-wi-01",
+    "displayName": "srv-wi-01",
+    "offline": false
+  },
+  {
+    "id": 201,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-01",
+    "displayName": "pc-spl-01",
+    "offline": false
+  },
+  {
+    "id": 202,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-02",
+    "displayName": "pc-spl-02",
+    "offline": false
+  },
+  {
+    "id": 203,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-03",
+    "displayName": "pc-spl-03",
+    "offline": false
+  },
+  {
+    "id": 204,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-04",
+    "displayName": "pc-spl-04",
+    "offline": false
+  },
+  {
+    "id": 205,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-05",
+    "displayName": "pc-spl-05",
+    "offline": false
+  },
+  {
+    "id": 206,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-06",
+    "displayName": "pc-spl-06",
+    "offline": false
+  },
+  {
+    "id": 207,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-spl-07",
+    "displayName": "pc-spl-07",
+    "offline": false
+  },
+  {
+    "id": 301,
+    "organizationId": 3,
+    "nodeClass": "NMS_FIREWALL",
+    "systemName": "fw-wg-01",
+    "displayName": "fw-wg-01",
+    "offline": false
+  }
+]

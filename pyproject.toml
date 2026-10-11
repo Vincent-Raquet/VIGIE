@@ -32,6 +32,7 @@ vigie = "vigie.cli:app"
 [project.entry-points."vigie.connectors"]
 zabbix = "vigie.connectors.zabbix:ZabbixConnector"
 veeam = "vigie.connectors.veeam:VeeamConnector"
+ninjaone = "vigie.connectors.ninjaone:NinjaOneConnector"
 
 [dependency-groups]
 deploy = [
