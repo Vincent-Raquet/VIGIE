@@ -40,6 +40,9 @@ from vigie.redact import clean_untrusted
 
 SOURCE = "ninjaone"
 CLIENT_SECRET = "ninjaone_client_secret"  # noqa: S105 - nom du secret, pas sa valeur
+# Le client id n'est pas secret au sens OAuth, mais ressemble à une clé : hors du dépôt
+# (gitleaks), il est lu dans la configuration locale ou, à défaut, dans les secrets.
+CLIENT_ID_SECRET = "ninjaone_client_id"  # noqa: S105 - nom du secret, pas sa valeur
 TOKEN_PATH = "/ws/oauth/token"  # noqa: S105 - chemin, pas un secret
 PAGE_SIZE = 100
 TITLE_MAX = 300
@@ -170,7 +173,7 @@ class NinjaOneConfig(_Strict):
     enabled: bool = False
     interval_min: int = Field(15, ge=5, le=1440)
     base_url: str = Field(pattern=r"^https://(app|eu|ca|oc|us2)\.ninjarmm\.com/?$")
-    client_id: str = Field(min_length=1, max_length=200)
+    client_id: str | None = Field(None, min_length=1, max_length=200)
     scope: Literal["monitoring"] = "monitoring"
     ticket_board_id: int = Field(0, ge=0)  # 0 = tickets non collectés
     ticket_statuses: list[str] = Field(default_factory=list, max_length=20)
@@ -263,8 +266,10 @@ class NinjaOneConnector:
         client: SafeClient,
         secret: SecretStr,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        client_id: str | None = None,
     ) -> None:
         self.config = config
+        self._client_id = client_id or config.client_id or ""
         self.client = client
         self._secret = secret
         self._now = now
@@ -288,7 +293,8 @@ class NinjaOneConnector:
             proxy=config.proxy,
             transport=ctx.transport,
         )
-        return cls(config, client, ctx.secret(CLIENT_SECRET))
+        client_id = config.client_id or ctx.secret(CLIENT_ID_SECRET).get_secret_value().strip()
+        return cls(config, client, ctx.secret(CLIENT_SECRET), client_id=client_id)
 
     # --- Authentification et pagination ------------------------------------------------
 
@@ -299,7 +305,7 @@ class NinjaOneConnector:
             TOKEN_PATH,
             {
                 "grant_type": "client_credentials",
-                "client_id": self.config.client_id,
+                "client_id": self._client_id,
                 "client_secret": self._secret,
                 "scope": self.config.scope,
             },

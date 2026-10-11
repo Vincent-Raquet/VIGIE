@@ -119,7 +119,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 |---|---|---|---|
 | Zabbix | `svc-vigie` + token | Rôle User, API allowlist `problem.get`, `trigger.get`, `proxy.get`, groupes en Read | — (token) |
 | FortiAnalyzer | `svc-vigie` (API admin) | Profil Read-Only | Trusted host = IP VM |
-| NinjaOne | app API « Vigie » (client credentials) | `monitoring` seul (`management` uniquement sur décision si les tickets l'exigent) | Squid (`eu.ninjarmm.com`) ; secret `ninjaone_client_secret` |
+| NinjaOne | app API « Vigie » (client credentials) | `monitoring` seul (`management` uniquement sur décision si les tickets l'exigent) | Squid (`eu.ninjarmm.com`) ; secrets `ninjaone_client_id`, `ninjaone_client_secret` |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |
 | Veeam B&R 13.1 | `svcveeamvigie` (local) | Backup Viewer (jeton confirmé 2026-10-11 ; GET à confirmer) | Pare-feu Windows : 9419 depuis 192.168.10.17 ; secret `veeam_password` |

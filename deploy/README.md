@@ -63,7 +63,7 @@ sudo vigie-secret rm teams_webhook_url
 | `graph_certificate` | vigie-notify@ | `vigie_notify_mail_enabled` |
 | `teams_webhook_url` | vigie-notify@ | `vigie_notify_teams_enabled` |
 | `veeam_password` | vigie-collect@veeam, vigie-jobs | `vigie_veeam_host` renseigné (§11) |
-| `ninjaone_client_secret` | vigie-collect@ninjaone, vigie-jobs | `vigie_ninjaone_client_id` renseigné (§12) |
+| `ninjaone_client_id`, `ninjaone_client_secret` | vigie-collect@ninjaone, vigie-jobs | `vigie_ninjaone_enabled: true` (§12) |
 
 **Rotation** : `vigie-secret set <nom>` avec la nouvelle valeur, puis
 `sudo systemctl restart vigie-web` (les tâches planifiées relisent le secret à chaque
@@ -263,7 +263,8 @@ pare-feu Windows ouvrant 9419/tcp depuis `vigie_ip` (192.168.10.17).
    (capture hors dépôt ; relève organisations, boards et statuts).
 3. **Correspondance** : ids d'organisation → sociétés dans `config/companies.yaml` (règles
    `org_id`), id du board et statuts à traiter dans la configuration.
-4. **Production** : `vigie_ninjaone_client_id`, `vigie_ninjaone_board_id`,
+4. **Production** : `vigie_ninjaone_enabled: true`, `vigie_ninjaone_board_id`,
    `vigie_ninjaone_statuses` dans `group_vars/vigie.yml` ; `sudo vigie-secret set
-   ninjaone_client_secret` ; playbook (Squid autorise `eu.ninjarmm.com` au worker, timer
+   ninjaone_client_id` et `sudo vigie-secret set ninjaone_client_secret` (le client id
+   ressemble à une clé : gitleaks le refuse dans le dépôt) ; playbook (Squid autorise `eu.ninjarmm.com` au worker, timer
    `vigie-collect@ninjaone` toutes les 15 min).

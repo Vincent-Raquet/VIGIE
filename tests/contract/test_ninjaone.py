@@ -204,3 +204,18 @@ def test_ticket_company_from_organization_name(mapper: RuleMapper) -> None:
 def test_unknown_alert_device_is_read_from_its_details(mapper: RuleMapper) -> None:
     ghost = next(s for s in by_kind(signals(mapper), "alert") if s.asset == "pc-wg-09")
     assert (ghost.company_code, ghost.category, ghost.severity) == ("WG", Category.endpoint, 2)
+
+
+def test_client_id_read_from_secrets_when_absent_from_config() -> None:
+    # Production : client id déposé par vigie-secret (gitleaks le refuse dans le dépôt).
+    asked: list[str] = []
+
+    def secret(name: str) -> SecretStr:
+        asked.append(name)
+        return SecretStr("id-depuis-secret\n" if name == "ninjaone_client_id" else "s")
+
+    settings = {k: v for k, v in SETTINGS.items() if k != "client_id"}
+    ctx = ConnectorContext(settings=settings, secret=secret, transport=fixture_transport(FIXTURES))
+    c = NinjaOneConnector.from_context(ctx)
+    assert asked == ["ninjaone_client_id", "ninjaone_client_secret"]
+    assert c._client_id == "id-depuis-secret"
