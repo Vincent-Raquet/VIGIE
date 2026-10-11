@@ -500,21 +500,29 @@ class RecordingTransport(httpx.BaseTransport):
         return httpx.Response(response.status_code, headers=headers, content=body, request=request)
 
     def _merge(self, name: str, data: Any) -> None:
+        """Pages successives d'un même chemin cumulées : liste brute (NinjaOne), `data`
+        (Veeam, boards NinjaOne) ou `results` (rapports NinjaOne à curseur)."""
         previous = self.saved.get(name)
-        if (
-            isinstance(previous, dict)
-            and isinstance(data, dict)
-            and isinstance(previous.get("data"), list)
-            and isinstance(data.get("data"), list)
-        ):
-            merged = previous["data"] + data["data"]
-            self.saved[name] = {
-                **data,
-                "data": merged,
-                "pagination": {"total": len(merged), "count": len(merged), "skip": 0},
-            }
-        else:
-            self.saved[name] = data
+        if isinstance(previous, list) and isinstance(data, list):
+            self.saved[name] = previous + data
+            return
+        for key in ("data", "results"):
+            if (
+                isinstance(previous, dict)
+                and isinstance(data, dict)
+                and isinstance(previous.get(key), list)
+                and isinstance(data.get(key), list)
+            ):
+                merged = previous[key] + data[key]
+                self.saved[name] = {**data, key: merged}
+                if "pagination" in data:
+                    self.saved[name]["pagination"] = {
+                        "total": len(merged),
+                        "count": len(merged),
+                        "skip": 0,
+                    }
+                return
+        self.saved[name] = data
 
 
 class Bounded[T](Iterator[T]):
