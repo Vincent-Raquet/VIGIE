@@ -27,6 +27,28 @@
       "installedAt": null,
       "deviceId": 202,
       "timestamp": 1791633600.0
+    },
+    {
+      "id": "sw-p1",
+      "productIdentifier": "11111111-aaaa-4aaa-8aaa-111111111111",
+      "title": "Google Chrome 141.0",
+      "impact": "critical",
+      "status": "APPROVED",
+      "type": "PATCH",
+      "installedAt": null,
+      "deviceId": 203,
+      "timestamp": 1791633600.0
+    },
+    {
+      "id": "sw-p2",
+      "productIdentifier": "22222222-aaaa-4aaa-8aaa-222222222222",
+      "title": "Installeur refusé",
+      "impact": "recommended",
+      "status": "REJECTED",
+      "type": "INSTALLER",
+      "installedAt": null,
+      "deviceId": 203,
+      "timestamp": 1791633600.0
     }
   ]
 }

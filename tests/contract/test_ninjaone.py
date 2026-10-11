@@ -219,3 +219,56 @@ def test_client_id_read_from_secrets_when_absent_from_config() -> None:
     c = NinjaOneConnector.from_context(ctx)
     assert asked == ["ninjaone_client_id", "ninjaone_client_secret"]
     assert c._client_id == "id-depuis-secret"
+
+
+def test_pending_security_patches(mapper: RuleMapper) -> None:
+    pending = {
+        (s.attributes["patch_kind"], s.company_code): s
+        for s in by_kind(signals(mapper), "pending_patch")
+    }
+    # Définitions antivirus (pas sécurité) et patchs refusés (REJECTED) écartés.
+    assert set(pending) == {("os", "SPL"), ("os", "WI"), ("software", "SPL")}
+    spl = pending[("os", "SPL")]
+    assert (spl.category, spl.severity, spl.attributes["devices"]) == (
+        Category.vulnerability,
+        4,
+        2,
+    )
+    assert spl.title == "Mise à jour de sécurité 2026-09 non installé sur 2 appareil(s)"
+    assert spl.asset == "Patchs OS en attente — Splifar"
+    assert spl.attributes["min_age_h"] == 168
+    assert spl.attributes["incident_group"] == "ninjaone:pending:os"
+    assert "KB5060001" in spl.details and "pc-spl-01, pc-spl-02" in spl.details
+    wi = pending[("os", "WI")]
+    assert (wi.severity, wi.attributes["status"]) == (3, "MANUAL")
+    assert "à approuver" in wi.title
+    assert pending[("software", "SPL")].severity == 3
+    # Identifiant stable d'une collecte à l'autre : c'est lui qui date l'attente.
+    assert {s.external_id for s in pending.values()} == {
+        s.external_id for s in by_kind(signals(mapper), "pending_patch")
+    }
+
+
+def test_pending_patches_can_be_disabled(mapper: RuleMapper) -> None:
+    assert not by_kind(signals(mapper, make(pending_days=0)), "pending_patch")
+
+
+@pytest.mark.db
+def test_pending_patches_become_one_incident_after_seven_days(
+    mapper: RuleMapper, db_session: Any
+) -> None:
+    from datetime import timedelta
+
+    from vigie.collect import ensure_source, store_snapshot
+    from vigie.db import models
+    from vigie.engine.correlate import correlate
+
+    for code in ("WI", "SPL"):
+        if db_session.get(models.Company, code) is None:
+            db_session.add(models.Company(code=code, name=code, criticality=1.0))
+    ensure_source(db_session, "ninjaone", kind="ninjaone")
+    sigs = by_kind(signals(mapper), "pending_patch")
+    store_snapshot(db_session, "ninjaone", sigs, NOW)
+    assert correlate(db_session, NOW + timedelta(days=6)).created == 0
+    report = correlate(db_session, NOW + timedelta(days=7, minutes=1))
+    assert report.created == 3  # OS SPL, OS WI, logiciels SPL : un incident chacun

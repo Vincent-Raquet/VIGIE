@@ -49,6 +49,61 @@
       "deviceId": 201,
       "timestamp": 1791633600.0,
       "kbNumber": "KB5050001"
+    },
+    {
+      "id": "os-p1",
+      "name": "Mise à jour de sécurité 2026-09",
+      "severity": "CRITICAL",
+      "status": "APPROVED",
+      "type": "SECURITY_UPDATES",
+      "installedAt": null,
+      "deviceId": 201,
+      "timestamp": 1791633600.0,
+      "kbNumber": "KB5060001"
+    },
+    {
+      "id": "os-p2",
+      "name": "Mise à jour de sécurité 2026-09",
+      "severity": "CRITICAL",
+      "status": "APPROVED",
+      "type": "SECURITY_UPDATES",
+      "installedAt": null,
+      "deviceId": 202,
+      "timestamp": 1791633600.0,
+      "kbNumber": "KB5060001"
+    },
+    {
+      "id": "os-p3",
+      "name": "Mise à jour .NET 2026-09",
+      "severity": "IMPORTANT",
+      "status": "MANUAL",
+      "type": "SECURITY_UPDATES",
+      "installedAt": null,
+      "deviceId": 101,
+      "timestamp": 1791633600.0,
+      "kbNumber": "KB5060002"
+    },
+    {
+      "id": "os-p4",
+      "name": "Définitions antivirus",
+      "severity": "NONE",
+      "status": "APPROVED",
+      "type": "DEFINITION_UPDATES",
+      "installedAt": null,
+      "deviceId": 201,
+      "timestamp": 1791633600.0,
+      "kbNumber": "KB2267602"
+    },
+    {
+      "id": "os-p5",
+      "name": "Refusé",
+      "severity": "IMPORTANT",
+      "status": "REJECTED",
+      "type": "SECURITY_UPDATES",
+      "installedAt": null,
+      "deviceId": 201,
+      "timestamp": 1791633600.0,
+      "kbNumber": "KB5060009"
     }
   ]
 }

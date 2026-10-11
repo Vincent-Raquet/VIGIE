@@ -74,6 +74,9 @@ scope = "monitoring"                   # lecture seule ; management jamais deman
 ticket_board_id = 0                    # 0 = tickets non collectés ; id relevé par record_fixtures
 ticket_statuses = []                   # ex. ["Nouveau", "Ouvert", "En attente"] (noms affichés)
 aggregate_threshold = 5                # au-delà, alertes d'un même type regroupées par société
+pending_days = 7                       # patchs en attente (approuvés ou à approuver) : tâche après N jours ; 0 = désactivé
+# pending_statuses = ["APPROVED", "MANUAL"]
+# pending_os_types = ["SECURITY_UPDATES", "CRITICAL_UPDATES"]
 # proxy = "http://127.0.0.1:3128"      # production : sortie Internet par Squid
 
 [sources.defender]

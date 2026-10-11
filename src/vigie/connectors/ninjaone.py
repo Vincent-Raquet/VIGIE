@@ -3,6 +3,9 @@
 Collecte (instantané, toutes les 15 min) :
 - alertes actives (`/v2/alerts`), agrégées par société et type au-delà d'un seuil ;
 - patchs OS et logiciels en échec (`/v2/queries/*-patches`), agrégés par société ;
+- patchs en attente (approuvés non installés, ou à approuver) : un signal par patch et par
+  société, qui n'ouvre d'incident qu'après `pending_days` jours (âge mesuré par Vigie : l'API
+  ne date pas l'apparition d'un patch) ; un seul incident par société et par type ;
 - tickets d'un board (`POST /v2/ticketing/trigger/board/{id}/run`, lecture en POST à
   schéma strict), statuts filtrés localement ; jamais de description ni de demandeur.
 
@@ -169,6 +172,10 @@ ALLOWLIST: tuple[AllowedCall, ...] = (
 # --- Configuration ----------------------------------------------------------------------
 
 
+PendingStatus = Literal["APPROVED", "MANUAL"]
+PENDING_STATUSES: tuple[PendingStatus, ...] = ("APPROVED", "MANUAL")
+
+
 class NinjaOneConfig(_Strict):
     enabled: bool = False
     interval_min: int = Field(15, ge=5, le=1440)
@@ -178,7 +185,16 @@ class NinjaOneConfig(_Strict):
     ticket_board_id: int = Field(0, ge=0)  # 0 = tickets non collectés
     ticket_statuses: list[str] = Field(default_factory=list, max_length=20)
     aggregate_threshold: int = Field(5, ge=2, le=1000)
-    patch_status: str = Field("FAILED", pattern=r"^[A-Z_]{1,30}$")  # TODO verify : valeur
+    patch_status: str = Field("FAILED", pattern=r"^[A-Z_]{1,30}$")
+    # Statuts réels (2026-10-11) : APPROVED (approuvé, pas encore installé), MANUAL (à
+    # approuver), REJECTED (refusé par la politique), FAILED. Aucun « PENDING ».
+    pending_statuses: list[PendingStatus] = Field(
+        default_factory=lambda: list(PENDING_STATUSES), max_length=2
+    )
+    pending_days: int = Field(7, ge=0, le=90)  # 0 = patchs en attente non collectés
+    pending_os_types: list[str] = Field(
+        default_factory=lambda: ["SECURITY_UPDATES", "CRITICAL_UPDATES"], max_length=10
+    )
     proxy: str | None = Field(None, pattern=r"^http://127\.0\.0\.1:[0-9]{2,5}$")
     ca_bundle: Path | None = None
 
@@ -413,6 +429,8 @@ class NinjaOneConnector:
         out: list[RawSignal] = []
         out.extend(self._alert_signals(orgs, devices, now))
         out.extend(self._patch_signals(orgs, devices, now))
+        if self.config.pending_days:
+            out.extend(self._pending_signals(orgs, devices, now))
         statuses = {s.casefold() for s in self.config.ticket_statuses}
         for row in self._tickets():
             if not isinstance(row, dict) or row.get("id") is None:
@@ -489,7 +507,10 @@ class NinjaOneConnector:
         ):
             by_org: dict[int | None, list[Mapping[str, Any]]] = defaultdict(list)
             for patch in self._by_cursor(path, self.config.patch_status):
-                if not isinstance(patch, dict):
+                if (
+                    not isinstance(patch, dict)
+                    or str(patch.get("status", "")).upper() != self.config.patch_status
+                ):
                     continue
                 org = _device(devices, _int(patch.get("deviceId"))).get("organizationId")
                 by_org[org if isinstance(org, int) else None].append(patch)
@@ -514,6 +535,50 @@ class NinjaOneConnector:
                 )  # fmt: skip
         return out
 
+    def _pending_signals(
+        self, orgs: Mapping[int, str], devices: Mapping[int, Mapping[str, Any]], now: datetime
+    ) -> list[RawSignal]:
+        """Un signal par (société, type, patch) : identifiant stable, pour que Vigie date
+        lui-même la mise en attente (`first_seen` conservé tant que le patch reste listé)."""
+        groups: dict[tuple[str, int | None, str], dict[str, Any]] = {}
+        for kind, path in (
+            ("os", "/v2/queries/os-patches"),
+            ("software", "/v2/queries/software-patches"),
+        ):
+            for status in self.config.pending_statuses:
+                for patch in self._by_cursor(path, status):
+                    if not isinstance(patch, dict) or str(patch.get("status", "")) != status:
+                        continue
+                    if kind == "os" and str(patch.get("type", "")) not in set(
+                        self.config.pending_os_types
+                    ):
+                        continue
+                    if kind == "os":
+                        key = str(patch.get("kbNumber") or patch.get("name") or "")
+                    else:
+                        key = str(patch.get("productIdentifier") or patch.get("title") or "")
+                    device = _device(devices, _int(patch.get("deviceId")))
+                    org = device.get("organizationId")
+                    org = org if isinstance(org, int) else None
+                    if not key:
+                        continue
+                    g = groups.setdefault(
+                        (kind, org, key),
+                        {"kind": "pending_patch", "patch_kind": kind, "patch": patch,
+                         "statuses": set(), "devices": set(), "org": org,
+                         "org_name": orgs.get(org, "") if org is not None else "", "at": now},
+                    )  # fmt: skip
+                    g["statuses"].add(status)
+                    g["devices"].add(
+                        str(device.get("systemName") or device.get("displayName")
+                            or patch.get("deviceId"))
+                    )  # fmt: skip
+        out = []
+        for (kind, org, key), payload in groups.items():
+            digest = hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest()[:12]
+            out.append(RawSignal(f"pending:{kind}:{org}:{digest}", payload))
+        return out
+
     # --- Normalisation -----------------------------------------------------------------
 
     def _company(self, mapping: CompanyMapper, org: Any) -> str | None:
@@ -525,6 +590,8 @@ class NinjaOneConnector:
             return self._ticket_signal(raw, mapping)
         if kind == "patches":
             return self._patch_signal(raw, mapping)
+        if kind == "pending_patch":
+            return self._pending_signal(raw, mapping)
         if kind == "alert_group":
             return self._alert_group_signal(raw, mapping)
         return self._alert_signal(raw, mapping)
@@ -639,6 +706,57 @@ class NinjaOneConnector:
             first_seen=p["at"],
             last_seen=p["at"],
             attributes={"kind": "patches", "patch_kind": p["patch_kind"], "count": len(patches)},
+        )
+
+    def _pending_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:
+        p = raw.payload
+        patch: Mapping[str, Any] = p["patch"]
+        os_kind = p["patch_kind"] == "os"
+        label = "OS" if os_kind else "logiciels"
+        level = str(patch.get("severity" if os_kind else "impact", "")).upper()
+        if os_kind:
+            severity = {"CRITICAL": 4, "IMPORTANT": 3}.get(level, 2)
+            name = str(patch.get("name") or patch.get("kbNumber") or "")
+        else:
+            severity = 3 if level == "CRITICAL" else 2
+            name = str(patch.get("title") or "")
+        to_approve = p["statuses"] == {"MANUAL"}
+        state = "à approuver" if to_approve else "approuvé, non installé"
+        devices = sorted(p["devices"])
+        days = self.config.pending_days
+        lines = [
+            f"Patch {label} en attente ({state}) depuis plus de {days} jours",
+            f"Patch : {name}" + (f" ({patch.get('kbNumber')})" if patch.get("kbNumber") else ""),
+            f"Gravité NinjaOne : {level.lower() or 'inconnue'}"
+            + (f", type {patch.get('type')}" if patch.get("type") else ""),
+            f"Appareils ({len(devices)}) : " + ", ".join(devices[:LISTED_DEVICES]),
+        ]
+        return Signal(
+            source=SOURCE,
+            external_id=raw.external_id,
+            company_code=self._company(mapping, p["org"]),
+            asset=clean_untrusted(
+                f"Patchs {label} en attente — {p['org_name'] or 'NinjaOne'}", 200
+            ),
+            category=Category.vulnerability,
+            severity=severity,
+            title=clean_untrusted(
+                f"{name} {'à approuver' if to_approve else 'non installé'} "
+                f"sur {len(devices)} appareil(s)",
+                TITLE_MAX,
+            ),
+            details=clean_untrusted("\n".join(lines), DETAILS_MAX),
+            first_seen=p["at"],
+            last_seen=p["at"],
+            attributes={
+                "kind": "pending_patch",
+                "patch_kind": p["patch_kind"],
+                "status": "MANUAL" if to_approve else "APPROVED",
+                "devices": len(devices),
+                # Moteur : incident après `pending_days` jours, un seul par société et type.
+                "min_age_h": days * 24,
+                "incident_group": f"ninjaone:pending:{p['patch_kind']}",
+            },
         )
 
     def _ticket_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:

@@ -4,6 +4,12 @@ Un signal ouvert rejoint l'incident ouvert portant sur le **même actif** (nom n
 la **même société** si le premier signal de cet incident date de 60 min au plus ; sinon il
 ouvre un nouvel incident. Un signal sans actif forme un incident à lui seul (clé :
 empreinte). Un incident est résolu quand tous ses signaux le sont.
+
+Deux attributs facultatifs, fournis par le connecteur :
+- `incident_group` : les signaux ouverts d'une même société et d'un même groupe rejoignent un
+  seul incident, sans fenêtre de temps (ex. patchs en attente d'une société) ;
+- `min_age_h` : le signal n'ouvre ni ne rejoint d'incident avant d'avoir cet âge, mesuré depuis
+  son `first_seen` en base (ex. patch en attente depuis plus de 7 jours).
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ class SignalRef:
     asset: str
     fingerprint: str
     first_seen: datetime
+    group: str | None = None
 
 
 @dataclass
@@ -41,6 +48,8 @@ class OpenIncident:
 
 
 def correlation_key(signal: SignalRef) -> tuple[str | None, str]:
+    if signal.group:
+        return (signal.company_code, f"grp:{signal.group}")
     asset = normalize_asset(signal.asset)
     if not asset:
         return (signal.company_code, f"fp:{signal.fingerprint}")
@@ -61,7 +70,7 @@ def group(signals: Sequence[SignalRef], incidents: Sequence[OpenIncident]) -> li
         candidates = [
             i
             for i in by_key.get(key, [])
-            if key[1].startswith("fp:") or abs(signal.first_seen - i.anchor) <= WINDOW
+            if key[1].startswith(("fp:", "grp:")) or abs(signal.first_seen - i.anchor) <= WINDOW
         ]
         if candidates:
             target = min(candidates, key=lambda i: abs(signal.first_seen - i.anchor))
@@ -80,9 +89,23 @@ def group_fingerprint(key: tuple[str | None, str], anchor: datetime) -> str:
 
 
 def _ref(signal: models.Signal) -> SignalRef:
+    group = (signal.attributes or {}).get("incident_group")
     return SignalRef(
-        signal.id, signal.company_code, signal.asset, signal.fingerprint, signal.first_seen
+        signal.id,
+        signal.company_code,
+        signal.asset,
+        signal.fingerprint,
+        signal.first_seen,
+        str(group)[:100] if group else None,
     )
+
+
+def mature(signal: models.Signal, now: datetime) -> bool:
+    """Assez ancien pour ouvrir un incident (`min_age_h`, absent = toujours)."""
+    min_age = (signal.attributes or {}).get("min_age_h")
+    if isinstance(min_age, bool) or not isinstance(min_age, int | float) or min_age <= 0:
+        return True
+    return now - signal.first_seen >= timedelta(hours=float(min_age))
 
 
 def _incident_key(
@@ -132,7 +155,7 @@ def correlate(session: Session, now: datetime) -> CorrelationReport:
     orphans = session.scalars(
         select(models.Signal).where(models.Signal.resolved_at.is_(None))
     ).all()
-    refs = [_ref(s) for s in orphans if s.id not in linked_open]
+    refs = [_ref(s) for s in orphans if s.id not in linked_open and mature(s, now)]
     existing = [
         OpenIncident(
             key=_incident_key(i, signals_of.get(i.id, [])),

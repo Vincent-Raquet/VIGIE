@@ -116,3 +116,46 @@ def test_correlate_in_database(db_session: Session) -> None:
     found = incidents(db_session)
     assert found[0][1] == ["1", "2", "5"]
     assert found[1][0].status is IncidentStatus.resolved
+
+
+def test_incident_group_ignores_asset_and_window() -> None:
+    a = SignalRef(1, "WI", "KB1", "fp1", T0, group="pending:os")
+    b = SignalRef(2, "WI", "KB2", "fp2", T0 + timedelta(days=3), group="pending:os")
+    c = SignalRef(3, "SPL", "KB1", "fp3", T0, group="pending:os")
+    assert correlation_key(a) == ("WI", "grp:pending:os")
+    touched = group([a, b, c], [])
+    assert [t.signal_ids for t in touched] == [[1, 2], [3]]
+
+
+@pytest.mark.db
+def test_min_age_delays_incident_and_group_merges(db_session: Session) -> None:
+    ensure_source(db_session, "zabbix", kind="zabbix")
+    attrs = {"incident_group": "pending:os", "min_age_h": 168}
+    week = timedelta(days=7)
+    store_snapshot(db_session, "zabbix", [sig("p1", "KB1", attributes=attrs)], T0)
+    assert correlate(db_session, T0 + timedelta(days=6)).created == 0  # trop récent
+    later = T0 + timedelta(days=2)
+    store_snapshot(
+        db_session,
+        "zabbix",
+        [sig("p1", "KB1", attributes=attrs), sig("p2", "KB2", 60 * 48, attributes=attrs)],
+        later,
+    )
+    report = correlate(db_session, T0 + week)
+    assert report.created == 1  # p1 mûr ; p2 (2 jours plus jeune) attend encore
+    assert [ext for _, ext in incidents(db_session)] == [["p1"]]
+    report = correlate(db_session, T0 + week + timedelta(days=2))
+    assert (report.created, report.attached) == (0, 1)  # même groupe : même incident
+    assert [ext for _, ext in incidents(db_session)] == [["p1", "p2"]]
+    # min_age_h invalide ou absent : comportement habituel.
+    store_snapshot(
+        db_session,
+        "zabbix",
+        [
+            sig("p1", "KB1", attributes=attrs),
+            sig("p2", "KB2", 60 * 48, attributes=attrs),
+            sig("x", "srv-x", attributes={"min_age_h": "beaucoup"}),
+        ],
+        T0 + week + timedelta(days=2),
+    )
+    assert correlate(db_session, T0 + week + timedelta(days=2)).created == 1
