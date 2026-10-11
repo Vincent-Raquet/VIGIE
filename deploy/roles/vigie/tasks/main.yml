@@ -167,6 +167,8 @@
     cmd: "{{ vigie_bin }} --config /etc/vigie/migrate.toml migrate"
   become: true
   become_user: vigie-migrate
+  vars:
+    ansible_remote_tmp: /tmp  # compte sans dossier personnel (/nonexistent)
   register: vigie_migrate
   changed_when: "'Base migrée' in vigie_migrate.stdout"
 
@@ -178,6 +180,8 @@
       --from /etc/vigie/seed --roles /etc/vigie/seed/roles
   become: true
   become_user: vigie-migrate
+  vars:
+    ansible_remote_tmp: /tmp  # compte sans dossier personnel (/nonexistent)
   when: vigie_run_seed | bool
   changed_when: true
 
