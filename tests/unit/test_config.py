@@ -18,7 +18,7 @@ def test_example_config_is_valid() -> None:
     assert cfg.general.timezone == "Europe/Brussels"
     assert cfg.plans.daily_at == time(7, 15)
     assert cfg.llm.monthly_budget_usd == 30
-    assert cfg.enabled_sources() == ["veeam", "zabbix"]
+    assert cfg.enabled_sources() == ["zabbix"]  # Veeam présent mais désactivé par défaut
 
 
 def test_source_specific_fields_are_kept_for_the_connector() -> None:
@@ -26,7 +26,8 @@ def test_source_specific_fields_are_kept_for_the_connector() -> None:
     veeam = cfg.sources["veeam"]
     assert veeam.interval_min == 30
     assert veeam.model_extra is not None
-    assert veeam.model_extra["instances"][0]["name"] == "vbr-main"
+    assert veeam.model_extra["username"] == "svc-vigie"
+    assert veeam.model_extra["api_version"] == "1.3-rev1"
 
 
 def test_defaults_without_file_content(tmp_path: Path) -> None:

@@ -112,6 +112,24 @@
     state: link
   notify: Redémarrer vigie-web
 
+# --- Certificats propres aux sources (auto-signés) ------------------------------------
+- name: Dossier des certificats des sources
+  ansible.builtin.file:
+    path: /etc/vigie/ca
+    state: directory
+    owner: root
+    group: vigie
+    mode: "0750"
+
+- name: Certificat du serveur Veeam (public, approuvé pour cette seule source)
+  ansible.builtin.copy:
+    src: "{{ vigie_veeam_ca_file }}"
+    dest: /etc/vigie/ca/veeam.pem
+    owner: root
+    group: vigie
+    mode: "0644"
+  when: vigie_veeam_host | length > 0
+
 # --- Données d'amorçage et migrations ---------------------------------------------------
 - name: Fichiers d'amorçage (équipe, sociétés, politique, scoring)
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé

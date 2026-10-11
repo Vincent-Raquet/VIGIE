@@ -36,6 +36,18 @@ asset_rules:
   # FortiAnalyzer : ADOM ou préfixe de devname
   - {source: fortianalyzer, match: devname_prefix, pattern: "WI-", company: WI}
   # Veeam : préfixe de nom de job
+  # (s'applique aussi au nom des dépôts ; asset_criticality >= 1,2 = job critique).
+  # Noms réels du VBR (2026-10-11) : « WI - Backup … », « REPLICATION - WI VERS SPL … ».
+  - {source: veeam, match: job_prefix, pattern: "SPL - ", company: SPL, asset_criticality: 1.3}
+  - {source: veeam, match: job_prefix, pattern: "WI - ",  company: WI}
+  - {source: veeam, match: job_prefix, pattern: "WG - ",  company: WG}
+  - {source: veeam, match: job_prefix, pattern: "REPLICATION - SPL", company: SPL}
+  - {source: veeam, match: job_prefix, pattern: "REPLICATION - WI",  company: WI}
+  - {source: veeam, match: job_prefix, pattern: "REPLICATION - WG",  company: WG}
   - {source: veeam, match: job_prefix, pattern: "SPL-", company: SPL, asset_criticality: 1.3}
+  - {source: veeam, match: job_prefix, pattern: "WI-",  company: WI}
+  - {source: veeam, match: job_prefix, pattern: "WG-",  company: WG}
+  - {source: veeam, match: job_prefix, pattern: "CC-",  company: CC}
+  - {source: veeam, match: job_prefix, pattern: "FWD-", company: FWD}
   # Wazuh : groupe d'agents
   - {source: wazuh, match: agent_group, pattern: "wg", company: WG}

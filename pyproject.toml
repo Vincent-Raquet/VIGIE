@@ -31,6 +31,7 @@ vigie = "vigie.cli:app"
 # Ajouter un système = un module + une ligne ici (skill add-connector), sans toucher au moteur.
 [project.entry-points."vigie.connectors"]
 zabbix = "vigie.connectors.zabbix:ZabbixConnector"
+veeam = "vigie.connectors.veeam:VeeamConnector"
 
 [dependency-groups]
 deploy = [

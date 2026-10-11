@@ -1,0 +1,213 @@
+{
+  "data": [
+    {
+      "type": "LinuxLocal",
+      "id": "88788f9e-d8f5-4eb4-bc4f-9b3f5403bcec",
+      "name": "Default Backup Repository",
+      "description": "",
+      "hostId": "6745a759-2205-4cd2-b172-8ec8f7e60ef8",
+      "hostName": "backup-host-wi-01",
+      "path": "/backups",
+      "capacityGB": 222.2,
+      "freeGB": 209.0,
+      "usedSpaceGB": 0.0,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "b2d12616-1488-47c6-94e5-ba22b52aed6f",
+      "name": "NAS SPL - SPL",
+      "description": "",
+      "hostName": "Gateway",
+      "path": "/backups",
+      "capacityGB": 21444.5,
+      "freeGB": 15603.3,
+      "usedSpaceGB": 2417.7,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "71b5403e-0a92-4938-a8c3-7bb0cc986bf8",
+      "name": "NAS SPL - WI",
+      "description": "",
+      "hostName": "Gateway (auto)",
+      "path": "/backups",
+      "capacityGB": 21444.5,
+      "freeGB": 15603.3,
+      "usedSpaceGB": 0.0,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "512f3a5a-a156-49ab-8831-d6b6d7be1d14",
+      "name": "NAS EXT - SPL",
+      "description": "",
+      "hostName": "Gateway",
+      "path": "/backups",
+      "capacityGB": 64334.5,
+      "freeGB": 28170.6,
+      "usedSpaceGB": 5521.4,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "b20f6566-7907-4c8c-bd1d-7e96a467bd2b",
+      "name": "NAS EXT - WG",
+      "description": "",
+      "hostName": "Gateway (auto)",
+      "path": "/backups",
+      "capacityGB": 64334.5,
+      "freeGB": 28170.6,
+      "usedSpaceGB": 27207.4,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "9fe37fad-c2f2-40e5-9fc6-aea22b517e7e",
+      "name": "NAS EXT - WI",
+      "description": "",
+      "hostName": "Gateway",
+      "path": "/backups",
+      "capacityGB": 64334.5,
+      "freeGB": 28170.6,
+      "usedSpaceGB": 3005.8,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "Nfs",
+      "id": "d40bb287-7369-4c4d-9a38-ed6da4d8e7a8",
+      "name": "NAS WI - WI",
+      "description": "",
+      "hostName": "Gateway",
+      "path": "/backups",
+      "capacityGB": 18460.3,
+      "freeGB": 3479.7,
+      "usedSpaceGB": 12014.5,
+      "isOnline": true,
+      "isOutOfDate": false
+    },
+    {
+      "type": "LinuxHardened",
+      "id": "6cfd6890-d85f-411f-8653-d7d55fc03be1",
+      "name": "srv-spl-01",
+      "description": "",
+      "hostId": "6b67ee64-a85b-426b-b1de-70bef42c9ee7",
+      "hostName": "backup-host-wg-01",
+      "path": "/backups",
+      "capacityGB": 29804.0,
+      "freeGB": 14673.3,
+      "usedSpaceGB": 6840.2,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Performance",
+        "membership": "SPL-WASABI-SOBR",
+        "scaleOutRepositoryId": "f334fe56-2abe-4c3c-ba6a-4996f76cbc8a"
+      },
+      "isOutOfDate": false
+    },
+    {
+      "type": "LinuxHardened",
+      "id": "6c911ef2-6c93-4a6b-a021-453ec30c4d22",
+      "name": "srv-wg-01",
+      "description": "",
+      "hostId": "6b67ee64-a85b-426b-b1de-70bef42c9ee7",
+      "hostName": "backup-host-wg-01",
+      "path": "/backups",
+      "capacityGB": 29804.0,
+      "freeGB": 14673.3,
+      "usedSpaceGB": 17279.8,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Performance",
+        "membership": "WG-WASABI-SOBR",
+        "scaleOutRepositoryId": "3c734f2f-a2a3-4fd3-b4ab-db4fc1235401"
+      },
+      "isOutOfDate": false
+    },
+    {
+      "type": "LinuxHardened",
+      "id": "052a2e39-d51a-49cd-a49d-c8f1b481d8b5",
+      "name": "srv-wi-01",
+      "description": "",
+      "hostId": "6b67ee64-a85b-426b-b1de-70bef42c9ee7",
+      "hostName": "backup-host-wg-01",
+      "path": "/backups",
+      "capacityGB": 29804.0,
+      "freeGB": 14673.3,
+      "usedSpaceGB": 6309.1,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Performance",
+        "membership": "WI-WASABI SOBR",
+        "scaleOutRepositoryId": "5a4f4d39-d489-494b-be5a-d844b288b473"
+      },
+      "isOutOfDate": false
+    },
+    {
+      "type": "S3Compatible",
+      "id": "ab21a57e-2e06-4672-8c9e-9e4e3ec96c0e",
+      "name": "WASABI SPLIFAR",
+      "description": "",
+      "hostName": "Direct",
+      "path": "/backups",
+      "capacityGB": 10240.0,
+      "freeGB": 6593.3,
+      "usedSpaceGB": 3646.7,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Capacity",
+        "membership": "SPL-WASABI-SOBR",
+        "scaleOutRepositoryId": "f334fe56-2abe-4c3c-ba6a-4996f76cbc8a"
+      },
+      "isOutOfDate": false
+    },
+    {
+      "type": "S3Compatible",
+      "id": "1ba48ed7-b990-46c3-bc2c-2036b0e405c7",
+      "name": "WASABI WALLGLASS NEW",
+      "description": "",
+      "hostName": "Direct",
+      "path": "/backups",
+      "capacityGB": 15360.0,
+      "freeGB": 9757.3,
+      "usedSpaceGB": 5602.7,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Capacity",
+        "membership": "WG-WASABI-SOBR",
+        "scaleOutRepositoryId": "3c734f2f-a2a3-4fd3-b4ab-db4fc1235401"
+      },
+      "isOutOfDate": false
+    },
+    {
+      "type": "S3Compatible",
+      "id": "e07dc18e-0edf-45b3-be9f-ae24edec7f49",
+      "name": "WASABI WALLINDUSTRIES",
+      "description": "",
+      "hostName": "Direct",
+      "path": "/backups",
+      "capacityGB": 10240.0,
+      "freeGB": 5271.7,
+      "usedSpaceGB": 4968.3,
+      "isOnline": true,
+      "scaleOutRepositoryDetails": {
+        "extentType": "Capacity",
+        "membership": "WI-WASABI SOBR",
+        "scaleOutRepositoryId": "5a4f4d39-d489-494b-be5a-d844b288b473"
+      },
+      "isOutOfDate": false
+    }
+  ],
+  "pagination": {
+    "total": 13,
+    "count": 13,
+    "skip": 0,
+    "limit": 500
+  }
+}

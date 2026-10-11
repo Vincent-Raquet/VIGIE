@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Repo-WI",
+      "type": "WinLocal",
+      "description": "",
+      "hostId": "60000000-0000-4000-8000-000000000001",
+      "hostName": "srv-wi-backup",
+      "path": "D:\\Backups",
+      "capacityGB": 10000.0,
+      "freeGB": 800.0,
+      "usedSpaceGB": 9200.0
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000002",
+      "name": "SPL-Repo",
+      "type": "WinLocal",
+      "description": "",
+      "hostId": "60000000-0000-4000-8000-000000000001",
+      "hostName": "srv-spl-backup",
+      "path": "D:\\Backups",
+      "capacityGB": 8000.0,
+      "freeGB": 240.0,
+      "usedSpaceGB": 7760.0
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Repo-Archive",
+      "type": "WinLocal",
+      "description": "",
+      "hostId": "60000000-0000-4000-8000-000000000001",
+      "hostName": "srv-wi-backup",
+      "path": "D:\\Backups",
+      "capacityGB": 20000.0,
+      "freeGB": 12000.0,
+      "usedSpaceGB": 8000.0
+    }
+  ],
+  "pagination": {
+    "total": 3,
+    "count": 3,
+    "skip": 0,
+    "limit": 500
+  }
+}

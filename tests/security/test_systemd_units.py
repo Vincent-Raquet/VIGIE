@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 import yaml
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, Undefined, UndefinedError
 from jinja2.nativetypes import NativeEnvironment
 
 DEPLOY = Path(__file__).resolve().parents[2] / "deploy"
@@ -39,7 +39,8 @@ SANDBOX = {
     "CapabilityBoundingSet": "",
     "IPAddressDeny": "any",
 }
-SOURCE_SECRETS = {"zabbix_api_token"}
+# Secrets de sources connus : seuls autorisés pour vigie-jobs (et chacun pour sa collecte).
+SOURCE_SECRETS = {"zabbix_api_token", "veeam_password"}
 # Secrets autorisés par unité : tout ce qui n'est pas listé ici est interdit.
 ALLOWED = {
     "vigie-web.service": {"web_session_key", "entra_client_secret"},
@@ -74,6 +75,8 @@ def _env() -> NativeEnvironment:
 def _resolve(value: Any, ctx: dict[str, Any], env: NativeEnvironment) -> Any:
     if isinstance(value, str) and "{{" in value:
         result = env.from_string(value).render(ctx)
+        if isinstance(result, Undefined):  # Jinja natif renvoie l'objet au lieu de lever
+            raise UndefinedError(f"non résolu : {value}")
         return list(result) if isinstance(result, Iterator) else result
     if isinstance(value, list):
         return [_resolve(v, ctx, env) for v in value]
@@ -200,6 +203,14 @@ def test_credentials_are_limited_per_unit(ctx: dict[str, Any]) -> None:
             assert path == f"/etc/credstore.encrypted/vigie.{cred}"
 
 
+def test_credentials_are_exact_when_everything_is_enabled() -> None:
+    # Égalité (pas seulement inclusion) : un secret manquant ferait échouer l'unité en prod.
+    ctx = _context(ALL_ON)
+    expected = {**ALLOWED, "vigie-jobs.service": set(ctx["vigie_source_secrets"])}
+    for name, text in _units(ctx).items():
+        assert _credentials(text) == expected[name], name
+
+
 def test_web_never_gets_source_or_llm_secrets() -> None:
     text = _units(_context(ALL_ON))["vigie-web.service"]
     assert _credentials(text) == {"web_session_key", "entra_client_secret"}
@@ -223,14 +234,21 @@ def test_disabled_features_load_no_secret() -> None:
     assert "anthropic_api_key" not in off["vigie_required_secrets"]
 
 
-def test_collect_dropin_gives_only_its_source_secret_and_addresses() -> None:
-    ctx = _context()
+@pytest.mark.parametrize("veeam_host", ["", "vbr-01.example.test"])
+def test_collect_dropin_gives_only_its_source_secret_and_addresses(veeam_host: str) -> None:
+    ctx = _context({"vigie_veeam_host": veeam_host})
+    names = [s["name"] for s in ctx["vigie_sources_enabled"]]
+    assert names == (["zabbix", "veeam"] if veeam_host else ["zabbix"])
     for source in ctx["vigie_sources_enabled"]:
         text = _render("units/credentials.conf.j2", ctx, source=source)
         assert _credentials(text) == set(source["secrets"])
         allowed = _directives(text)["IPAddressAllow"][0].split()
         egress = {e["ip"] for e in ctx["vigie_source_egress"] if e["name"] == source["name"]}
         assert set(allowed) == set(ctx["dns_servers"]) | egress
+    if veeam_host:
+        jobs = _units(ctx)["vigie-jobs.service"]
+        assert _credentials(jobs) == {"zabbix_api_token", "veeam_password"}
+        assert "10.10.10.27" in _directives(jobs)["IPAddressAllow"][0].split()
 
 
 def test_only_internet_units_use_the_worker_proxy(ctx: dict[str, Any]) -> None:
