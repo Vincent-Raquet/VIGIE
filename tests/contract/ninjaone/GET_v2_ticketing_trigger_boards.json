@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1006,
+    "uid": "3871ebe6-6a7c-4ec2-8647-d48d5e0a7f9a",
+    "name": "Mes Tickets actifs"
+  },
+  {
+    "id": 1004,
+    "uid": "a22a2292-c53d-45c1-a79a-087301526e70",
+    "name": "Ticket Zabbix Actifs"
+  },
+  {
+    "id": 1,
+    "uid": "32a1c1b0-c8bb-4f35-bb8f-f0602b2d3a4d",
+    "name": "Tickets non attribués"
+  },
+  {
+    "id": 3,
+    "uid": "ab0e732d-b606-4793-988d-75988ff8eb00",
+    "name": "Mes tickets"
+  },
+  {
+    "id": 4,
+    "uid": "8c27d0b4-616f-4be5-951e-352fbe0b2c0f",
+    "name": "Tickets ouverts"
+  },
+  {
+    "id": 1005,
+    "uid": "b0fe6a34-afc3-4248-91aa-c053501e8a87",
+    "name": "Tickets ERP"
+  },
+  {
+    "id": 2,
+    "uid": "5d0e4724-596f-4477-aadc-2ee4aa955d98",
+    "name": "Tous les tickets"
+  },
+  {
+    "id": 5,
+    "uid": "305459e7-7f07-4506-a528-2385f7c3eb4c",
+    "name": "Tickets supprimés"
+  },
+  {
+    "id": 1002,
+    "uid": "43cb8ef2-ba2e-4caf-9c22-01b5f49c9776",
+    "name": "Networking"
+  },
+  {
+    "id": 1007,
+    "uid": "c6643bf4-c9b3-4448-a128-3c3b1e12449a",
+    "name": "Ticket en attente"
+  }
+]

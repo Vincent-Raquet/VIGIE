@@ -1,0 +1,50 @@
+[
+  {
+    "name": "NEW",
+    "displayName": "Nouveau",
+    "parentId": null,
+    "statusId": 1000
+  },
+  {
+    "name": "OPEN",
+    "displayName": "Ouvert",
+    "parentId": null,
+    "statusId": 2000
+  },
+  {
+    "name": "WAITING",
+    "displayName": "En attente",
+    "parentId": null,
+    "statusId": 3000
+  },
+  {
+    "name": "PAUSED",
+    "displayName": "En pause",
+    "parentId": null,
+    "statusId": 4000
+  },
+  {
+    "name": "APPROVED",
+    "displayName": "Approved",
+    "parentId": null,
+    "statusId": 7000
+  },
+  {
+    "name": "REJECTED",
+    "displayName": "Rejected",
+    "parentId": null,
+    "statusId": 8000
+  },
+  {
+    "name": "RESOLVED",
+    "displayName": "Résolu",
+    "parentId": null,
+    "statusId": 5000
+  },
+  {
+    "name": "CLOSED",
+    "displayName": "Fermé",
+    "parentId": null,
+    "statusId": 6000
+  }
+]

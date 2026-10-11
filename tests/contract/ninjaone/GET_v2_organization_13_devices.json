@@ -1,0 +1,26 @@
+[
+  {
+    "id": 72,
+    "organizationId": 13,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-org13-01",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 2839,
+    "organizationId": 13,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-org13-03",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 2957,
+    "organizationId": 13,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-org13-05",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  }
+]

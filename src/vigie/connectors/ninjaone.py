@@ -71,7 +71,9 @@ SOURCE_LABELS = {
     "AGENT_OFFLINE": "Agent hors ligne",
 }
 # Priorité d'un ticket → sévérité. TODO verify : valeurs de la colonne priority.
-TICKET_SEVERITY = {"URGENT": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 1}
+# Capture réelle : priorité « NONE » sur tous les tickets ouverts → sévérité normale (2),
+# sinon ils ne seraient jamais planifiés.
+TICKET_SEVERITY = {"URGENT": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 2}
 
 SERVER_CLASSES = frozenset(
     {
@@ -530,7 +532,10 @@ class NinjaOneConnector:
         )
         source_type = str(a.get("sourceType", ""))
         node_class = str(device.get("nodeClass", ""))
-        title = str(a.get("subject") or a.get("conditionName") or source_type)
+        # Capture réelle : le sujet n'est souvent que le volume (« C: ») ; on préfixe le type.
+        label = SOURCE_LABELS.get(source_type) or str(a.get("conditionName") or source_type)
+        subject = str(a.get("subject") or "")
+        title = f"{label} ({subject})" if subject and subject not in label else label
         lines = [f"Appareil : {host}", f"Type : {source_type}"]
         if p["org_name"]:
             lines.append(f"Organisation NinjaOne : {p['org_name']}")

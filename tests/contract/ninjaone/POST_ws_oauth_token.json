@@ -1,0 +1,6 @@
+{
+  "access_token": "fixture-access-token",
+  "token_type": "bearer",
+  "refresh_token": "fixture-refresh-token",
+  "expires_in": 900
+}

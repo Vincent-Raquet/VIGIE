@@ -1,0 +1,58 @@
+[
+  {
+    "id": 157,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-01",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 160,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-03",
+    "offline": false,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 175,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-05",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 256,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-07",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 158,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-09",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 159,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-11",
+    "offline": true,
+    "approvalStatus": "APPROVED"
+  },
+  {
+    "id": 167,
+    "organizationId": 5,
+    "nodeClass": "WINDOWS_WORKSTATION",
+    "systemName": "pc-cc-13",
+    "offline": false,
+    "approvalStatus": "APPROVED"
+  }
+]

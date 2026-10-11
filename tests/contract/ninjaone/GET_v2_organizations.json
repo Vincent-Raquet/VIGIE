@@ -1,0 +1,98 @@
+[
+  {
+    "name": "WALLINDUSTRIES",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 2,
+    "description": ""
+  },
+  {
+    "name": "WALLINDUSTRIES",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 2,
+    "description": ""
+  },
+  {
+    "name": "SPLIFAR VERRERIE",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 3,
+    "description": ""
+  },
+  {
+    "name": "WALLGLASS",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 4,
+    "description": ""
+  },
+  {
+    "name": "CONSTRUCT-CENTER",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 5,
+    "description": ""
+  },
+  {
+    "name": "FAIRWIND",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 6,
+    "description": ""
+  },
+  {
+    "name": "Organisation 07",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 7,
+    "description": ""
+  },
+  {
+    "name": "Organisation 08",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 8,
+    "description": ""
+  },
+  {
+    "name": "Organisation 09",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 9,
+    "description": ""
+  },
+  {
+    "name": "Organisation 10",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 10,
+    "description": ""
+  },
+  {
+    "name": "Organisation 11",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 11,
+    "description": ""
+  },
+  {
+    "name": "Organisation 12",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 12,
+    "description": ""
+  },
+  {
+    "name": "Organisation 13",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 13,
+    "description": ""
+  },
+  {
+    "name": "Organisation 14",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 14,
+    "description": ""
+  },
+  {
+    "name": "Organisation 15",
+    "description": "",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 15
+  },
+  {
+    "name": "Organisation 16",
+    "nodeApprovalMode": "AUTOMATIC",
+    "id": 16,
+    "description": ""
+  }
+]
