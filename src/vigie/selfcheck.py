@@ -17,6 +17,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from vigie.certs import source_certificates
 from vigie.config import VigieConfig
 from vigie.db import models
 from vigie.db.enums import IncidentStatus, PlanKind, Priority
@@ -49,6 +50,9 @@ def collect_metrics(session: Session, cfg: VigieConfig, now: datetime) -> dict[s
         )
         down += int(failing)
     metrics["sources_down"] = down
+    # Certificats d'authentification (Defender) : -1 = illisible ; alerte Zabbix < 30 j.
+    for name, days in source_certificates(cfg, now).items():
+        metrics[f"cert.{name}.days_left"] = -1 if days is None else days
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     spent = session.scalar(
         select(func.coalesce(func.sum(models.LLMCall.cost_usd), 0)).where(

@@ -1,0 +1,30 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#security/incidents",
+  "value": [
+    {
+      "id": "2972395",
+      "incidentWebUrl": "https://security.microsoft.com/incidents/2972395?tid=00000000-0000-0000-0000-000000000000",
+      "redirectIncidentId": null,
+      "displayName": "Multi-stage incident involving Initial access & Lateral movement on multiple endpoints",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "createdDateTime": "2026-10-10T09:00:00Z",
+      "lastUpdateDateTime": "2026-10-11T07:00:00Z",
+      "assignedTo": "utilisateur@example.com",
+      "classification": "unknown",
+      "determination": "unknown",
+      "status": "active",
+      "severity": "high",
+      "customTags": [],
+      "systemTags": [],
+      "description": "Description libre <script>x</script>",
+      "summary": null,
+      "comments": [
+        {
+          "comment": "note interne",
+          "createdByDisplayName": "Admin"
+        }
+      ],
+      "priorityScore": 81
+    }
+  ]
+}

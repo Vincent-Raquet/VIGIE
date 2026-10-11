@@ -1,0 +1,154 @@
+{
+  "value": [
+    {
+      "id": "a1_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "a1",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a2_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "a2",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a3_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "a3",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "b1_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "b1",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "b2_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "b2",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "d1_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "d1",
+      "fixingKbId": "5050001",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "b1_chrome_CVE-2026-0002",
+      "cveId": "CVE-2026-0002",
+      "machineId": "b1",
+      "fixingKbId": null,
+      "productName": "chrome",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "b2_chrome_CVE-2026-0002",
+      "cveId": "CVE-2026-0002",
+      "machineId": "b2",
+      "fixingKbId": null,
+      "productName": "chrome",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a1_windows_11_CVE-2026-0003",
+      "cveId": "CVE-2026-0003",
+      "machineId": "a1",
+      "fixingKbId": "5050003",
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a3_windows_server_2022_CVE-2026-0004",
+      "cveId": "CVE-2026-0004",
+      "machineId": "a3",
+      "fixingKbId": "5050004",
+      "productName": "windows_server_2022",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a1_7-zip_CVE-2026-0005",
+      "cveId": "CVE-2026-0005",
+      "machineId": "a1",
+      "fixingKbId": null,
+      "productName": "7-zip",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "b1_7-zip_CVE-2026-0005",
+      "cveId": "CVE-2026-0005",
+      "machineId": "b1",
+      "fixingKbId": null,
+      "productName": "7-zip",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "c1_openssl_CVE-2026-0006",
+      "cveId": "CVE-2026-0006",
+      "machineId": "c1",
+      "fixingKbId": null,
+      "productName": "openssl",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "a1_windows_11_CVE-2026-0007",
+      "cveId": "CVE-2026-0007",
+      "machineId": "a1",
+      "fixingKbId": null,
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    },
+    {
+      "id": "zz_windows_11_CVE-2026-0001",
+      "cveId": "CVE-2026-0001",
+      "machineId": "zz",
+      "fixingKbId": null,
+      "productName": "windows_11",
+      "productVendor": "microsoft",
+      "productVersion": "1.0",
+      "severity": "High"
+    }
+  ]
+}

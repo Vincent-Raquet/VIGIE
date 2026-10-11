@@ -76,6 +76,21 @@ ticket_statuses = []                   # ex. ["Nouveau", "Ouvert", "En attente"]
 aggregate_threshold = 5                # au-delà, alertes d'un même type regroupées par société
 # proxy = "http://127.0.0.1:3128"      # production : sortie Internet par Squid
 
+[sources.defender]
+enabled = false
+interval_min = 60
+tenant_id = "00000000-0000-0000-0000-000000000000"   # tenant Entra (le même que [web])
+client_id = "00000000-0000-0000-0000-000000000000"   # app « Vigie Defender » (non secret)
+api_host = "eu.api.security.microsoft.com"           # région UE (api., uk., us. possibles)
+certificate = "~/vigie-ca/defender.crt"              # certificat public ; prod : /etc/vigie/ca/defender.crt
+private_key_file = "~/vigie-ca/defender.key"         # dev seulement ; prod : secret « defender_private_key »
+os_platform_prefixes = ["Windows"]                   # Linux → Wazuh, patchs manquants → NinjaOne
+inactive_days = 14                                   # appareils sans remontée depuis plus de N jours
+new_days = 14                                        # vulnérabilité « nouvelle » si détectée depuis moins de N jours
+max_vulns_per_company = 10                           # par groupe d'appareils, les plus critiques d'abord
+min_epss = 0.1                                       # critique retenue si EPSS ≥ ce seuil (ou nouvelle)
+# proxy = "http://127.0.0.1:3128"                    # production : sortie Internet par Squid
+
 [sources.fortianalyzer]
 enabled = false   # connecteur pas encore implémenté
 base_url = "https://faz.lan"

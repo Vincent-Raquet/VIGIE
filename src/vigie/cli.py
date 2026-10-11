@@ -19,6 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from vigie import __version__
+from vigie.certs import CERT_WARN_DAYS, source_certificates
 from vigie.collect import ensure_source, record_failure, record_success, store_snapshot
 from vigie.config import (
     ConfigError,
@@ -394,6 +395,19 @@ def check(
         typer.echo(f"  source {name} : {state}, {connector}")
         if sources and cfg.sources[name].enabled and name in installed:
             failed |= not _check_source(name, cfg)
+    for name, days in source_certificates(cfg, datetime.now(UTC)).items():
+        if days is None:
+            typer.echo(f"  ERREUR certificat de la source {name} illisible", err=True)
+            failed = True
+        elif days < CERT_WARN_DAYS:
+            typer.echo(
+                f"  Attention : certificat de la source {name} "
+                + (f"expiré depuis {-days} j" if days < 0 else f"expire dans {days} j")
+                + " (deploy/README.md, renouvellement)",
+                err=True,
+            )
+        else:
+            typer.echo(f"  certificat de la source {name} : {days} j restants")
     if failed:
         raise typer.Exit(code=1)
 

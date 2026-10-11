@@ -201,3 +201,20 @@ def test_cli_migrate_is_idempotent(config: Path) -> None:
     r = CliRunner().invoke(app, ["--config", str(config), "migrate"])
     assert r.exit_code == 0, r.output
     assert "Base déjà à jour (révision 0010)" in r.output
+
+
+def test_selfcheck_certificate_days(db_session: Session, tmp_path: Path) -> None:
+    from tests.unit.test_certs import cert
+
+    crt = cert(tmp_path / "defender.crt", 25)
+    cfg = VigieConfig(
+        sources={
+            "defender": SourceConfig(enabled=True, certificate=str(crt)),
+            "other": SourceConfig(enabled=True, certificate=str(tmp_path / "absent.crt")),
+        }
+    )
+    metrics = collect_metrics(db_session, cfg, datetime.now(UTC))
+    assert metrics["cert.defender.days_left"] == 25
+    assert metrics["cert.other.days_left"] == -1
+    write_metrics(tmp_path / "sc", metrics)
+    assert (tmp_path / "sc" / "cert.defender.days_left").read_text() == "25\n"

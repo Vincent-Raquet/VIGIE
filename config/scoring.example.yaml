@@ -18,6 +18,12 @@ policy_bonus_per_weight: 2
 policy_bonus_max: 20
 thresholds: {P1: 60, P2: 35, P3: 15}
 
+# Vulnérabilités : une seule source par périmètre, pour éviter les doublons (décision 2026-10) :
+#   - postes et serveurs Windows → Defender ([sources.defender] os_platform_prefixes = ["Windows"]) ;
+#   - Linux → Wazuh (le connecteur Wazuh ne remontera que les agents Linux) ;
+#   - correctifs manquants ou en échec → NinjaOne (patchs, pas de CVE).
+# Chaque connecteur applique son périmètre à la collecte ; le moteur n'a rien à filtrer.
+
 # Compétences requises par catégorie (toutes requises si plusieurs).
 category_skill:
   network: [reseau]
@@ -125,6 +131,16 @@ overrides:
     priority: P1
     reason: vulnérabilité CISA KEV sur un actif exposé
     all: [{field: attr.kev, op: eq, value: true}, {field: attr.exposed, op: eq, value: true}]
+  # Defender (analyse de criticité faite par le connecteur : attr.exploited = exploit vérifié
+  # ou en kit, attr.high_value = au moins un appareil « valeur élevée » dans Defender).
+  - id: vuln_exploited_sensitive
+    priority: P1
+    reason: vulnérabilité activement exploitée sur un équipement sensible
+    all: [{field: attr.exploited, op: eq, value: true}, {field: attr.high_value, op: eq, value: true}]
+  - id: vuln_exploited
+    priority: P2
+    reason: vulnérabilité activement exploitée (exploit vérifié ou en kit)
+    all: [{field: category, op: eq, value: vulnerability}, {field: attr.exploited, op: eq, value: true}]
   - id: cert_7d
     priority: P1
     reason: certificat expirant sous 7 jours

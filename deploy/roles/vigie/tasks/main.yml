@@ -130,6 +130,15 @@
     mode: "0644"
   when: vigie_veeam_host | length > 0
 
+- name: Certificat public de l'application « Vigie Defender » (la clé reste dans vigie-secret)
+  ansible.builtin.copy:
+    src: "{{ vigie_defender_cert_file }}"
+    dest: /etc/vigie/ca/defender.crt
+    owner: root
+    group: vigie
+    mode: "0644"
+  when: vigie_defender_client_id | length > 0
+
 # --- Données d'amorçage et migrations ---------------------------------------------------
 - name: Fichiers d'amorçage (équipe, sociétés, politique, scoring)
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
