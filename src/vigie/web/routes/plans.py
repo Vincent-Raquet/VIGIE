@@ -102,6 +102,7 @@ def today(
             **_context(user),
             "day": target,
             "view": view,
+            "plan_review": session.get(models.PlanReview, plan.id) if plan else None,
             "p1_count": view.p1_open if view else 0,
             "new_incidents": new_urgent_incidents(session, since_yesterday()),
             "sources_down": failing_sources(session),
@@ -172,6 +173,52 @@ def apply_validate(session: Session, user: User, plan: models.Plan) -> None:
     session.commit()
 
 
+def apply_review(
+    session: Session,
+    user: User,
+    task: models.Task,
+    relevant: bool,
+    well_assigned: bool,
+    note: str,
+) -> None:
+    """Jugement d'une tâche par le coordinateur pendant le rodage (phase 9)."""
+    if user.person_id is None:
+        raise HTTPException(status_code=403, detail="Revue réservée aux membres de l'équipe.")
+    review = session.get(models.TaskReview, task.id)
+    if review is None:
+        review = models.TaskReview(task_id=task.id, reviewer_id=user.person_id)
+        session.add(review)
+    review.relevant = relevant
+    review.well_assigned = well_assigned
+    review.note = note.strip()
+    review.reviewer_id = user.person_id
+    review.at = datetime.now(UTC)
+    # Valeurs seulement : la note reste en base, pas dans le journal d'audit.
+    audit(
+        session,
+        user.email,
+        "task_review",
+        f"task:{task.id}",
+        relevant=relevant,
+        well_assigned=well_assigned,
+    )
+    session.commit()
+
+
+def apply_plan_review(session: Session, user: User, plan: models.Plan, missing: str) -> None:
+    if user.person_id is None:
+        raise HTTPException(status_code=403, detail="Revue réservée aux membres de l'équipe.")
+    review = session.get(models.PlanReview, plan.id)
+    if review is None:
+        review = models.PlanReview(plan_id=plan.id, reviewer_id=user.person_id)
+        session.add(review)
+    review.missing = missing.strip()
+    review.reviewer_id = user.person_id
+    review.at = datetime.now(UTC)
+    audit(session, user.email, "plan_review", f"plan:{plan.id}", missing=bool(review.missing))
+    session.commit()
+
+
 def _task_or_404(session: DB, task_id: int) -> models.Task:
     task = session.get(models.Task, task_id)
     if task is None:
@@ -227,6 +274,40 @@ def add_comment(
     return RedirectResponse(safe_next(next_url, "/aujourdhui"), status_code=303)
 
 
+YES_NO = {"oui": True, "non": False}
+
+
+def _yes_no(value: str, field: str) -> bool:
+    if value not in YES_NO:
+        raise HTTPException(status_code=422, detail=f"{field} : oui ou non.")
+    return YES_NO[value]
+
+
+@router.post("/taches/{task_id}/revue")
+def review_task(
+    request: Request,
+    user: Lead,
+    session: DB,
+    task_id: int,
+    relevant: Annotated[str, Form(max_length=3)],
+    well_assigned: Annotated[str, Form(max_length=3)],
+    note: Annotated[str, Form(max_length=300)] = "",
+    next_url: Annotated[str | None, Form(alias="next")] = None,
+) -> Response:
+    task = _task_or_404(session, task_id)
+    apply_review(
+        session,
+        user,
+        task,
+        _yes_no(relevant, "Pertinente"),
+        _yes_no(well_assigned, "Bien affectée"),
+        note,
+    )
+    if request.headers.get("hx-request"):
+        return _task_fragment(request, user, session, task)
+    return RedirectResponse(safe_next(next_url, "/aujourdhui"), status_code=303)
+
+
 # --- Plans ------------------------------------------------------------------------------
 
 
@@ -246,6 +327,18 @@ def validate_plan(
 ) -> Response:
     apply_validate(session, user, _plan_or_404(session, plan_id))
     return RedirectResponse(safe_next(next_url, "/semaine"), status_code=303)
+
+
+@router.post("/plans/{plan_id}/revue")
+def review_plan(
+    user: Lead,
+    session: DB,
+    plan_id: int,
+    missing: Annotated[str, Form(max_length=1000)] = "",
+    next_url: Annotated[str | None, Form(alias="next")] = None,
+) -> Response:
+    apply_plan_review(session, user, _plan_or_404(session, plan_id), missing)
+    return RedirectResponse(safe_next(next_url, "/aujourdhui"), status_code=303)
 
 
 @router.post("/plans/{plan_id}/publier")

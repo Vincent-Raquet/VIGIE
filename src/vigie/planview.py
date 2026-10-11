@@ -27,6 +27,7 @@ class TaskView:
     task: models.Task
     incident_ids: list[int]
     comments: list[tuple[str, datetime, str]] = field(default_factory=list)
+    review: models.TaskReview | None = None  # jugement du coordinateur (rodage)
 
     @property
     def day(self) -> date | None:
@@ -105,7 +106,14 @@ def plan_view(session: Session, plan: models.Plan) -> PlanView:
     ids = [t.id for t in tasks]
     links: dict[int, list[int]] = defaultdict(list)
     comments: dict[int, list[tuple[str, datetime, str]]] = defaultdict(list)
+    reviews: dict[int, models.TaskReview] = {}
     if ids:
+        reviews = {
+            r.task_id: r
+            for r in session.scalars(
+                select(models.TaskReview).where(models.TaskReview.task_id.in_(ids))
+            )
+        }
         for link in session.scalars(
             select(models.TaskIncident).where(models.TaskIncident.task_id.in_(ids))
         ):
@@ -118,7 +126,7 @@ def plan_view(session: Session, plan: models.Plan) -> PlanView:
         ).all()
         for comment, author in rows:
             comments[comment.task_id].append((author, comment.at, comment.body))
-    views = [TaskView(t, sorted(links[t.id]), comments[t.id]) for t in tasks]
+    views = [TaskView(t, sorted(links[t.id]), comments[t.id], reviews.get(t.id)) for t in tasks]
     views.sort(key=lambda v: (PRIORITY_ORDER[v.task.priority], -(v.task.score or 0), v.task.id))
 
     data = plan.data if isinstance(plan.data, dict) else {}

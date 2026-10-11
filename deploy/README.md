@@ -165,7 +165,22 @@ Passer `vigie_dev_on_host: false` : la sortie réseau passe en `drop` pour tous 
 `~/projets/vigie`, `.env.local` et les bases `vigie_dev` / `vigie_test`, et envisager
 `ssh_disable_password_auth: true` après avoir vérifié l'accès par clé.
 
-## 9. Lynis : suggestions volontairement écartées
+## 9. Fin de rodage (phase 9) : activer la diffusion à l'équipe
+
+Pendant le rodage, le coordinateur juge chaque tâche du plan quotidien sur « Aujourd'hui »
+(pertinente, bien affectée) ; la page **Plans › Rodage** compte les jours validés
+(≥ 90 % des tâches jugées, ≥ 80 % pertinentes et bien affectées). Le barème se règle dans
+**Paramètres › Barème** (effet au plan suivant).
+
+Quand la page Rodage affiche « Critère atteint » (5 jours ouvrés consécutifs) :
+1. Déposer le certificat de l'application « Vigie Mail » : `sudo vigie-secret set graph_certificate < vigie-mail.pem`.
+2. `group_vars/vigie.yml` : `vigie_notify_mail_enabled: true`, puis
+   `vigie_notify_draft_only: false` (les messages partent alors à chaque personne).
+   Conseil : un premier passage avec `draft_only` encore à `true` pour vérifier l'envoi
+   réel au seul coordinateur.
+3. `uv run ansible-playbook site.yml -K` : les timers `vigie-notify@daily/weekly` s'activent.
+
+## 10. Lynis : suggestions volontairement écartées
 
 Indice après le premier déploiement : 70 ; les corrections suivantes sont dans les rôles
 (`hardening`, `squid`) : modules noyau inutiles bloqués, sysctl du profil Lynis, login.defs

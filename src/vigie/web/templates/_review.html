@@ -1,0 +1,23 @@
+{# Revue du coordinateur pendant le rodage (phase 9) : pertinence et affectation d'une tâche. #}
+{% set r = t.review %}
+<div class="t-review{% if r %} done{% endif %}">
+  {% if r %}<span class="tag {{ 'okc' if r.relevant and r.well_assigned else 'P1' }}">{% if r.relevant and r.well_assigned %}jugée ✓{% elif not r.relevant %}✗ non pertinente{% else %}✗ mal affectée{% endif %}</span>{% endif %}
+  <form class="inline" hx-post="/taches/{{ task.id }}/revue" hx-target="#task-{{ task.id }}" hx-swap="outerHTML" method="post" action="/taches/{{ task.id }}/revue">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ path }}">
+    <label for="rv-rel-{{ task.id }}">Pertinente</label>
+    <select id="rv-rel-{{ task.id }}" name="relevant" required>
+      <option value="" disabled{% if not r %} selected{% endif %}>—</option>
+      <option value="oui"{% if r and r.relevant %} selected{% endif %}>oui</option>
+      <option value="non"{% if r and not r.relevant %} selected{% endif %}>non</option>
+    </select>
+    <label for="rv-asg-{{ task.id }}">Bien affectée</label>
+    <select id="rv-asg-{{ task.id }}" name="well_assigned" required>
+      <option value="" disabled{% if not r %} selected{% endif %}>—</option>
+      <option value="oui"{% if r and r.well_assigned %} selected{% endif %}>oui</option>
+      <option value="non"{% if r and not r.well_assigned %} selected{% endif %}>non</option>
+    </select>
+    <input name="note" maxlength="300" placeholder="pourquoi ? (facultatif)" value="{{ r.note if r else '' }}" aria-label="Note de revue">
+    <button class="btn" type="submit">{{ "Modifier" if r else "Juger" }}</button>
+  </form>
+</div>

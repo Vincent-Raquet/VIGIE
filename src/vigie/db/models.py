@@ -458,6 +458,34 @@ class TaskComment(Base):
     body: Mapped[str] = mapped_column(Text)
 
 
+class TaskReview(Base):
+    """Jugement du coordinateur pendant le rodage (phase 9) : une ligne par tâche."""
+
+    __tablename__ = "task_review"
+
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("task.id", ondelete="CASCADE"), primary_key=True
+    )
+    relevant: Mapped[bool] = mapped_column(Boolean)
+    well_assigned: Mapped[bool] = mapped_column(Boolean)
+    note: Mapped[str] = mapped_column(String(300), default="")
+    reviewer_id: Mapped[int] = mapped_column(ForeignKey("person.id"))
+    at: Mapped[datetime] = _created_at()
+
+
+class PlanReview(Base):
+    """Ce qui manquait au plan selon le coordinateur (rodage)."""
+
+    __tablename__ = "plan_review"
+
+    plan_id: Mapped[int] = mapped_column(
+        ForeignKey("plan.id", ondelete="CASCADE"), primary_key=True
+    )
+    missing: Mapped[str] = mapped_column(String(1000), default="")
+    reviewer_id: Mapped[int] = mapped_column(ForeignKey("person.id"))
+    at: Mapped[datetime] = _created_at()
+
+
 # --- Administration -----------------------------------------------------------
 
 
