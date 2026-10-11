@@ -72,8 +72,8 @@ vigie_source_veeam:
 # NinjaOne (eu.ninjarmm.com, via Squid) : client id de l'app API « Vigie » (non secret ;
 # secret : ninjaone_client_secret). Vide = source NinjaOne non déployée.
 vigie_ninjaone_client_id: ""
-vigie_ninjaone_board_id: 0          # board des tickets (0 = pas de tickets)
-vigie_ninjaone_statuses: []         # statuts à traiter (noms affichés dans NinjaOne)
+vigie_ninjaone_board_id: 4          # « Tickets ouverts » (0 = pas de tickets)
+vigie_ninjaone_statuses: [Nouveau, Ouvert, En attente]   # noms affichés dans NinjaOne
 vigie_source_ninjaone:
   - name: ninjaone
     interval_min: 15

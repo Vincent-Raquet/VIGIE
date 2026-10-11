@@ -6,7 +6,7 @@ ninjaone`, puis anonymisation). Heure de référence des tests : 2026-10-11T12:0
 
 | Objet | Cas couvert | Signal attendu |
 |---|---|---|
-| alerte disque sur `srv-wi-01` (MAJOR) | alerte simple, serveur | `server`, sévérité 4, WI |
+| alerte disque sur `srv-wi-01` (gravité NONE, sans objet `device`, `deviceId` en texte — comme la capture réelle) | appareil retrouvé dans la liste de son organisation | `server`, sévérité 3 (selon le type), WI |
 | 6 × « Redémarrage en attente » (MINOR) sur des postes SPL | agrégation (seuil 5) | 1 signal `endpoint`, sévérité 2, SPL |
 | menace antivirus (CRITICAL) sur `pc-spl-07` | sécurité | `security`, sévérité 5, SPL |
 | `fw-wg-01` hors ligne (MAJOR, NMS_FIREWALL) | pare-feu | `firewall`, sévérité 4, WG |
@@ -14,4 +14,5 @@ ninjaone`, puis anonymisation). Heure de référence des tests : 2026-10-11T12:0
 | 2 patchs logiciels en échec (impact HIGH) sur `pc-spl-02` | logiciels | SPL sévérité 2 |
 | tickets 501 (Ouvert, HIGH), 502 (Fermé), 503 (En attente) | filtre de statuts | 501 sévérité 3 SPL, 503 sévérité 2 WI, 502 ignoré |
 
-Les jetons sont factices ; aucun nom réel.
+Organisations 2, 3, 4 = WI, SPL, WG (correspondance réelle) ; appareils lus par organisation
+(`/v2/organization/{id}/devices`). Les jetons sont factices ; aucun nom réel.

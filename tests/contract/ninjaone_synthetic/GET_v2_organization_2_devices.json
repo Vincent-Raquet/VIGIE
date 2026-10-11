@@ -1,0 +1,10 @@
+[
+  {
+    "id": 101,
+    "organizationId": 2,
+    "nodeClass": "WINDOWS_SERVER",
+    "systemName": "srv-wi-01",
+    "displayName": "srv-wi-01",
+    "offline": false
+  }
+]

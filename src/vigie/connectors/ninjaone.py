@@ -46,9 +46,29 @@ TITLE_MAX = 300
 DETAILS_MAX = 1000
 LISTED_DEVICES = 10
 
-# Gravité NinjaOne → 0-5. TODO verify : valeurs (chaîne libre dans la spécification).
-SEVERITY = {"CRITICAL": 5, "MAJOR": 4, "MODERATE": 3, "MINOR": 2, "NONE": 1}
+# Gravité NinjaOne → 0-5. Capture réelle : toutes les alertes en « NONE » ; la sévérité vient
+# alors du type d'alerte (SOURCE_SEVERITY). TODO verify : autres valeurs que NONE.
+SEVERITY = {"CRITICAL": 5, "MAJOR": 4, "MODERATE": 3, "MINOR": 2}
 DEFAULT_SEVERITY = 2
+SOURCE_SEVERITY = {
+    "CONDITION_SMART_STATUS_DEGRATED": 4,
+    "CONDITION_RAID_HEALTH_STATUS": 4,
+    "AV_QUARANTINE_THREAT": 5,
+    "BITDEFENDER_DELETE_THREAT": 5,
+    "AGENT_OFFLINE": 3,
+    "CONDITION_AGENT_DISK_FREE_SPACE": 3,
+    "CONDITION_LINUX_DISK_FREE_SPACE": 3,
+    "CONDITION_PENDING_REBOOT": 2,
+}
+SOURCE_LABELS = {
+    "CONDITION_AGENT_DISK_FREE_SPACE": "Espace disque faible",
+    "CONDITION_LINUX_DISK_FREE_SPACE": "Espace disque faible",
+    "CONDITION_AGENT_MEMORY": "Mémoire saturée",
+    "CONDITION_AGENT_DISK_IO": "Disque très sollicité",
+    "CONDITION_AGENT_CPU": "Processeur saturé",
+    "CONDITION_PENDING_REBOOT": "Redémarrage en attente",
+    "AGENT_OFFLINE": "Agent hors ligne",
+}
 # Priorité d'un ticket → sévérité. TODO verify : valeurs de la colonne priority.
 TICKET_SEVERITY = {"URGENT": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 1}
 
@@ -120,7 +140,9 @@ ALLOWLIST: tuple[AllowedCall, ...] = (
         reason="jeton OAuth2 client credentials, scope monitoring (lecture seule)",
     ),
     AllowedCall(method="GET", path=r"^/v2/organizations$", query=PAGED),
-    AllowedCall(method="GET", path=r"^/v2/devices$", query=PAGED),
+    # Appareils par organisation : /v2/devices ne renvoie pas les appareils gérés (capture
+    # réelle 2026-10-11 : 36 appareils non gérés seulement).
+    AllowedCall(method="GET", path=r"^/v2/organization/[0-9]{1,9}/devices$", query=PAGED),
     AllowedCall(method="GET", path=r"^/v2/alerts$"),
     AllowedCall(method="GET", path=r"^/v2/queries/os-patches$", query=CURSOR),
     AllowedCall(method="GET", path=r"^/v2/queries/software-patches$", query=CURSOR),
@@ -184,6 +206,27 @@ def _dict(value: Any) -> Mapping[str, Any]:
 
 def _device(devices: Mapping[int, Mapping[str, Any]], device_id: Any) -> Mapping[str, Any]:
     return devices.get(device_id, {}) if isinstance(device_id, int) else {}
+
+
+def _severity(alert: Mapping[str, Any]) -> int:
+    explicit = SEVERITY.get(str(alert.get("severity", "")).upper())
+    if explicit is not None:
+        return explicit
+    source = str(alert.get("sourceType", ""))
+    if source.startswith(("AV_", "BITDEFENDER_")):
+        return 5
+    return SOURCE_SEVERITY.get(source, DEFAULT_SEVERITY)
+
+
+def _int(value: Any) -> int | None:
+    """Identifiant numérique, reçu en nombre ou en texte (capture réelle : « 2766 »)."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
 
 
 def _category(source_type: str, node_class: str) -> Category:
@@ -343,13 +386,13 @@ class NinjaOneConnector:
             for o in self._by_id("/v2/organizations")
             if isinstance(o, dict) and isinstance(o.get("id"), int)
         }
-        devices = {
-            int(d["id"]): d
-            for d in self._by_id("/v2/devices")
-            if isinstance(d, dict) and isinstance(d.get("id"), int)
-        }
+        devices: dict[int, Mapping[str, Any]] = {}
+        for org_id in orgs:
+            for d in self._by_id(f"/v2/organization/{org_id}/devices"):
+                if isinstance(d, dict) and (dev_id := _int(d.get("id"))) is not None:
+                    devices[dev_id] = {"organizationId": org_id, **d}
         out: list[RawSignal] = []
-        out.extend(self._alert_signals(orgs, now))
+        out.extend(self._alert_signals(orgs, devices, now))
         out.extend(self._patch_signals(orgs, devices, now))
         statuses = {s.casefold() for s in self.config.ticket_statuses}
         for row in self._tickets():
@@ -364,14 +407,22 @@ class NinjaOneConnector:
             )
         return sorted(out, key=lambda r: r.external_id)
 
-    def _alert_signals(self, orgs: Mapping[int, str], now: datetime) -> list[RawSignal]:
+    def _alert_signals(
+        self, orgs: Mapping[int, str], devices: Mapping[int, Mapping[str, Any]], now: datetime
+    ) -> list[RawSignal]:
         self._login()
-        alerts = [a for a in (self.client.get("/v2/alerts") or []) if isinstance(a, dict)]
+        alerts: list[dict[str, Any]] = []
+        for a in self.client.get("/v2/alerts") or []:
+            if not isinstance(a, dict):
+                continue
+            # L'alerte réelle ne porte que deviceId (en texte) : l'appareil vient de la liste
+            # de son organisation.
+            device = {**_device(devices, _int(a.get("deviceId"))), **_dict(a.get("device"))}
+            alerts.append({**a, "device": device})
         groups: dict[tuple[int | None, str], list[Mapping[str, Any]]] = defaultdict(list)
         for a in alerts:
-            device = _dict(a.get("device"))
-            org = device.get("organizationId")
-            key = str(a.get("conditionName") or a.get("sourceType") or "alerte")
+            org = _dict(a.get("device")).get("organizationId")
+            key = str(a.get("sourceType") or a.get("conditionName") or "alerte")
             groups[(org if isinstance(org, int) else None, key)].append(a)
         out: list[RawSignal] = []
         for (org, key), items in groups.items():
@@ -406,13 +457,14 @@ class NinjaOneConnector:
             for patch in self._by_cursor(path, self.config.patch_status):
                 if not isinstance(patch, dict):
                     continue
-                org = _device(devices, patch.get("deviceId")).get("organizationId")
+                org = _device(devices, _int(patch.get("deviceId"))).get("organizationId")
                 by_org[org if isinstance(org, int) else None].append(patch)
             for org, patches in by_org.items():
                 names = sorted(
                     {
                         str(
-                            _device(devices, p.get("deviceId")).get("systemName")
+                            _device(devices, _int(p.get("deviceId"))).get("systemName")
+                            or _device(devices, _int(p.get("deviceId"))).get("displayName")
                             or p.get("deviceId")
                         )
                         for p in patches
@@ -465,7 +517,7 @@ class NinjaOneConnector:
             company_code=self._company(mapping, p["org"]),
             asset=host,
             category=_category(source_type, node_class),
-            severity=SEVERITY.get(str(a.get("severity", "")).upper(), DEFAULT_SEVERITY),
+            severity=_severity(a),
             title=clean_untrusted(f"{host} : {title}" if host else title, TITLE_MAX),
             details=clean_untrusted("\n".join(lines), DETAILS_MAX),
             first_seen=created,
@@ -484,18 +536,20 @@ class NinjaOneConnector:
         alerts: Sequence[Mapping[str, Any]] = p["alerts"]
         hosts = sorted(
             {
-                str(_dict(a.get("device")).get("systemName") or a.get("deviceId"))
+                str(
+                    _dict(a.get("device")).get("systemName")
+                    or _dict(a.get("device")).get("displayName")
+                    or a.get("deviceId")
+                )
                 for a in alerts
                 if isinstance(a.get("device"), dict) or a.get("deviceId") is not None
             }
         )
-        severity = max(
-            SEVERITY.get(str(a.get("severity", "")).upper(), DEFAULT_SEVERITY) for a in alerts
-        )
+        severity = max(_severity(a) for a in alerts)
         first = alerts[0]
         device = _dict(first.get("device"))
         source_type = str(first.get("sourceType", ""))
-        condition = clean_untrusted(p["condition"], 200)
+        condition = clean_untrusted(SOURCE_LABELS.get(p["condition"], p["condition"]), 200)
         lines = [f"Condition : {condition}", f"Appareils : {len(hosts)}"]
         lines.append("Exemples : " + ", ".join(hosts[:LISTED_DEVICES]))
         if p["org_name"]:

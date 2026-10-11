@@ -64,7 +64,8 @@ def test_alerts_single_and_aggregated(mapper: RuleMapper) -> None:
     single = {s.asset: s for s in by_kind(sigs, "alert")}
     assert set(single) == {"srv-wi-01", "pc-spl-07", "fw-wg-01"}
     disk, av, fw = single["srv-wi-01"], single["pc-spl-07"], single["fw-wg-01"]
-    assert (disk.category, disk.severity, disk.company_code) == (Category.server, 4, "WI")
+    assert disk.severity == 3  # gravité NONE (réel) : sévérité selon le type, espace disque
+    assert (disk.category, disk.company_code) == (Category.server, "WI")
     assert (av.category, av.severity, av.company_code) == (Category.security, 5, "SPL")
     assert (fw.category, fw.severity, fw.company_code) == (Category.firewall, 4, "WG")
     assert fw.attributes["offline"] is True
