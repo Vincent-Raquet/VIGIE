@@ -26,7 +26,7 @@ from typing import Any
 
 from vigie.config import get_secret, load_config, resolve_config_path
 from vigie.connectors import registry
-from vigie.connectors.base import ConnectorContext, RecordingTransport
+from vigie.connectors.base import ConnectorConfigError, ConnectorContext, RecordingTransport
 
 
 def main() -> int:
@@ -55,7 +55,11 @@ def main() -> int:
     context = ConnectorContext(
         settings=settings, secret=get_secret, ca_bundle=cfg.tls.ca_bundle, transport=transport
     )
-    connector: Any = registry.load(args.source).from_context(context)
+    try:
+        connector: Any = registry.load(args.source).from_context(context)
+    except ConnectorConfigError as exc:
+        print(f"ERREUR {exc}", file=sys.stderr)
+        return 2
 
     health = connector.healthcheck()
     print(f"Santé : {'OK' if health.ok else 'ÉCHEC'} {health.version} {health.detail}".rstrip())

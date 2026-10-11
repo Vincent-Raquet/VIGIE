@@ -44,8 +44,9 @@ vigie_release: "{{ lookup('file', playbook_dir + '/../dist/release.txt') }}"
 vigie_dist_dir: "{{ playbook_dir }}/../dist"
 vigie_roles_dir: "{{ playbook_dir }}/../roles"
 vigie_web_port: 8080
-# Veeam B&R 13.1 : nom porté par le certificat du VBR (FQDN, résolu par le DNS interne vers
-# 10.10.10.27). Vide = source Veeam non déployée.
+# Veeam B&R 13.1 : nom ou IP porté par le certificat du VBR. Le certificat auto-signé de
+# WI-VEEAM-SA-01 contient l'IP 10.10.10.27 (SAN, vérifié le 2026-10-11) : mettre "10.10.10.27".
+# Vide = source Veeam non déployée.
 vigie_veeam_host: ""
 # Certificat (auto-signé) du VBR, exporté depuis le serveur, sur la machine qui lance Ansible
 # (hors dépôt) ; copié dans /etc/vigie/ca/veeam.pem. Seul ce certificat est approuvé pour Veeam.
