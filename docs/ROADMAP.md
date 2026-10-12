@@ -21,7 +21,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - Réalisé : `SafeClient`/`AllowedCall` (contrôles à la définition et à l'appel, redirections refusées), `vigie.redact` (masquage), journaux JSON masqués (`vigie.logs`), tests statiques AST, tests appliqués automatiquement à chaque connecteur enregistré.
 
 ## Phase 3 — Connecteurs (3–4 jours)
-Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur, capture réelle anonymisée, scope monitoring suffisant, 2026-10-11 ; vulnérabilités : l'API NinjaOne ne relit pas les CVE importées → **connecteur Microsoft Defender Vulnerability Management à créer** (lecture seule, sélection : exploitées, CVSS élevé avec correctif, nouvelles) et patchs de sécurité NinjaOne en attente > 7 jours → FortiAnalyzer → Wazuh → squelette Veezo) sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`). Pour chacun, suivre le skill `add-connector` :
+Première livraison : **Zabbix puis Veeam**. Les autres sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`) : NinjaOne ✅, Microsoft Defender ✅, patchs NinjaOne en attente > 7 jours ✅, FortiAnalyzer ✅ (capture réelle à faire), puis **Wazuh** et squelette **Veezo** (à faire). Pour chacun, suivre le skill `add-connector` :
 - vérification de l'API dans la doc de la version ;
 - allowlist + test « appel interdit » ;
 - fixtures anonymisées + tests de contrat ;
@@ -30,6 +30,12 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur
 - **Acceptation** : chaque connecteur produit des signaux corrects sur fixtures ; aucun test n'émet d'appel réseau.
 - **Ordre révisé (2026-10-09)** : la phase 3 se clôt avec le **seul connecteur Zabbix** ; les phases 4 à 6 se déroulent sur Zabbix seul ; Veeam puis les autres connecteurs sont ajoutés ensuite (skill `add-connector`, sans toucher au moteur).
 - **Veeam B&R 13.1** (branche `connector-veeam`, 2026-10-11) : connecteur en lecture seule (jeton OAuth2 en formulaire, 5 GET), jobs (échecs, avertissements répétés, > 24 h sans succès), dépôts > 85/90/95 %, malware ; `SafeClient` étendu (corps en formulaire, en-têtes fixes non secrets, transport d'enregistrement) ; certificat du VBR approuvé pour cette seule source ; fixtures synthétiques. Jeton accordé à Backup Viewer (2026-10-11). Reste : captures réelles anonymisées (accès du rôle aux 5 GET), mise en service (`vigie_veeam_host`).
+- **État au 2026-10-12** (détail : `docs/CONNECTORS.md`) :
+  - Veeam B&R 13.1 ✅ en production (capture réelle anonymisée, rôle Backup Viewer) ;
+  - NinjaOne ✅ en production (alertes, patchs en échec, tickets ; **patchs de sécurité en attente depuis plus de 7 jours** : un signal par patch daté par Vigie, un incident par société et type, attributs moteur `min_age_h` et `incident_group`) ;
+  - Microsoft Defender ✅ en production (vulnérabilités Critical/High Windows avec analyse de criticité, incidents XDR high, appareils inactifs ; certificat, capture réelle anonymisée) ; reste : étiquette « FWD » et appareils « valeur élevée » dans Defender ;
+  - FortiAnalyzer 8.0 ✅ connecteur (Event Monitor, appareils et HA, VPN ; JSON-RPC `get` sur URL listées, logsearch optionnel) sur fixtures synthétiques ; reste : capture réelle (`TODO verify` de `CONNECTORS.md` §2) et mise en service ;
+  - Wazuh (vulnérabilités Linux, alertes) et Veezo : à faire.
 - Réalisé (Zabbix) : connecteur 7.4 (`problem.get` + `trigger.get` + `proxy.get`, `apiinfo.version` anonyme), rattachement société `vigie.mapping.RuleMapper`, agrégation des hôtes bruyants, fixtures réelles anonymisées (`scripts/anonymize_fixtures.py`), rejeu `fixture_transport`, `vigie collect --dry-run [--fixtures]`, `vigie check --sources`. L'enregistrement des signaux en base (fingerprint, résolution) relève de la phase 4.
 
 ## Phase 4 — Moteur déterministe (2–3 jours, TDD)
@@ -76,6 +82,10 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur
 - Ajustement des poids, seuils, catégories et estimations dans `config/scoring.yaml` ; suivi du coût réel.
 - **Acceptation** : le coordinateur juge ≥ 80 % des tâches pertinentes et bien affectées sur 5 jours consécutifs → activation de la diffusion à l'équipe.
 - Outillage réalisé : jugement de chaque tâche (pertinente, bien affectée, note) et « ce qui manquait » au plan, sur Aujourd'hui (admin, manager ; tables `task_review`, `plan_review`, migration 0009) ; page **Rodage** : jour validé si ≥ 90 % des tâches jugées et ≥ 80 % pertinentes et bien affectées, série de jours consécutifs (un plan du jour pas encore relu ne l'interrompt pas), tâches rejetées par catégorie et origine, coût IA par plan, projection mensuelle ; barème réglable dans Paramètres ; `vigie_notify_draft_only` dans Ansible et procédure « Fin de rodage » (`deploy/README.md` §9). Bouton « Générer maintenant… » sur Aujourd'hui et Semaine (coût de la dernière itération affiché, avec ou sans IA, migration 0010, unité `vigie-plan-requests`). Reste : les 2 semaines de rodage en production.
+
+## Après le rodage (réalisé hors phases)
+- **Discussion avec l'IA sur les priorités** ✅ (2026-10-12, migration 0011) : panneau sur le plan du jour et la fiche incident, service `vigie-chat` (clé IA seule, le web n'a pas la clé), sortie structurée sans outil, propositions appliquées par un admin seulement (audit), « Réinitialiser le contexte », plafonds de jetons. Reste : essai en production.
+- **Traitement invité Veeam de la VM** ✅ (SSH depuis 10.10.10.27, compte `svcveeam`, `deploy/README.md` §14) ; reste : mot de passe et identité dans Veeam.
 
 ## Points à trancher (relevés en phase 0)
 | Réf. | Point | Phase |
