@@ -79,6 +79,20 @@ class LLMConfig(_Strict):
     timeout_s: float = Field(120, gt=0, le=600)
 
 
+class ChatConfig(_Strict):
+    """Discussion avec l'IA sur les priorités. Mêmes modèle, budget mensuel et clé que [llm] ;
+    plafonds de jetons propres (entrée + sortie, cache compris)."""
+
+    enabled: bool = True
+    effort: Literal["low", "medium", "high"] = "low"
+    max_output_tokens: int = Field(2000, ge=200, le=8000)  # par réponse
+    max_question_chars: int = Field(2000, ge=100, le=5000)
+    max_conversation_tokens: int = Field(250_000, ge=10_000)
+    max_user_daily_tokens: int = Field(400_000, ge=10_000)
+    history_messages: int = Field(20, ge=2, le=60)  # derniers messages renvoyés au modèle
+    poll_interval_s: float = Field(2, gt=0, le=60)
+
+
 class PlansConfig(_Strict):
     daily_at: time = time(7, 15)
     daily_publish_at: time = time(7, 30)
@@ -157,6 +171,7 @@ class VigieConfig(_Strict):
     database: DatabaseConfig = DatabaseConfig()
     llm: LLMConfig = LLMConfig()
     plans: PlansConfig = PlansConfig()
+    chat: ChatConfig = ChatConfig()
     notify: NotifyConfig = NotifyConfig()
     tls: TLSConfig = TLSConfig()
     web: WebConfig = WebConfig()

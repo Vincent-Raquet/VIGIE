@@ -17,7 +17,7 @@ def test_models_match_migrations(db_engine: Engine) -> None:
 
 
 def test_database_is_at_head(db_engine: Engine) -> None:
-    assert head_revision() == "0010"
+    assert head_revision() == "0011"
     assert current_revision(db_engine) == head_revision()
 
 

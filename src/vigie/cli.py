@@ -640,6 +640,48 @@ def jobs(
     typer.echo(f"{len(lines)} demande(s) traitée(s).")
 
 
+@app.command("chat-worker")
+def chat_worker(
+    ctx: typer.Context,
+    once: Annotated[
+        bool, typer.Option("--once", help="Traite la file une fois puis s'arrête.")
+    ] = False,
+) -> None:
+    """Service vigie-chat : répond aux questions posées depuis l'interface (discussion IA).
+
+    Seul détenteur de la clé Anthropic pour la discussion ; le web dépose les questions en
+    base et n'a jamais la clé (SECURITY.md C8).
+    """
+    import time as _time
+
+    from vigie.engine.chat import process_pending, stale_running
+
+    _, cfg = _config(ctx)
+
+    def client() -> LLMClient:
+        return make_client(get_secret("anthropic_api_key").get_secret_value(), cfg.llm)
+
+    engine = make_engine(cfg.database.url)
+    total = 0
+    try:
+        with Session(engine) as session:
+            stale_running(session, datetime.now(UTC))
+        while True:
+            try:
+                with Session(engine) as session:
+                    total += process_pending(session, client, cfg.chat, cfg.llm)
+            except SQLAlchemyError as exc:
+                typer.echo(f"ERREUR base : {type(exc).__name__}", err=True)
+                if once:
+                    raise typer.Exit(code=1) from exc
+            if once:
+                break
+            _time.sleep(cfg.chat.poll_interval_s)
+    finally:
+        engine.dispose()
+    typer.echo(f"{total} question(s) traitée(s).")
+
+
 PLAN_REQUEST_WINDOW_DAYS = 14
 
 

@@ -44,6 +44,15 @@ vigie_worker_units:
     unit_credentials: "{{ vigie_plan_credentials }}"
     unit_proxy: true
     unit_timeout: 20min
+  # Discussion avec l'IA (web) : service permanent, clé IA seule, comme vigie-plan@ ; le web
+  # dépose les questions en base et ne détient jamais la clé (SECURITY.md C8).
+  - name: vigie-chat.service
+    unit_description: discussion avec l'IA (réponses aux questions de l'interface)
+    unit_exec: "{{ vigie_bin }} chat-worker"
+    unit_credentials: "{{ vigie_plan_credentials }}"
+    unit_proxy: true
+    unit_type: simple
+    unit_timeout: 1min
   - name: vigie-housekeeping.service
     unit_description: purge selon les durées de conservation
     unit_exec: "{{ vigie_bin }} housekeeping"

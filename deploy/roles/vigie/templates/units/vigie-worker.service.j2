@@ -6,12 +6,16 @@ After=network-online.target postgresql.service
 Wants=network-online.target
 
 [Service]
-Type=oneshot
+Type={{ unit_type | default('oneshot') }}
 User=vigie-worker
 Group=vigie-worker
 SupplementaryGroups=vigie
 ExecStart={{ unit_exec }}
 TimeoutStartSec={{ unit_timeout | default('15min') }}
+{% if unit_type | default('oneshot') == 'simple' %}
+Restart=on-failure
+RestartSec=10s
+{% endif %}
 {% for name in unit_credentials | default([]) %}
 LoadCredentialEncrypted={{ name }}:/etc/credstore.encrypted/vigie.{{ name }}
 {% endfor %}
@@ -29,4 +33,9 @@ StateDirectory={{ unit_state_dir }}
 StateDirectoryMode=0755
 # Lu par l'agent Zabbix : fichiers lisibles par tous (aucune donnée sensible).
 UMask=0022
+{% endif %}
+{% if unit_type | default('oneshot') == 'simple' %}
+
+[Install]
+WantedBy=multi-user.target
 {% endif %}

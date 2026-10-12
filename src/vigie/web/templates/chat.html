@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Discussions IA{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Discussions avec l'IA</h1><div class="sub">Ouvertes depuis le plan du jour ou une fiche incident ; les conversations réinitialisées restent consultables en lecture seule.</div></div></header>
+  <div class="panel table-wrap"><table><thead><tr><th>N°</th><th>Sujet</th><th>Auteur</th><th>Ouverte</th><th>État</th></tr></thead><tbody>
+  {% for c in conversations %}
+    <tr><td><a href="/chat/conversations/{{ c.id }}">{{ c.id }}</a></td>
+      <td>{% if c.anchor.value == "plan" %}plan n° {{ c.anchor_id }}{% else %}<a href="/signaux/incidents/{{ c.anchor_id }}">incident {{ c.anchor_id }}</a>{% endif %}</td>
+      <td>{{ c.owner }}</td><td class="mono">{{ c.created_at.strftime("%d/%m %H:%M") }}</td>
+      <td>{% if c.status.value == "active" %}<span class="tag okc">active</span>{% else %}<span class="tag">archivée le {{ c.archived_at.strftime("%d/%m %H:%M") }}</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Aucune discussion.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

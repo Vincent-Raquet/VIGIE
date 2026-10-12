@@ -1,0 +1,31 @@
+{# Panneau de discussion avec l'IA (plan du jour, fiche incident). Se rafraîchit tant qu'une réponse est attendue. #}
+<div id="chat-panel" class="panel stack"{% if conversation and waiting %} hx-get="/chat/panneau?anchor={{ anchor }}&anchor_id={{ anchor_id }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <header class="row"><h2>Discuter des priorités avec l'IA</h2>
+    {% if conversation and can_ask %}
+    <form class="inline" hx-post="/chat/conversations/{{ conversation.id }}/reinitialiser" hx-target="#chat-panel" hx-swap="outerHTML" method="post" action="/chat/conversations/{{ conversation.id }}/reinitialiser">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="btn" type="submit" title="Archive cette conversation (lecture seule) et repart d'un contexte propre">Réinitialiser le contexte</button>
+    </form>{% endif %}
+  </header>
+  <p class="sub">L'IA explique les priorités et peut proposer un changement ; rien n'est appliqué sans la validation d'un administrateur. Citez un incident par son numéro (#123) pour le comparer.</p>
+  {% if not chat_enabled %}<p class="flash error" role="alert">Discussion désactivée dans la configuration.</p>{% endif %}
+  {% if error %}<p class="flash error" role="alert">{{ error }}</p>{% endif %}
+  {% if conversation %}
+    {% include "_chat_messages.html" %}
+    <p class="sub">{{ tokens }} jetons utilisés sur {{ max_tokens }} pour cette conversation.</p>
+    {% if waiting %}<p class="sub" role="status">L'IA réfléchit…</p>{% endif %}
+  {% endif %}
+  {% if can_ask and not (conversation and waiting) %}
+  <form class="stack" hx-post="/chat/questions" hx-target="#chat-panel" hx-swap="outerHTML" method="post" action="/chat/questions">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="anchor" value="{{ anchor }}">
+    <input type="hidden" name="anchor_id" value="{{ anchor_id }}">
+    <label class="f" for="chat-q-{{ anchor }}">Votre question<textarea id="chat-q-{{ anchor }}" name="content" rows="3" maxlength="{{ max_chars }}" required placeholder="Pourquoi cet incident est-il en P2 ? Lequel de #123 et #456 traiter d'abord ?"></textarea></label>
+    <div class="row"><button class="btn primary" type="submit">Envoyer</button></div>
+  </form>
+  {% elif not can_ask %}<p class="sub">Lecture seule.</p>{% endif %}
+  {% if others %}
+  <details><summary class="sub">Autres discussions sur ce sujet ({{ others|length }})</summary>
+    <ul>{% for c in others %}<li><a href="/chat/conversations/{{ c.id }}">n° {{ c.id }}</a> — {{ c.owner }}, {{ c.created_at.strftime("%d/%m %H:%M") }}{% if c.status.value == "archived" %} <span class="tag">archivée</span>{% endif %}</li>{% endfor %}</ul>
+  </details>{% endif %}
+</div>

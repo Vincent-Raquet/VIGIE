@@ -350,6 +350,14 @@ class Incident(Base):
     )
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _created_at()
+    # Priorité fixée par un admin (proposition de l'IA acceptée dans la discussion) : le
+    # moteur la garde tant que l'incident reste ouvert, en citant aussi son propre calcul.
+    manual_priority: Mapped[enums.Priority | None] = mapped_column(
+        _enum(enums.Priority, "manual_priority"), nullable=True
+    )
+    manual_reason: Mapped[str] = mapped_column(Text, default="", server_default="")
+    manual_by: Mapped[str | None] = mapped_column(String(100))
+    manual_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class IncidentSignal(Base):
@@ -530,3 +538,70 @@ class JobRequest(Base):
     )
     result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# --- Discussion avec l'IA -----------------------------------------------------------------
+
+
+class ChatConversation(Base):
+    """Discussion d'un utilisateur ouverte depuis un plan ou un incident.
+
+    « Réinitialiser le contexte » archive la conversation (lecture seule, jamais supprimée)
+    et en ouvre une nouvelle : le contexte (`context_json`, figé à la première question)
+    et l'historique de l'ancienne ne sont plus jamais envoyés au modèle.
+    """
+
+    __tablename__ = "chat_conversation"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(100), index=True)  # e-mail de l'utilisateur
+    anchor: Mapped[enums.ChatAnchor] = mapped_column(_enum(enums.ChatAnchor, "anchor"))
+    anchor_id: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[enums.ConversationStatus] = mapped_column(
+        _enum(enums.ConversationStatus, "status"), default=enums.ConversationStatus.active
+    )
+    # Instantané des données (déjà nettoyées) construit par le service vigie-chat.
+    context_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created_at()
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    archived_by: Mapped[str | None] = mapped_column(String(100))
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_message"
+    __table_args__ = (CheckConstraint("char_length(content) <= 20000", name="content_size"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("chat_conversation.id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[enums.ChatRole] = mapped_column(_enum(enums.ChatRole, "role"))
+    content: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[enums.ChatStatus] = mapped_column(
+        _enum(enums.ChatStatus, "status"), default=enums.ChatStatus.done
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    llm_call_id: Mapped[int | None] = mapped_column(ForeignKey("llm_call.id"))
+    # Jetons de l'appel (entrée + cache + sortie) : plafonds par conversation et par jour.
+    tokens: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = _created_at()
+    done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ChatProposal(Base):
+    """Proposition structurée de l'IA : rien n'est appliqué sans le clic d'un admin."""
+
+    __tablename__ = "chat_proposal"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    message_id: Mapped[int] = mapped_column(
+        ForeignKey("chat_message.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[enums.ProposalKind] = mapped_column(_enum(enums.ProposalKind, "kind"))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    rationale: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[enums.ProposalStatus] = mapped_column(
+        _enum(enums.ProposalStatus, "status"), default=enums.ProposalStatus.proposed
+    )
+    decided_by: Mapped[str | None] = mapped_column(String(100))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

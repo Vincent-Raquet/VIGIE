@@ -200,7 +200,7 @@ def test_cli_breakglass_selfcheck_housekeeping(
 def test_cli_migrate_is_idempotent(config: Path) -> None:
     r = CliRunner().invoke(app, ["--config", str(config), "migrate"])
     assert r.exit_code == 0, r.output
-    assert "Base déjà à jour (révision 0010)" in r.output
+    assert "Base déjà à jour (révision 0011)" in r.output
 
 
 def test_selfcheck_certificate_days(db_session: Session, tmp_path: Path) -> None:

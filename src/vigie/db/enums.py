@@ -130,3 +130,38 @@ class JobStatus(StrEnum):
     running = "running"
     done = "done"
     failed = "failed"
+
+
+class ChatAnchor(StrEnum):
+    """Ce depuis quoi une discussion est ouverte (contexte injecté)."""
+
+    plan = "plan"
+    incident = "incident"
+
+
+class ConversationStatus(StrEnum):
+    active = "active"
+    archived = "archived"  # après « Réinitialiser le contexte » : lecture seule
+
+
+class ChatRole(StrEnum):
+    user = "user"
+    assistant = "assistant"
+
+
+class ChatStatus(StrEnum):
+    pending = "pending"  # question déposée par le web, en attente du service vigie-chat
+    running = "running"
+    done = "done"
+    failed = "failed"
+
+
+class ProposalKind(StrEnum):
+    incident_priority = "incident_priority"
+    scoring_override = "scoring_override"
+
+
+class ProposalStatus(StrEnum):
+    proposed = "proposed"
+    applied = "applied"
+    rejected = "rejected"

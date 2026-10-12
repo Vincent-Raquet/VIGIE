@@ -112,3 +112,47 @@ def test_runtime_roles_do_not_own_tables(conn: Connection, role: str) -> None:
         {"r": role},
     ).scalar_one()
     assert owned == 0
+
+
+def test_chat_tables(conn: Connection) -> None:
+    cid = {
+        "cid": conn.execute(
+            text(
+                "INSERT INTO chat_conversation (owner, anchor, anchor_id, status) "
+                "VALUES ('t@example.test', 'incident', 1, 'active') RETURNING id"
+            )
+        ).scalar_one()
+    }
+    question = (
+        "INSERT INTO chat_message (conversation_id, role, content, status, tokens) "
+        "VALUES (:cid, 'user', 'q', 'pending', 0)"
+    )
+    with as_role(conn, "vigie_web"):
+        allowed(
+            conn,
+            "INSERT INTO chat_conversation (owner, anchor, anchor_id, status) "
+            "VALUES ('t@example.test', 'incident', 1, 'active')",
+        )
+        allowed(conn, question, cid)
+        # Le web ne peut pas fabriquer une réponse de l'IA ni une proposition (déclencheur).
+        denied(conn, question.replace("'user'", "'assistant'"), cid)
+        denied(conn, question.replace("'pending'", "'done'"), cid)
+        denied(conn, question.replace(", 0)", ", 5)"), cid)
+        denied(conn, "UPDATE chat_message SET content = 'x' WHERE false")
+        denied(
+            conn,
+            "INSERT INTO chat_proposal (message_id, kind, payload, rationale, status) "
+            "VALUES (1, 'incident_priority', '{}', '', 'proposed')",
+        )
+        denied(conn, "UPDATE chat_conversation SET context_json = 'x' WHERE false")
+        allowed(conn, "UPDATE chat_conversation SET status = 'archived' WHERE false")
+        allowed(conn, "UPDATE chat_proposal SET status = 'applied' WHERE false")
+        denied(conn, "UPDATE chat_proposal SET payload = '{}' WHERE false")
+        allowed(conn, "UPDATE incident SET manual_priority = 'P1', manual_reason = '' WHERE false")
+        denied(conn, "UPDATE incident SET priority = 'P1' WHERE false")
+        denied(conn, "DELETE FROM chat_conversation")
+    with as_role(conn, "vigie_worker"):
+        allowed(conn, "UPDATE chat_message SET status = 'done' WHERE false")
+        allowed(conn, "UPDATE chat_conversation SET context_json = 'x' WHERE false")
+        denied(conn, "UPDATE chat_conversation SET status = 'active' WHERE false")
+        denied(conn, "UPDATE chat_proposal SET status = 'applied' WHERE false")

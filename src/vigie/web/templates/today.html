@@ -34,6 +34,7 @@
     {% endfor %}
   </div>
   {% include "_ai.html" %}
+  <div id="chat-panel" hx-get="/chat/panneau?anchor=plan&anchor_id={{ view.plan.id }}" hx-trigger="load" hx-swap="outerHTML"></div>
   {% if is_lead %}
   <div class="panel"><h2>Revue du plan (rodage)</h2>
     <p class="sub">Jugez chaque tâche ci-dessus (pertinente, bien affectée) ; le suivi est sur la page <a href="/rodage">Rodage</a>.</p>

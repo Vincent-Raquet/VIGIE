@@ -7,7 +7,11 @@
       <div class="sub">{{ incident.category.value }} · {{ incident.company_code or "sans société" }} · {{ "ouvert" if incident.status.value == "open" else "résolu" }} · score {{ incident.score|fr_num }}</div></div>
     <a class="btn" href="/signaux">Retour à la liste</a>
   </header>
-  <div class="panel"><h2>Raison de la priorité</h2><p class="formula">{{ incident.priority_reason }}</p></div>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel"><h2>Raison de la priorité</h2><p class="formula">{{ incident.priority_reason }}</p>
+    {% if incident.manual_priority %}<p class="sub">Priorité manuelle <span class="pill {{ incident.manual_priority.value }}">{{ incident.manual_priority.value }}</span> fixée par {{ incident.manual_by }} le {{ incident.manual_at.strftime("%d/%m %H:%M") }} ({{ incident.manual_reason }}).</p>
+      {% if user.role.value == "admin" %}<form class="inline" method="post" action="/signaux/incidents/{{ incident.id }}/priorite-manuelle/retirer"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Retirer la priorité manuelle</button></form>{% endif %}
+    {% endif %}</div>
   <div class="panel table-wrap"><h2>Signaux</h2>
     <table><thead><tr><th>Source</th><th>Sév.</th><th>Titre</th><th>Vu</th><th>État</th><th>Console</th></tr></thead><tbody>
     {% for s in signals %}
@@ -17,6 +21,7 @@
         <td>{% if links[s.id] %}<a href="{{ links[s.id] }}" rel="noopener noreferrer" target="_blank">ouvrir</a>{% else %}<span class="muted">—</span>{% endif %}</td></tr>
     {% endfor %}
     </tbody></table></div>
+  <div id="chat-panel" hx-get="/chat/panneau?anchor=incident&anchor_id={{ incident.id }}" hx-trigger="load" hx-swap="outerHTML"></div>
   {% if tasks %}<div class="panel"><h2>Tâches liées</h2><ul>{% for t in tasks %}<li><span class="pill {{ t.priority.value }}">{{ t.priority.value }}</span> {{ t.title }} — <span class="muted">{{ t.status.value }}</span></li>{% endfor %}</ul></div>{% endif %}
 </section>
 {% endblock %}
