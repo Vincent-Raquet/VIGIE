@@ -194,8 +194,18 @@ def score_incidents(session: Session, now: datetime) -> int:
         facts = incident_facts(session, signals, criticality, cfg, now)
         result = compute(facts, cfg, axes, now)
         incident.score = result.score
-        incident.priority = result.priority
-        incident.priority_reason = result.reason
+        if incident.manual_priority is not None:
+            # Fixée par un admin (proposition de la discussion IA acceptée) : gardée tant que
+            # l'incident reste ouvert ; le calcul du moteur reste visible dans la raison.
+            incident.priority = incident.manual_priority
+            incident.priority_reason = (
+                f"Priorité fixée à {incident.manual_priority.value} par {incident.manual_by} "
+                f"({incident.manual_reason}) ; calcul du moteur : {result.priority.value}, "
+                f"{result.reason}"
+            )[:2000]
+        else:
+            incident.priority = result.priority
+            incident.priority_reason = result.reason
         incident.category = facts.category
         incident.updated_at = now
     session.flush()

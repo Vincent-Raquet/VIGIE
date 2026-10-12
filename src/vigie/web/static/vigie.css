@@ -190,3 +190,11 @@ meter.cap:-moz-meter-sub-sub-optimum::-moz-meter-bar { background: var(--p2); }
 .plan-gen > summary::-webkit-details-marker { display: none; }
 .plan-gen[open] > form { margin-top: 8px; max-width: 560px; }
 #plan-gen-status { margin-top: 6px; }
+
+/* Discussion avec l'IA */
+.chat-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { border-left: 3px solid var(--line); padding: 4px 10px; }
+.chat-msg.assistant { border-left-color: var(--accent); }
+.chat-msg.failed { border-left-color: var(--p1, #b42318); }
+.chat-q { white-space: pre-wrap; margin: 4px 0; }
+.chat-prop { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }

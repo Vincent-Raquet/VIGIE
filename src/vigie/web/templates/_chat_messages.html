@@ -1,0 +1,29 @@
+{# Messages d'une conversation : questions en texte (échappé), réponses de l'IA en Markdown filtré. #}
+<ol class="chat-log">
+{% for item in messages %}{% set m = item.m %}
+  <li class="chat-msg {{ m.role.value }}{% if m.status.value == 'failed' %} failed{% endif %}">
+    <div class="sub">{{ "Question" if m.role.value == "user" else "IA" }} · {{ m.created_at.strftime("%d/%m %H:%M") }}{% if m.tokens %} · {{ m.tokens }} jetons{% endif %}</div>
+    {% if m.role.value == "user" %}<p class="chat-q">{{ m.content }}</p>
+    {% elif item.html %}<div class="md">{{ item.html }}</div>
+    {% else %}<p class="flash error" role="alert">{{ m.content }}</p>{% endif %}
+    {% for p in item.proposals %}
+    <div class="chat-prop panel">
+      <div><span class="tag">proposition n° {{ p.id }}</span>
+        {% if p.kind.value == "incident_priority" %}Passer l'incident <a href="/signaux/incidents/{{ p.payload.incident_id }}">{{ p.payload.incident_id }}</a> en <span class="pill {{ p.payload.priority }}">{{ p.payload.priority }}</span>
+        {% else %}Règle d'override <span class="mono">{{ p.payload.rule.id }}</span> → <span class="pill {{ p.payload.rule.priority }}">{{ p.payload.rule.priority }}</span> : {{ p.payload.rule.reason }}
+          <ul class="mono">{% for c in p.payload.rule.all %}<li>{{ c.field }} {{ c.op }} {{ c.value }}</li>{% endfor %}</ul>
+        {% endif %}</div>
+      {% if p.rationale %}<p class="sub">{{ p.rationale }}</p>{% endif %}
+      {% if p.status.value == "proposed" %}
+        {% if user and user.role.value == "admin" %}
+        <div class="row">
+          <form class="inline" method="post" action="/chat/propositions/{{ p.id }}/appliquer"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path if path.startswith('/chat/conversations') else '' }}"><button class="btn primary" type="submit">Appliquer</button></form>
+          <form class="inline" method="post" action="/chat/propositions/{{ p.id }}/rejeter"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Rejeter</button></form>
+        </div>
+        {% else %}<span class="sub">En attente de la décision d'un administrateur.</span>{% endif %}
+      {% else %}<span class="tag {{ 'okc' if p.status.value == 'applied' else '' }}">{{ "appliquée" if p.status.value == "applied" else "rejetée" }} par {{ p.decided_by }} le {{ p.decided_at.strftime("%d/%m %H:%M") }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </li>
+{% endfor %}
+</ol>

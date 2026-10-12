@@ -43,6 +43,7 @@ NAV = (
     NavItem("Plans", "Semaine", "/semaine", ALL),
     NavItem("Plans", "Signaux & incidents", "/signaux", STAFF),
     NavItem("Plans", "Rodage", "/rodage", LEADS),
+    NavItem("Plans", "Discussions IA", "/chat", ALL),
     NavItem("Configuration", "Équipe", "/equipe", ADMIN),
     NavItem("Configuration", "Politique", "/politique", LEADS),
     NavItem("Configuration", "Projets", "/projets", LEADS),

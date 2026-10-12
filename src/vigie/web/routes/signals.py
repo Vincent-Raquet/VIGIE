@@ -107,5 +107,11 @@ def incident_detail(request: Request, user: Staff, session: DB, incident_id: int
     return render(
         request,
         "incident.html",
-        {"incident": incident, "signals": signals, "links": links, "tasks": tasks},
+        {
+            "incident": incident,
+            "signals": signals,
+            "links": links,
+            "tasks": tasks,
+            "flash": request.session.pop("flash", None),
+        },
     )

@@ -21,6 +21,16 @@ fallback = true        # repli serveur si le modèle refuse pour raison de sécu
 timeout_s = 120
 # Clé : secret « anthropic_api_key » (systemd-creds en prod, VIGIE_SECRET_ANTHROPIC_API_KEY dans .env.local en dev)
 
+[chat]                 # discussion avec l'IA (plan du jour, fiche incident) ; même clé et budget que [llm]
+enabled = true
+effort = "low"
+max_output_tokens = 2000          # par réponse
+max_question_chars = 2000
+max_conversation_tokens = 250000  # au-delà : « Réinitialiser le contexte »
+max_user_daily_tokens = 400000    # par utilisateur et par jour (UTC)
+history_messages = 20
+poll_interval_s = 2               # service vigie-chat : délai entre deux lectures de la file
+
 [plans]
 daily_at = "07:15"
 daily_publish_at = "07:30"

@@ -101,6 +101,45 @@ def month_spend(session: Session, now: datetime) -> Decimal:
     return Decimal(total or 0)
 
 
+def record_call(
+    session: Session,
+    prompt_hash: str,
+    outcome: LLMOutcome,
+    *,
+    model: str,
+    usage: Any = None,
+    error: str | None = None,
+    now: datetime,
+) -> models.LLMCall:
+    """Journalise un appel (ou un refus) : jamais le contenu du prompt ni de la réponse."""
+    row = models.LLMCall(
+        at=now,
+        model=model,
+        input_tokens=int(getattr(usage, "input_tokens", 0) or 0)
+        + int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
+        cached_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+        output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+        cost_usd=usage_cost(model, usage) if usage is not None else Decimal(0),
+        prompt_hash=prompt_hash,
+        outcome=outcome,
+        error=error,
+    )
+    session.add(row)
+    session.flush()
+    logger.info(
+        "appel LLM",
+        extra={
+            "model": model,
+            "outcome": outcome.value,
+            "input_tokens": row.input_tokens,
+            "cached_tokens": row.cached_tokens,
+            "output_tokens": row.output_tokens,
+            "cost_usd": str(row.cost_usd),
+        },
+    )
+    return row
+
+
 def max_tokens_for(cfg: LLMConfig, kind: PlanKind) -> int:
     return cfg.max_tokens_daily if kind is PlanKind.daily else cfg.max_tokens_weekly
 
@@ -121,32 +160,15 @@ class PlanRefiner:
         error: str | None = None,
         now: datetime,
     ) -> int:
-        row = models.LLMCall(
-            at=now,
+        return record_call(
+            self.session,
+            prompt.prompt_hash,
+            outcome,
             model=model,
-            input_tokens=int(getattr(usage, "input_tokens", 0) or 0)
-            + int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
-            cached_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
-            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
-            cost_usd=usage_cost(model, usage) if usage is not None else Decimal(0),
-            prompt_hash=prompt.prompt_hash,
-            outcome=outcome,
+            usage=usage,
             error=error,
-        )
-        self.session.add(row)
-        self.session.flush()
-        logger.info(
-            "appel LLM",
-            extra={
-                "model": model,
-                "outcome": outcome.value,
-                "input_tokens": row.input_tokens,
-                "cached_tokens": row.cached_tokens,
-                "output_tokens": row.output_tokens,
-                "cost_usd": str(row.cost_usd),
-            },
-        )
-        return row.id
+            now=now,
+        ).id
 
     def estimate_max_cost(self, prompt: Prompt, kind: PlanKind) -> Decimal:
         """Majorant : tout le prompt facturé plein tarif (≈ 4 caractères/jeton, ×1,5)."""

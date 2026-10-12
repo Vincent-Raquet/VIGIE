@@ -110,7 +110,7 @@
     src: "{{ vigie_release_dir }}"
     dest: "{{ vigie_root }}/current"
     state: link
-  notify: Redémarrer vigie-web
+  notify: [Redémarrer vigie-web, Redémarrer vigie-chat]
 
 # --- Certificats propres aux sources (auto-signés) ------------------------------------
 - name: Dossier des certificats des sources
@@ -209,7 +209,8 @@
     unit_proxy: "{{ item.unit_proxy | default(false) }}"
     unit_ips: "{{ item.unit_ips | default([]) }}"
     unit_state_dir: "{{ item.unit_state_dir | default('') }}"
-  notify: Recharger systemd
+    unit_type: "{{ item.unit_type | default('oneshot') }}"
+  notify: [Recharger systemd, Redémarrer vigie-chat]
 
 - name: Dossiers des compléments par source
   ansible.builtin.file:
@@ -319,6 +320,14 @@
   when:
     - vigie_web_release.stdout is defined
     - vigie_web_release.stdout == "stale"
+
+- name: Service de discussion avec l'IA (actif seulement si l'IA l'est)
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: vigie-chat.service
+    enabled: "{{ vigie_llm_enabled | bool }}"
+    state: "{{ 'started' if vigie_llm_enabled | bool else 'stopped' }}"
+  when: vigie_secrets_ok
 
 - name: Timers de collecte actifs
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé

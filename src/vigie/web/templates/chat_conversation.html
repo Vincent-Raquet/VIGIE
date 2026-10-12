@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Discussion {{ conversation.id }}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page"><div><h1>Discussion n° {{ conversation.id }}</h1>
+    <div class="sub">{{ conversation.owner }} · {% if conversation.anchor.value == "plan" %}plan n° {{ conversation.anchor_id }}{% else %}<a href="/signaux/incidents/{{ conversation.anchor_id }}">incident {{ conversation.anchor_id }}</a>{% endif %} · {{ tokens }} jetons
+    {% if conversation.status.value == "archived" %} · <span class="tag">archivée par {{ conversation.archived_by }} le {{ conversation.archived_at.strftime("%d/%m %H:%M") }} — lecture seule</span>{% endif %}</div></div>
+    <a class="btn" href="/chat">Toutes les discussions</a></header>
+  {% if flash %}<div class="flash ok" role="status">{{ flash }}</div>{% endif %}
+  <div class="panel">{% include "_chat_messages.html" %}</div>
+</section>
+{% endblock %}

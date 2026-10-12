@@ -107,6 +107,7 @@ sudo systemctl restart vigie-web
 | `vigie-notify@daily.timer` / `@weekly` | vigie-worker | 07:30 / lun 09:00 — **arrêtés** tant que la diffusion est désactivée |
 | `vigie-jobs.timer` | vigie-worker | chaque minute (« Tester la connexion » du web ; secrets des sources) |
 | `vigie-plan-requests.timer` | vigie-worker | chaque minute (« Générer le plan maintenant » du web ; clé IA) |
+| `vigie-chat.service` | vigie-worker | permanent, redémarré à chaque mise à jour (discussion avec l'IA ; clé IA seule ; actif si `vigie_llm_enabled`) |
 | `vigie-housekeeping.timer` | vigie-worker | 02:30 (rétention SPEC §5.2) |
 | `vigie-selfcheck.timer` | vigie-worker | 5 min (état lu par l'agent Zabbix) |
 | `vigie-backup.timer` | root → vigie-migrate | 02:45 |

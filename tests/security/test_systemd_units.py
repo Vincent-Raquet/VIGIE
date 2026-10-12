@@ -56,6 +56,7 @@ ALLOWED = {
     "vigie-notify@.service": {"graph_certificate", "teams_webhook_url"},
     "vigie-jobs.service": SOURCE_SECRETS,
     "vigie-plan-requests.service": {"anthropic_api_key"},
+    "vigie-chat.service": {"anthropic_api_key"},
     "vigie-housekeeping.service": set(),
     "vigie-selfcheck.service": set(),
 }
@@ -317,7 +318,12 @@ def test_only_internet_units_use_the_worker_proxy(ctx: dict[str, Any]) -> None:
     port = ctx["squid_worker_port"]
     for name, text in _units(ctx).items():
         has_proxy = f"HTTPS_PROXY=http://127.0.0.1:{port}" in text
-        internet = {"vigie-plan@.service", "vigie-notify@.service", "vigie-plan-requests.service"}
+        internet = {
+            "vigie-plan@.service",
+            "vigie-notify@.service",
+            "vigie-plan-requests.service",
+            "vigie-chat.service",
+        }
         assert has_proxy == (name in internet), name
 
 
@@ -358,3 +364,17 @@ def test_secret_script_validates_names_and_never_echoes_values() -> None:
     assert "systemd-creds encrypt" in script
     assert not re.search(r"echo[^\n]*\$\(cat", script)
     assert "set -x" not in script
+
+
+def test_chat_service_is_permanent_and_holds_only_the_llm_key() -> None:
+    units = _units(_context(ALL_ON))
+    text = units["vigie-chat.service"]
+    directives = _directives(text)
+    assert directives["Type"] == ["simple"] and directives["Restart"] == ["on-failure"]
+    assert directives["User"] == ["vigie-worker"]
+    assert _credentials(text) == {"anthropic_api_key"}
+    assert "WantedBy=multi-user.target" in text
+    assert "chat-worker" in directives["ExecStart"][0]
+    # Les tâches ponctuelles restent oneshot, sans section [Install].
+    assert _directives(units["vigie-jobs.service"])["Type"] == ["oneshot"]
+    assert "[Install]" not in units["vigie-jobs.service"]
