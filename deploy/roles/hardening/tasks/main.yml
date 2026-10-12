@@ -95,3 +95,42 @@
     mode: "0644"
     validate: /usr/sbin/sshd -t -f %s
   notify: Recharger sshd
+
+# --- Traitement invité Veeam (SSH depuis le serveur VBR) --------------------------------
+- name: Serveur Veeam exempté de sshguard (ses reprises ne doivent pas le bannir)
+  ansible.builtin.lineinfile:
+    path: /etc/sshguard/whitelist
+    line: "{{ item }}"
+    create: true
+    mode: "0644"
+  loop: "{{ veeam_guest_sources | default([]) }}"
+  notify: Redémarrer sshguard
+
+- name: Compte du traitement invité Veeam (sans mot de passe)
+  ansible.builtin.user:
+    name: "{{ veeam_guest_user }}"
+    comment: Veeam traitement invite
+    shell: /bin/bash
+    password: "!"
+    create_home: true
+  when: veeam_guest_pubkey | length > 0
+
+- name: Clé SSH du compte Veeam, utilisable seulement depuis le serveur Veeam
+  ansible.posix.authorized_key:
+    user: "{{ veeam_guest_user }}"
+    key: "{{ veeam_guest_pubkey }}"
+    key_options: >-
+      from="{{ veeam_guest_sources | join(',') }}",no-port-forwarding,no-agent-forwarding,no-X11-forwarding
+    exclusive: true
+  when: veeam_guest_pubkey | length > 0
+
+- name: Sudo du compte Veeam (exigé pour le traitement invité ; tracé par auditd)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/50-veeam-guest
+    content: |
+      # Veeam B&R : traitement invité de cette VM (composant déposé et exécuté par SSH).
+      Defaults:{{ veeam_guest_user }} !requiretty
+      {{ veeam_guest_user }} ALL=(root) NOPASSWD: ALL
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  when: veeam_guest_pubkey | length > 0

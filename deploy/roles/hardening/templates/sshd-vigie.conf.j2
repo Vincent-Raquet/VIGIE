@@ -19,3 +19,12 @@ MaxSessions 2
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 {% endif %}
+{% if veeam_guest_pubkey | default('') %}
+
+# Compte du traitement invité Veeam : clé uniquement (restreinte au serveur Veeam).
+Match User {{ veeam_guest_user }}
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AllowTcpForwarding no
+    X11Forwarding no
+{% endif %}

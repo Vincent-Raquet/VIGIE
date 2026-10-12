@@ -332,3 +332,33 @@ openssl req -x509 -newkey rsa:3072 -sha256 -days 365 -nodes -subj "/CN=Vigie Def
 4. Entra : supprimer l'ancien certificat. En cas de fuite de la clé : supprimer d'abord le
    certificat compromis dans Entra (coupe dev **et** prod), puis refaire 1 à 3.
 
+
+## 14. Sauvegarde Veeam de cette VM : traitement invité (SSH depuis 10.10.10.27)
+
+Le traitement invité de Veeam se connecte en SSH à la VM, y dépose un composant et l'exécute
+avec les droits root. Sans règle, nftables ignore la connexion (erreur Veeam « Socket error
+10022 » au bout de 2 minutes). Variables (`group_vars/vigie.yml`) :
+- `veeam_guest_sources` (défaut `[10.10.10.27]`) : SSH ouvert à ces seules adresses (règle
+  nftables distincte de `admin_networks`), exemptées de sshguard ;
+- `veeam_guest_user` (`svcveeam`) et `veeam_guest_pubkey` : compte sans mot de passe,
+  connexion **par clé uniquement**, clé utilisable seulement depuis `veeam_guest_sources`
+  (`from=`), sans redirection de ports ; sudo sans mot de passe (exigé par Veeam, tracé par
+  auditd). Le serveur Veeam lit déjà tout le disque de la VM : ce compte n'élargit guère sa
+  portée, mais sa clé doit rester dans le seul gestionnaire d'identifiants de Veeam.
+
+1. Sur votre poste (pas sur la VM) :
+   ```sh
+   ssh-keygen -t rsa -b 4096 -m PEM -C "veeam guest processing vigie" -f veeam-vigie
+   ```
+2. Copier le contenu de `veeam-vigie.pub` (clé **publique**) dans `veeam_guest_pubkey`, puis
+   lancer le playbook.
+3. Veeam : *Credentials & Passwords* → *Add* → *Linux private key* : utilisateur `svcveeam`,
+   fichier `veeam-vigie` (clé privée, avec sa phrase de passe si vous en avez mis une), cocher
+   *Elevate account privileges automatically* ; décocher *Use su if sudo fails*. Dans le job :
+   *Guest Processing* → *Credentials* → cette identité pour la VM Vigie. Supprimer ensuite la
+   clé privée du poste.
+4. Vérifier : *Test Now* dans le job ; côté VM, `journalctl -u ssh` montre la connexion de
+   `svcveeam` depuis 10.10.10.27.
+
+La base est aussi sauvegardée chaque nuit par `pg_dump` chiffré (§5) : le traitement invité
+apporte la cohérence applicative de l'image, pas la seule copie de la base.

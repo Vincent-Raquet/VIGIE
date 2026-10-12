@@ -15,3 +15,9 @@
   ansible.builtin.systemd_service:
     name: ssh
     state: reloaded
+
+- name: Redémarrer sshguard
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+  ansible.builtin.systemd_service:
+    name: sshguard
+    state: restarted
