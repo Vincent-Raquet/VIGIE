@@ -9,12 +9,11 @@ vigie_dev_on_host: true
 vigie_domain: vigie.local.wallindustries.be
 vigie_ip: 192.168.10.17
 # SSH : À RELIRE avant le premier passage (une erreur ici coupe votre accès).
-# 192.168.48.0/24 = postes d'administration (adresse attribuée par DHCP : le /32 du
-# 2026-10-09 coupait l'accès quand elle changeait, rétabli le 2026-10-12).
+# TEMPORAIRE (décision du 2026-10-12) : tout 192.168.0.0/16 en SSH, le temps de stabiliser
+# les postes d'administration. À RÉDUIRE ensuite (ROADMAP, « À reprendre ») aux seuls
+# réseaux d'administration (ex. 192.168.48.0/24, 192.168.10.0/24, 192.168.250.0/24).
 admin_networks:
-  - 192.168.48.0/24
-  - 192.168.10.0/24
-  - 192.168.250.0/24
+  - 192.168.0.0/16
 # HTTPS de Vigie : LAN et pool VPN (à compléter avec le pool VPN).
 lan_vpn_networks:
   - 192.168.0.0/16

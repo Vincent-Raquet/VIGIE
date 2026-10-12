@@ -89,6 +89,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres (NinjaOne ✅ connecteur
 | K | Skills `frontend-design` (phase 6) et `product-self-knowledge` (phase 5) absents de l'environnement ; `claude-api` utilisé pour la phase 5 ✅. | 5 / 6 |
 | N ✅ | Rétention 1 an de `audit_log` (SPEC §5.2) incompatible avec un append-only strict → DELETE autorisé par le trigger uniquement pour les lignes de plus de 365 jours ; `at` forcé à `now()` à l'insertion. | 1 |
 | O ✅ | `.gitignore` laissait passer de vrais `config/*.yaml` (e-mails, noms) → ignorés, sauf `*.example.yaml`. | 1 |
+| P | **À faire** : SSH ouvert **temporairement** à tout `192.168.0.0/16` (`admin_networks`, décision du 2026-10-12, postes d'administration en DHCP) → réduire aux seuls réseaux d'administration (ex. `192.168.48.0/24`, `192.168.10.0/24`, `192.168.250.0/24`) ; relever le score Lynis (≥ 80) en même temps. | 8 |
 | M | OIDC : configurer l'app Entra pour n'émettre que les groupes assignés (éviter le *groups overage* qui imposerait un appel Graph depuis `vigie-web`). | 6 |
 
 ## Évolutions envisagées (v2)
