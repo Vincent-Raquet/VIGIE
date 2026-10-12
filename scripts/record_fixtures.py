@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from vigie.config import get_secret, load_config, resolve_config_path
+from vigie.config import SecretError, get_secret, load_config, resolve_config_path
 from vigie.connectors import registry
 from vigie.connectors.base import (
     ConnectorConfigError,
@@ -59,13 +59,13 @@ def main() -> int:
         return 2
     settings = cfg.sources[args.source].model_dump()
     ca = settings.get("ca_bundle") or cfg.tls.ca_bundle
-    transport = RecordingTransport(Path(ca) if ca else None)
+    transport = RecordingTransport(Path(ca).expanduser() if ca else None)
     context = ConnectorContext(
         settings=settings, secret=get_secret, ca_bundle=cfg.tls.ca_bundle, transport=transport
     )
     try:
         connector: Any = registry.load(args.source).from_context(context)
-    except ConnectorConfigError as exc:
+    except (ConnectorConfigError, SecretError) as exc:
         print(f"ERREUR {exc}", file=sys.stderr)
         return 2
 
