@@ -85,6 +85,7 @@ Première livraison : **Zabbix puis Veeam**. Les autres sont ajoutés ensuite un
 
 ## Après le rodage (réalisé hors phases)
 - **Discussion avec l'IA sur les priorités** ✅ (2026-10-12, migration 0011) : panneau sur le plan du jour et la fiche incident, service `vigie-chat` (clé IA seule, le web n'a pas la clé), sortie structurée sans outil, propositions appliquées par un admin seulement (audit), « Réinitialiser le contexte », plafonds de jetons. Reste : essai en production.
+- **Choix du modèle d'IA** ✅ (2026-10-12, migration 0012) : Sonnet 5.5, Opus 5.5 ou Fable 5.1 ; défaut réglé par un admin dans Paramètres (audit `llm_model_set`), choix ponctuel dans « Générer maintenant », `vigie plan --model` et la discussion ; budget décompté au tarif de chaque modèle (`vigie/ai_models.py`).
 - **Traitement invité Veeam de la VM** ✅ (SSH depuis 10.10.10.27, compte `svcveeam`, `deploy/README.md` §14) ; reste : mot de passe et identité dans Veeam.
 
 ## Points à trancher (relevés en phase 0)

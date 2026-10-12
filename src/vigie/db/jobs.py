@@ -45,6 +45,8 @@ class PlanGeneratePayload(_Payload):
     kind: Literal["daily", "weekly"]
     day: str = Field(pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
     use_llm: bool
+    # Choix ponctuel du modèle (absent : modèle par défaut des Paramètres).
+    model: Literal["claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"] | None = None
 
     def target(self) -> date:
         return date.fromisoformat(self.day)
@@ -71,7 +73,7 @@ def validate_payload(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
         model = PAYLOAD_SCHEMAS[job_kind].model_validate(dict(payload))
     except ValidationError as exc:
         raise JobPayloadError(f"payload invalide pour {job_kind} : {exc}") from exc
-    return model.model_dump(mode="json")
+    return model.model_dump(mode="json", exclude_none=True)  # champ facultatif absent = omis
 
 
 def new_job_request(kind: str, payload: Mapping[str, Any], requested_by: str) -> JobRequest:

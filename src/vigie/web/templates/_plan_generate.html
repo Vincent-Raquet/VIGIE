@@ -8,12 +8,15 @@
     <input type="hidden" name="next" value="{{ path }}">
     <input type="hidden" name="kind" value="{{ gen_kind }}">
     <p class="sub">
-      {% if g.last_call %}Dernière itération IA : <strong>{{ g.last_call.cost_usd }} $</strong> le {{ g.last_call.at.strftime("%d/%m à %H:%M") }} ({{ g.last_call.outcome.value }}).{% else %}Aucune itération IA encore.{% endif %}
+      {% if g.last_call %}Dernière itération IA : <strong>{{ g.last_call.cost_usd }} $</strong> le {{ g.last_call.at.strftime("%d/%m à %H:%M") }} ({{ g.last_label }}, {{ g.last_call.outcome.value }}).{% else %}Aucune itération IA encore.{% endif %}
       Ce mois : {{ "%.2f"|format(g.spent) }} $ sur {{ "%.2f"|format(g.budget) }} $.
     </p>
     {% if g.budget_warning %}<div class="flash error" role="alert">Budget IA du mois consommé à plus de 80 % : préférez une génération sans IA.</div>{% endif %}
     <div class="fields">
       <label class="f" for="gen-day">Jour<input id="gen-day" type="date" name="day" value="{{ day.isoformat() }}" required></label>
+      <label class="f" for="gen-model">Modèle<select id="gen-model" name="model">
+        {% for m in g.models %}<option value="{{ m.id }}"{% if m.id == g.default_model %} selected{% endif %}>{{ m.label }} — {{ m.hint }} ({{ m.price.input }} $ / {{ m.price.output }} $ par M jetons){% if m.id == g.default_model %} · par défaut{% endif %}</option>{% endfor %}
+      </select></label>
       <label class="f" for="gen-llm">IA<select id="gen-llm" name="use_llm">
         <option value="oui">avec l'IA (≈ {{ g.last_call.cost_usd if g.last_call else "?" }} $)</option>
         <option value="non">sans IA (gratuit)</option>

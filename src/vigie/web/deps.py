@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import label_of
 from vigie.db.enums import AppRole
 from vigie.engine.calendar import DAY_NAMES_FR
 from vigie.web.auth import User
@@ -81,6 +82,7 @@ def fr_num(value: float | int | None, digits: int = 1) -> str:
 TEMPLATES.env.filters["fr_date"] = fr_date
 TEMPLATES.env.filters["fr_num"] = fr_num
 TEMPLATES.env.globals["DAY_NAMES_FR"] = DAY_NAMES_FR
+TEMPLATES.env.globals["model_label"] = label_of
 
 
 def render(

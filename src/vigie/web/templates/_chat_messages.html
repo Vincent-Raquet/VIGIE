@@ -2,7 +2,7 @@
 <ol class="chat-log">
 {% for item in messages %}{% set m = item.m %}
   <li class="chat-msg {{ m.role.value }}{% if m.status.value == 'failed' %} failed{% endif %}">
-    <div class="sub">{{ "Question" if m.role.value == "user" else "IA" }} · {{ m.created_at.strftime("%d/%m %H:%M") }}{% if m.tokens %} · {{ m.tokens }} jetons{% endif %}</div>
+    <div class="sub">{{ "Question" if m.role.value == "user" else "IA" }}{% if m.model %} · {{ model_label(m.model) }}{% endif %} · {{ m.created_at.strftime("%d/%m %H:%M") }}{% if m.tokens %} · {{ m.tokens }} jetons{% endif %}</div>
     {% if m.role.value == "user" %}<p class="chat-q">{{ m.content }}</p>
     {% elif item.html %}<div class="md">{{ item.html }}</div>
     {% else %}<p class="flash error" role="alert">{{ m.content }}</p>{% endif %}

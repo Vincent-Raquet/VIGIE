@@ -21,7 +21,13 @@
     <input type="hidden" name="anchor" value="{{ anchor }}">
     <input type="hidden" name="anchor_id" value="{{ anchor_id }}">
     <label class="f" for="chat-q-{{ anchor }}">Votre question<textarea id="chat-q-{{ anchor }}" name="content" rows="3" maxlength="{{ max_chars }}" required placeholder="Pourquoi cet incident est-il en P2 ? Lequel de #123 et #456 traiter d'abord ?"></textarea></label>
-    <div class="row"><button class="btn primary" type="submit">Envoyer</button></div>
+    <div class="row">
+      <label class="f" for="chat-model-{{ anchor }}">Modèle<select id="chat-model-{{ anchor }}" name="model">
+        {% set chosen = last_model or default_model %}
+        {% for m in models %}<option value="{{ m.id }}"{% if m.id == chosen %} selected{% endif %}>{{ m.label }} — {{ m.hint }}{% if m.id == default_model %} (défaut){% endif %}</option>{% endfor %}
+      </select></label>
+      <button class="btn primary" type="submit">Envoyer</button>
+    </div>
   </form>
   {% elif not can_ask %}<p class="sub">Lecture seule.</p>{% endif %}
   {% if others %}

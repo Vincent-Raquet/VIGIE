@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import resolve_model
 from vigie.config import ChatConfig, LLMConfig
 from vigie.db import enums, models
 from vigie.db.enums import ChatRole, ChatStatus, LLMOutcome, Priority, ProposalKind
@@ -687,6 +688,8 @@ def process_pending(
             llm_call_id=reply.call_id,
             tokens=reply.tokens,
             done_at=at,
+            # Modèle réellement servi (repli serveur compris), affiché sous la réponse.
+            model=_served_model(session, reply.call_id),
         )
         session.add(answer)
         session.flush()
@@ -702,6 +705,13 @@ def process_pending(
         session.commit()
         done += 1
     return done
+
+
+def _served_model(session: Session, call_id: int | None) -> str | None:
+    call = session.get(models.LLMCall, call_id) if call_id is not None else None
+    if call is None or call.outcome is not LLMOutcome.ok:
+        return None
+    return call.model[:50] if re.fullmatch(r"[a-z0-9-]{1,50}", call.model) else None
 
 
 def _answer(
@@ -722,6 +732,8 @@ def _answer(
     refusal = quota_refusal(session, conversation, chat, now)
     if refusal is not None:
         return Reply(False, refusal, [], 0, None)
+    # Modèle demandé pour cette question (parmi les modèles proposés), sinon le défaut.
+    llm = llm.model_copy(update={"model": resolve_model(session, llm.model, question.model)})
     request = build_request(session, conversation, question, chat, llm, now)
     try:
         client = client_factory()

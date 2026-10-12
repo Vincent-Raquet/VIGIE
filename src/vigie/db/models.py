@@ -569,7 +569,10 @@ class ChatConversation(Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_message"
-    __table_args__ = (CheckConstraint("char_length(content) <= 20000", name="content_size"),)
+    __table_args__ = (
+        CheckConstraint("char_length(content) <= 20000", name="content_size"),
+        CheckConstraint("model IS NULL OR model ~ '^[a-z0-9-]{1,50}$'", name="model"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     conversation_id: Mapped[int] = mapped_column(
@@ -584,6 +587,8 @@ class ChatMessage(Base):
     llm_call_id: Mapped[int | None] = mapped_column(ForeignKey("llm_call.id"))
     # Jetons de l'appel (entrée + cache + sortie) : plafonds par conversation et par jour.
     tokens: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Question : modèle demandé (vide = défaut des Paramètres) ; réponse : modèle utilisé.
+    model: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = _created_at()
     done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

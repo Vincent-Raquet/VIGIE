@@ -241,8 +241,16 @@ def plan(
         str | None,
         typer.Option("--date", help="Jour du plan (AAAA-MM-JJ) ; défaut : aujourd'hui."),
     ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option("--model", help="Modèle d'IA pour ce plan ; défaut : celui des Paramètres."),
+    ] = None,
 ) -> None:
     """Génère un plan de tâches (brouillon), affiné par l'IA sauf --no-llm, et l'affiche."""
+    from vigie.ai_models import MODELS
+
+    if model is not None and model not in MODELS:
+        raise typer.BadParameter(f"un de {', '.join(MODELS)}", param_hint="--model")
     _, cfg = _config(ctx)
     now = datetime.now(UTC)
     try:
@@ -265,6 +273,7 @@ def plan(
             secret=lambda name: get_secret(name),
             no_llm=no_llm,
             dry_run=dry_run,
+            model=model,
         )
     except PlanPausedError:
         typer.echo("Génération des plans en pause (interface ou [general] paused).")
@@ -704,6 +713,7 @@ def _plan_job(engine: Engine, cfg: VigieConfig, payload: PlanGeneratePayload) ->
             client_factory=lambda key, llm: llm_client_factory(key, llm),
             secret=lambda name: get_secret(name),
             no_llm=not payload.use_llm,
+            model=payload.model,
         )
     except PlanPausedError:
         return {"ok": False, "detail": "génération des plans en pause"}

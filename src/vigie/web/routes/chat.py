@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import MODELS, default_model
 from vigie.db import models
 from vigie.db.enums import (
     AppRole,
@@ -135,10 +136,31 @@ def _panel(
             "chat_enabled": cfg.chat.enabled and cfg.llm.enabled,
             "max_chars": cfg.chat.max_question_chars,
             "max_tokens": cfg.chat.max_conversation_tokens,
+            "models": list(MODELS.values()),
+            "default_model": default_model(session, cfg.llm.model),
+            "last_model": _last_requested(session, conversation),
             "others": others,
             "error": error,
             **(_view(session, conversation) if conversation else {"conversation": None}),
         },
+    )
+
+
+def _last_requested(session: Session, conversation: models.ChatConversation | None) -> str:
+    """Dernier modèle choisi dans la conversation (le menu le garde d'une question à l'autre)."""
+    if conversation is None:
+        return ""
+    return (
+        session.scalar(
+            select(models.ChatMessage.model)
+            .where(
+                models.ChatMessage.conversation_id == conversation.id,
+                models.ChatMessage.role == ChatRole.user,
+            )
+            .order_by(models.ChatMessage.id.desc())
+            .limit(1)
+        )
+        or ""
     )
 
 
@@ -171,6 +193,7 @@ def ask(
     anchor: Annotated[str, Form(max_length=16)],
     anchor_id: Annotated[int, Form(ge=1)],
     content: Annotated[str, Form(max_length=5000)],
+    model: Annotated[str, Form(max_length=40)] = "",
 ) -> Response:
     kind = _anchor(anchor)
     cfg = request.app.state.cfg
@@ -184,6 +207,8 @@ def ask(
             request, user, session, kind, anchor_id,
             error=f"Question vide ou trop longue ({cfg.chat.max_question_chars} car. au plus).",
         )  # fmt: skip
+    if model and model not in MODELS:
+        return _panel(request, user, session, kind, anchor_id, error="Modèle d'IA inconnu.")
     conversation = _active(session, user.email, kind, anchor_id)
     if conversation is None:
         conversation = models.ChatConversation(owner=user.email, anchor=kind, anchor_id=anchor_id)
@@ -200,6 +225,7 @@ def ask(
             role=ChatRole.user,
             content=text,
             status=ChatStatus.pending,
+            model=model or None,
         )
     )
     session.commit()

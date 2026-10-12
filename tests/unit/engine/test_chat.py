@@ -320,3 +320,23 @@ def test_manual_priority_survives_engine(prepared: Session) -> None:
     run_engine(prepared, NOW + timedelta(hours=2))
     prepared.refresh(inc)
     assert inc.priority is computed
+
+
+def test_question_model_and_served_model(prepared: Session) -> None:
+    inc = incident_of(prepared, "sw-wg-ot-01")
+    q = ask(prepared, inc.id, "Avec Fable ?")
+    q.model = "claude-fable-5-1"
+    prepared.commit()
+    client = FakeClient(answer(model="claude-fable-5-1"))
+    run(prepared, client)
+    assert client.calls[0]["model"] == "claude-fable-5-1"
+    [reply] = replies(prepared, q.conversation_id)
+    assert reply.model == "claude-fable-5-1"
+    call = prepared.get(models.LLMCall, reply.llm_call_id)
+    assert call is not None and call.model == "claude-fable-5-1"
+    # Modèle hors liste : modèle par défaut (configuration).
+    q2 = ask(prepared, inc.id, "Et sans choix valide ?")
+    q2.model = "gpt-4"
+    prepared.commit()
+    run(prepared, client)
+    assert client.calls[1]["model"] == LLMConfig().model

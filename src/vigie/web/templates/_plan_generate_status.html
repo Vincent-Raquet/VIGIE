@@ -3,7 +3,7 @@
 <div id="plan-gen-status" class="sub"{% if active %} hx-get="/plans/generation/etat" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
   {% if job %}
   {% set r = job.result or {} %}
-  Dernière demande : {{ job.payload.kind == "daily" and "plan quotidien" or "plan hebdomadaire" }} du {{ job.payload.day }}{{ " avec l'IA" if job.payload.use_llm else " sans IA" }}, le {{ job.requested_at.strftime("%d/%m à %H:%M") }}
+  Dernière demande : {{ job.payload.kind == "daily" and "plan quotidien" or "plan hebdomadaire" }} du {{ job.payload.day }}{{ (" avec l'IA (" ~ model_label(job.payload.model) ~ ")" if job.payload.model else " avec l'IA") if job.payload.use_llm else " sans IA" }}, le {{ job.requested_at.strftime("%d/%m à %H:%M") }}
   — {% if job.status.value == "pending" %}<span class="tag">en attente</span>
   {% elif job.status.value == "running" %}<span class="tag">en cours</span>
   {% elif job.status.value == "done" %}<span class="tag okc">terminée</span>{% if r.plan_id %} · <a href="{{ '/aujourdhui' if job.payload.kind == 'daily' else '/semaine' }}?day={{ job.payload.day }}">plan n° {{ r.plan_id }}</a>{% endif %}{% if r.cost_usd %} · coût {{ r.cost_usd }} ${% endif %}

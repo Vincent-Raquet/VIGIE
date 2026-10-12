@@ -14,7 +14,7 @@ Vigie collecte l'état et les alertes de systèmes de supervision IT, les normal
 ## Stack
 - Python 3.12+, gestion par `uv` ; FastAPI ; SQLAlchemy 2 + Alembic ; PostgreSQL 17 ; Pydantic v2.
 - UI : Jinja2 (autoescape) + htmx vendorisé (`web/static/VENDOR.md`) + feuille CSS de la maquette validée (`docs/ui/maquette.html`) ; ni Tailwind, ni Alpine (qui exigerait `unsafe-eval`), aucun CDN, aucun script ou style inline (CSP stricte, testé).
-- LLM : SDK `anthropic` Python, modèle par défaut `claude-sonnet-5-5`, sortie structurée via `output_config.format` (aucun outil), prompt caching sur les blocs stables, repli serveur `fallbacks="default"`.
+- LLM : SDK `anthropic` Python, modèles proposés `claude-sonnet-5-5` (défaut de la configuration), `claude-opus-5-5`, `claude-fable-5-1` (`vigie/ai_models.py` : tarifs ; défaut réglable dans Paramètres, choix ponctuel pour un plan ou une question), sortie structurée via `output_config.format` (aucun outil), prompt caching sur les blocs stables, repli serveur `fallbacks="default"`.
 - Auth : OIDC Entra ID (authlib), rôles mappés depuis des groupes Entra.
 - Déploiement : Ansible (dossier `deploy/`) vers Debian 13 ; Caddy en reverse proxy ; systemd timers pour l'ordonnancement.
 
