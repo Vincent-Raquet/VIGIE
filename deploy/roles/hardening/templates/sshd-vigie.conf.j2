@@ -19,12 +19,19 @@ MaxSessions 2
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 {% endif %}
-{% if veeam_guest_pubkey | default('') %}
+{% if veeam_guest_enabled | default(false) %}
 
-# Compte du traitement invité Veeam : clé uniquement (restreinte au serveur Veeam).
-Match User {{ veeam_guest_user }}
-    PasswordAuthentication no
+# Compte du traitement invité Veeam : connexion depuis le serveur Veeam seulement (le
+# premier bloc Match qui s'applique l'emporte).
+Match User {{ veeam_guest_user }} Address {{ veeam_guest_sources | join(',') }}
+    PasswordAuthentication {{ 'yes' if veeam_guest_auth == 'password' else 'no' }}
+    PubkeyAuthentication {{ 'yes' if veeam_guest_auth == 'key' else 'no' }}
     KbdInteractiveAuthentication no
     AllowTcpForwarding no
     X11Forwarding no
+Match User {{ veeam_guest_user }}
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    PubkeyAuthentication no
+    AllowTcpForwarding no
 {% endif %}
