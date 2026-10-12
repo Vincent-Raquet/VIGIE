@@ -130,6 +130,23 @@
     mode: "0644"
   when: vigie_veeam_host | length > 0
 
+- name: Certificat d'usine du FortiAnalyzer (public, approuvé pour cette seule source)
+  ansible.builtin.copy:
+    src: "{{ vigie_fortianalyzer_ca_file }}"
+    dest: /etc/vigie/ca/fortianalyzer.pem
+    owner: root
+    group: vigie
+    mode: "0644"
+  when: vigie_fortianalyzer_enabled | bool
+
+- name: Nom porté par le certificat du FortiAnalyzer (ni SAN ni IP dans le certificat d'usine)
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ vigie_fortianalyzer_name }}$'
+    line: "{{ vigie_fortianalyzer_ip }} {{ vigie_fortianalyzer_name }}"
+    mode: "0644"
+  when: vigie_fortianalyzer_enabled | bool
+
 - name: Certificat public de l'application « Vigie Defender » (la clé reste dans vigie-secret)
   ansible.builtin.copy:
     src: "{{ vigie_defender_cert_file }}"

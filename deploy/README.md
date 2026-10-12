@@ -64,6 +64,7 @@ sudo vigie-secret rm teams_webhook_url
 | `teams_webhook_url` | vigie-notify@ | `vigie_notify_teams_enabled` |
 | `veeam_password` | vigie-collect@veeam, vigie-jobs | `vigie_veeam_host` renseigné (§11) |
 | `ninjaone_client_id`, `ninjaone_client_secret` | vigie-collect@ninjaone, vigie-jobs | `vigie_ninjaone_enabled: true` (§12) |
+| `fortianalyzer_api_key` | vigie-collect@fortianalyzer, vigie-jobs | `vigie_fortianalyzer_enabled: true` (§15) |
 | `defender_client_id`, `defender_private_key` | vigie-collect@defender, vigie-jobs | `vigie_defender_enabled: true` (§13) |
 
 **Rotation** : `vigie-secret set <nom>` avec la nouvelle valeur, puis
@@ -361,3 +362,26 @@ avec les droits root. Sans règle, nftables ignore la connexion (erreur Veeam «
 
 La base est aussi sauvegardée chaque nuit par `pg_dump` chiffré (§5) : le traitement invité
 apporte la cohérence applicative de l'image, pas la seule copie de la base.
+
+## 15. Source FortiAnalyzer 8.0 (192.168.240.104, JSON-RPC)
+
+Le certificat d'usine du FAZ ne porte que son n° de série (`CN=FAZVMSTM25009422`, ni SAN ni
+IP) : Vigie l'appelle par ce nom, que le playbook écrit dans `/etc/hosts`
+(`vigie_fortianalyzer_ip`, `vigie_fortianalyzer_name`), et n'approuve que ce certificat.
+
+1. **Certificat** (public), exporté et vérifié sur la VM :
+   ```sh
+   openssl s_client -connect 192.168.240.104:443 </dev/null 2>/dev/null | openssl x509 > ~/vigie-ca/fortianalyzer.pem
+   openssl x509 -in ~/vigie-ca/fortianalyzer.pem -noout -fingerprint -sha256
+   # attendu : C0:39:80:86:7C:DF:99:D8:28:B5:63:92:5E:60:3F:C3:FC:15:85:78:EC:B9:C0:D1:26:54:1C:25:4C:57:0C:58
+   ```
+2. **Dev** : `[sources.fortianalyzer]` dans `config/vigie.toml` (modèle : `config/vigie.example.toml`,
+   `enabled = true`, `ca_bundle = "~/vigie-ca/fortianalyzer.pem"`), clé dans `.env.local`
+   (`VIGIE_SECRET_FORTIANALYZER_API_KEY=…`), puis `VIGIE_ENV=dev uv run vigie check --sources` et
+   `VIGIE_ENV=dev uv run python scripts/record_fixtures.py fortianalyzer`.
+3. **Production** : `printf '%s' "<clé API>" | sudo vigie-secret set fortianalyzer_api_key`,
+   puis le playbook (sortie directe du worker vers 192.168.240.104:443, `/etc/hosts`, certificat
+   dans `/etc/vigie/ca/fortianalyzer.pem`, timer `vigie-collect@fortianalyzer` toutes les 15 min).
+4. **Renouvellement du certificat du FAZ** (nouvelle VM, nouveau certificat) : refaire 1, vérifier
+   l'empreinte sur la console du FAZ, relancer le playbook.
+

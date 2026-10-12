@@ -429,10 +429,24 @@ def split_link(url: str) -> tuple[str, str, dict[str, str]]:
     return parsed.host, parsed.path, dict(parsed.params.items())
 
 
+def rpc_fixture_name(envelope: Mapping[str, Any]) -> str:
+    """Nom de fixture d'un appel JSON-RPC : `<méthode>.json` (Zabbix), ou, quand la méthode
+    est générique et porte une URL (FortiAnalyzer : `get` sur `/sys/status`…),
+    `<méthode>_<url avec / remplacés par _>.json`."""
+    method = str(envelope.get("method", ""))
+    params = envelope.get("params")
+    first = params[0] if isinstance(params, list) and params else None
+    url = first.get("url") if isinstance(first, dict) else None
+    if isinstance(url, str) and url.startswith("/"):
+        return f"{method}_{url.strip('/').replace('/', '_')}.json"
+    return f"{method}.json"
+
+
 def fixture_transport(directory: Path) -> httpx.BaseTransport:
     """Rejoue des réponses enregistrées (`vigie collect --fixtures`, tests de contrat).
 
-    JSON-RPC : `<méthode>.json` contient la valeur de `result` (ex. `problem.get.json`).
+    JSON-RPC : `<méthode>.json` contient la valeur de `result` (ex. `problem.get.json`) ;
+    avec une URL dans les paramètres : `get_sys_status.json` (voir `rpc_fixture_name`).
     REST : `<MÉTHODE>_<chemin avec / remplacés par _>.json` (ex. `GET_api_v1_jobs.json`).
     Les requêtes passent d'abord par l'allowlist du `SafeClient` : le rejeu ne contourne rien.
     """
@@ -448,7 +462,7 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
             if isinstance(body, dict) and "method" in body and "id" in body:
                 envelope = body
         if envelope is not None:
-            name = f"{envelope['method']}.json"
+            name = rpc_fixture_name(envelope)
         else:
             name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
         path = (root / name).resolve()
@@ -472,6 +486,16 @@ FAKE_TOKEN = {
 }
 
 
+def _rpc_envelope(request: httpx.Request) -> dict[str, Any] | None:
+    if request.method != "POST" or not request.content:
+        return None
+    try:
+        body = json.loads(request.content)
+    except ValueError:
+        return None
+    return body if isinstance(body, dict) and "method" in body and "id" in body else None
+
+
 class RecordingTransport(httpx.BaseTransport):
     """Transport réel (TLS vérifié) qui garde une copie des réponses JSON.
 
@@ -493,7 +517,13 @@ class RecordingTransport(httpx.BaseTransport):
         body = response.read()
         self.calls.append((request.method, request.url.path, response.status_code, len(body)))
         name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"
-        if response.status_code == 200 and body.strip():
+        envelope = _rpc_envelope(request)
+        if envelope is not None and response.status_code == 200 and body.strip():
+            # JSON-RPC : la valeur de `result`, au nom attendu par fixture_transport.
+            data = json.loads(body)
+            if isinstance(data, dict) and "result" in data:
+                self._merge(rpc_fixture_name(envelope), data["result"])
+        elif response.status_code == 200 and body.strip():
             if request.url.path in TOKEN_PATHS or request.url.path.endswith(TOKEN_SUFFIX):
                 self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
             else:

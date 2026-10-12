@@ -1,0 +1,12 @@
+[
+  {
+    "data": {
+      "tid": 42
+    },
+    "status": {
+      "code": 0,
+      "message": "OK"
+    },
+    "url": "/logview/adom/root/logsearch"
+  }
+]

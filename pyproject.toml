@@ -35,6 +35,7 @@ zabbix = "vigie.connectors.zabbix:ZabbixConnector"
 veeam = "vigie.connectors.veeam:VeeamConnector"
 ninjaone = "vigie.connectors.ninjaone:NinjaOneConnector"
 defender = "vigie.connectors.defender:DefenderConnector"
+fortianalyzer = "vigie.connectors.fortianalyzer:FortiAnalyzerConnector"
 
 [dependency-groups]
 deploy = [

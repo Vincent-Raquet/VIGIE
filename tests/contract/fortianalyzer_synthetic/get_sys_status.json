@@ -1,0 +1,20 @@
+[
+  {
+    "data": {
+      "Admin Domain Configuration": "Disabled",
+      "Build": "0105",
+      "Hostname": "FAZVM64-TEST",
+      "Major": 8,
+      "Minor": 0,
+      "Patch": 0,
+      "Platform Type": "FAZVM64-KVM",
+      "Version": "v8.0.0-build0105 260420 (GA.F)",
+      "TZ": "Europe/Brussels"
+    },
+    "status": {
+      "code": 0,
+      "message": "OK"
+    },
+    "url": "/sys/status"
+  }
+]
