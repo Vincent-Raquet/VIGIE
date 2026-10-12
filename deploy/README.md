@@ -340,25 +340,24 @@ avec les droits root. Sans règle, nftables ignore la connexion (erreur Veeam «
 10022 » au bout de 2 minutes). Variables (`group_vars/vigie.yml`) :
 - `veeam_guest_sources` (défaut `[10.10.10.27]`) : SSH ouvert à ces seules adresses (règle
   nftables distincte de `admin_networks`), exemptées de sshguard ;
-- `veeam_guest_user` (`svcveeam`) et `veeam_guest_pubkey` : compte sans mot de passe,
-  connexion **par clé uniquement**, clé utilisable seulement depuis `veeam_guest_sources`
-  (`from=`), sans redirection de ports ; sudo sans mot de passe (exigé par Veeam, tracé par
-  auditd). Le serveur Veeam lit déjà tout le disque de la VM : ce compte n'élargit guère sa
-  portée, mais sa clé doit rester dans le seul gestionnaire d'identifiants de Veeam.
+- `veeam_guest_enabled`, `veeam_guest_user` (`svcveeam`), `veeam_guest_auth` (`password`
+  par défaut, ou `key` avec `veeam_guest_pubkey`) : compte avec sudo sans mot de passe
+  (exigé par Veeam, tracé par auditd), **connexion acceptée depuis `veeam_guest_sources`
+  seulement** (bloc `Match` de sshd : depuis toute autre adresse, aucune méthode
+  d'authentification) ; ni redirection de ports ni X11. Le serveur Veeam lit déjà tout le
+  disque de la VM : ce compte élargit peu sa portée, mais son mot de passe ne doit exister que
+  dans Veeam.
 
-1. Sur votre poste (pas sur la VM) :
+1. Lancer le playbook (compte créé verrouillé, sans mot de passe).
+2. Déposer le mot de passe sur la VM (jamais dans le dépôt ; politique passwdqc) :
    ```sh
-   ssh-keygen -t rsa -b 4096 -m PEM -C "veeam guest processing vigie" -f veeam-vigie
+   sudo passwd svcveeam
    ```
-2. Copier le contenu de `veeam-vigie.pub` (clé **publique**) dans `veeam_guest_pubkey`, puis
-   lancer le playbook.
-3. Veeam : *Credentials & Passwords* → *Add* → *Linux private key* : utilisateur `svcveeam`,
-   fichier `veeam-vigie` (clé privée, avec sa phrase de passe si vous en avez mis une), cocher
-   *Elevate account privileges automatically* ; décocher *Use su if sudo fails*. Dans le job :
-   *Guest Processing* → *Credentials* → cette identité pour la VM Vigie. Supprimer ensuite la
-   clé privée du poste.
-4. Vérifier : *Test Now* dans le job ; côté VM, `journalctl -u ssh` montre la connexion de
-   `svcveeam` depuis 10.10.10.27.
+3. Veeam : *Credentials & Passwords* → *Add* → *Linux account (user name and password)* :
+   `svcveeam`, ce mot de passe, cocher *Elevate account privileges automatically*, décocher
+   *Use su if sudo fails*. Dans le job : *Guest Processing* → *Credentials* → cette identité
+   pour la VM Vigie, puis *Test Now*.
+4. Vérifier côté VM : `journalctl -u ssh` montre la connexion de `svcveeam` depuis 10.10.10.27.
 
 La base est aussi sauvegardée chaque nuit par `pg_dump` chiffré (§5) : le traitement invité
 apporte la cohérence applicative de l'image, pas la seule copie de la base.

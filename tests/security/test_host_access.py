@@ -31,11 +31,15 @@ def test_ssh_open_to_veeam_only_besides_admin_networks() -> None:
     assert "Veeam" not in none
 
 
-def test_veeam_account_is_key_only() -> None:
+def test_veeam_account_only_from_veeam_server() -> None:
     ctx = _context()
-    assert "Match User" not in render("hardening", "sshd-vigie.conf.j2", ctx)  # clé vide
-    conf = render(
-        "hardening", "sshd-vigie.conf.j2", {**ctx, "veeam_guest_pubkey": "ssh-ed25519 AAAA x"}
-    )
-    block = conf.split("Match User svcveeam", 1)[1]
-    assert "PasswordAuthentication no" in block and "AllowTcpForwarding no" in block
+    off = render("hardening", "sshd-vigie.conf.j2", {**ctx, "veeam_guest_enabled": False})
+    assert "Match User" not in off
+    conf = render("hardening", "sshd-vigie.conf.j2", ctx)  # défaut : mot de passe
+    from_veeam, elsewhere = conf.split("Match User svcveeam", 2)[1:]
+    assert from_veeam.startswith(" Address 10.10.10.27\n")
+    assert "PasswordAuthentication yes" in from_veeam and "AllowTcpForwarding no" in from_veeam
+    # Depuis toute autre adresse : aucune méthode d'authentification.
+    assert "PasswordAuthentication no" in elsewhere and "PubkeyAuthentication no" in elsewhere
+    key = render("hardening", "sshd-vigie.conf.j2", {**ctx, "veeam_guest_auth": "key"})
+    assert "PasswordAuthentication yes" not in key.split("Match User svcveeam", 1)[1]

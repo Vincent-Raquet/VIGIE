@@ -106,14 +106,15 @@
   loop: "{{ veeam_guest_sources | default([]) }}"
   notify: Redémarrer sshguard
 
-- name: Compte du traitement invité Veeam (sans mot de passe)
+- name: Compte du traitement invité Veeam (mot de passe déposé à la main, jamais par Ansible)
   ansible.builtin.user:
     name: "{{ veeam_guest_user }}"
     comment: Veeam traitement invite
     shell: /bin/bash
     password: "!"
+    update_password: on_create
     create_home: true
-  when: veeam_guest_pubkey | length > 0
+  when: veeam_guest_enabled | bool
 
 - name: Clé SSH du compte Veeam, utilisable seulement depuis le serveur Veeam
   ansible.posix.authorized_key:
@@ -122,7 +123,7 @@
     key_options: >-
       from="{{ veeam_guest_sources | join(',') }}",no-port-forwarding,no-agent-forwarding,no-X11-forwarding
     exclusive: true
-  when: veeam_guest_pubkey | length > 0
+  when: veeam_guest_enabled | bool and veeam_guest_auth == "key" and veeam_guest_pubkey | length > 0
 
 - name: Sudo du compte Veeam (exigé pour le traitement invité ; tracé par auditd)
   ansible.builtin.copy:
@@ -133,4 +134,10 @@
       {{ veeam_guest_user }} ALL=(root) NOPASSWD: ALL
     mode: "0440"
     validate: /usr/sbin/visudo -cf %s
-  when: veeam_guest_pubkey | length > 0
+  when: veeam_guest_enabled | bool
+
+- name: Compte Veeam sans sudo quand il est désactivé
+  ansible.builtin.file:
+    path: /etc/sudoers.d/50-veeam-guest
+    state: absent
+  when: not (veeam_guest_enabled | bool)
