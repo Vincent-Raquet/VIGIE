@@ -12,6 +12,17 @@
     <label class="toggle"><input type="checkbox" name="plan"{% if pause.plan %} checked{% endif %}> Suspendre la génération des plans</label>
     <div><button class="btn primary" type="submit">Enregistrer</button></div>
   </form>
+  <form id="modele" class="panel stack" method="post" action="/parametres/modele">
+    <h2>Modèle d'IA</h2>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <p class="sub">Modèle par défaut des plans (planifiés et « Générer maintenant ») et de la discussion ; un autre modèle peut être choisi ponctuellement. Le budget mensuel ({{ "%.2f"|format(cfg.llm.monthly_budget_usd) }} $) est décompté au tarif de chaque modèle.</p>
+    <fieldset class="stack">
+    {% for m in models %}
+      <label class="toggle"><input type="radio" name="model" value="{{ m.id }}"{% if m.id == default_model %} checked{% endif %}> <strong>{{ m.label }}</strong> — {{ m.hint }} · {{ m.price.input }} $ entrée / {{ m.price.output }} $ sortie par million de jetons</label>
+    {% endfor %}
+    </fieldset>
+    <div><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
   <form id="bareme" class="panel stack" method="post" action="/parametres/bareme">
     <h2>Barème</h2>
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
@@ -45,7 +56,7 @@
     </tbody></table></div>
     <div class="panel"><h2>IA</h2><table><tbody>
       <tr><td>Activée</td><td class="mono">{{ "oui" if cfg.llm.enabled else "non" }}</td></tr>
-      <tr><td>Modèle</td><td class="mono">{{ cfg.llm.model }} · effort {{ cfg.llm.effort }}</td></tr>
+      <tr><td>Modèle (configuration)</td><td class="mono">{{ cfg.llm.model }} · effort {{ cfg.llm.effort }} — remplacé par le choix ci-dessus</td></tr>
       <tr><td>Budget mensuel</td><td class="mono">{{ "%.2f"|format(cfg.llm.monthly_budget_usd) }} $</td></tr>
       <tr><td>Repli en cas de refus</td><td class="mono">{{ "oui" if cfg.llm.fallback else "non" }}</td></tr>
       <tr><td>Texte des tickets envoyé</td><td class="mono">{{ "oui" if cfg.llm.send_ticket_text else "non" }}</td></tr>

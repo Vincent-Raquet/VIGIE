@@ -23,6 +23,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import MOST_EXPENSIVE, Price, price_of
 from vigie.config import LLMConfig
 from vigie.db import models
 from vigie.db.enums import LLMOutcome, PlanKind
@@ -35,26 +36,8 @@ FALLBACK_BETA = "server-side-fallback-2026-07-01"
 CACHE_WRITE_FACTOR = Decimal("1.25")  # écriture du cache (TTL 5 min)
 
 
-@dataclass(frozen=True)
-class Price:
-    """Dollars par million de jetons."""
-
-    input: Decimal
-    output: Decimal
-    cache_read: Decimal
-
-
-# Tarifs publics (doc Claude API, 2026-09) ; un modèle inconnu est compté au plus cher.
-PRICES: dict[str, Price] = {
-    "claude-sonnet-5-5": Price(Decimal(2), Decimal(10), Decimal("0.20")),
-    "claude-opus-5-5": Price(Decimal(4), Decimal(20), Decimal("0.20")),
-    "claude-haiku-4-5": Price(Decimal(1), Decimal(5), Decimal("0.10")),
-}
-MOST_EXPENSIVE = Price(Decimal(10), Decimal(50), Decimal("1.00"))
-
-
-def price_of(model: str) -> Price:
-    return PRICES.get(model, MOST_EXPENSIVE)
+# Tarifs : source unique dans vigie.ai_models (un modèle inconnu est compté au plus cher).
+__all__ = ["MOST_EXPENSIVE", "Price", "price_of"]
 
 
 def usage_cost(model: str, usage: Any) -> Decimal:

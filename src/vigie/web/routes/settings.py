@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from pydantic import ValidationError
 from starlette.datastructures import FormData
 
+from vigie.ai_models import MODELS, SETTING_KEY, default_model, label_of
 from vigie.db import models
 from vigie.db.enums import Category
 from vigie.engine.settings import ScoringConfig, load_scoring
@@ -34,8 +35,34 @@ def settings(request: Request, user: Admin, session: DB) -> Response:
             "categories": [c.value for c in Category],
             "flash": request.session.pop("flash", None),
             "error": request.session.pop("scoring_error", None),
+            "models": list(MODELS.values()),
+            "default_model": default_model(session, cfg.llm.model),
         },
     )
+
+
+@router.post("/parametres/modele")
+def save_model(
+    request: Request, user: Admin, session: DB, model: Annotated[str, Form(max_length=40)]
+) -> Response:
+    """Modèle d'IA par défaut des plans (planifiés et demandés) et de la discussion."""
+    if model not in MODELS:
+        raise HTTPException(status_code=422, detail="Modèle d'IA inconnu.")
+    cfg = request.app.state.cfg
+    before = default_model(session, cfg.llm.model)
+    if model != before:
+        row = session.get(models.Setting, SETTING_KEY)
+        if row is None:
+            session.add(models.Setting(key=SETTING_KEY, value=model))
+        else:
+            row.value = model
+        audit(session, user.email, "llm_model_set", f"setting:{SETTING_KEY}",
+              avant=before, après=model)  # fmt: skip
+        session.commit()
+    request.session["flash"] = (
+        f"Modèle d'IA par défaut : {label_of(model)} (plans et discussion, dès le prochain appel)."
+    )
+    return RedirectResponse("/parametres#modele", status_code=303)
 
 
 @router.post("/parametres/pause")

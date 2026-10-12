@@ -17,6 +17,7 @@ from pydantic import SecretStr
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import resolve_model
 from vigie.config import LLMConfig, SecretError, VigieConfig, get_secret
 from vigie.db import models
 from vigie.db.enums import PlanKind
@@ -94,11 +95,13 @@ def generate_plan(
     secret: SecretReader = get_secret,
     no_llm: bool = False,
     dry_run: bool = False,
+    model: str | None = None,
 ) -> GeneratedPlan:
     """Génère (et enregistre en brouillon, sauf simulation) le plan `kind` du jour `target`.
 
     Lève `PlanPausedError` si la génération est en pause (jamais en simulation),
-    `CalendarError` ou une erreur SQLAlchemy sinon.
+    `CalendarError` ou une erreur SQLAlchemy sinon. `model` : choix ponctuel parmi les
+    modèles proposés (`vigie.ai_models`), sinon le modèle par défaut (Paramètres).
     """
     tz = ZoneInfo(cfg.general.timezone)
     with Session(engine) as session:
@@ -108,7 +111,9 @@ def generate_plan(
         draft = build_plan(
             session, kind, target, now, cfg.plans, tz=tz, country=cfg.general.holidays_country
         )
-        refinement, call = _refine(session, engine, draft, cfg, no_llm, client_factory, secret)
+        llm = cfg.llm.model_copy(update={"model": resolve_model(session, cfg.llm.model, model)})
+        run_cfg = cfg.model_copy(update={"llm": llm})
+        refinement, call = _refine(session, engine, draft, run_cfg, no_llm, client_factory, secret)
         if refinement is None:
             markdown = render_markdown(draft)
             final, plan_call_id = draft, None

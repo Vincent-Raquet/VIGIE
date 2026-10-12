@@ -4,7 +4,7 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from pydantic import SecretStr
@@ -139,3 +139,36 @@ def test_pause_is_respected_by_the_worker(config: Path, db_engine: Engine) -> No
         with Session(db_engine) as session:
             session.execute(delete(models.Setting).where(models.Setting.key == "pause"))
             session.commit()
+
+
+class Recording(Fake):
+    calls: ClassVar[list[str]] = []
+
+    def create(self, **kwargs: Any) -> Any:
+        Recording.calls.append(kwargs["model"])
+        return super().create(**kwargs)
+
+
+def test_model_choice_default_setting_and_override(
+    config: Path, db_engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vigie.ai_models import SETTING_KEY
+
+    Recording.calls = []
+    monkeypatch.setattr(cli, "get_secret", lambda name: SecretStr("fake-key"))
+    monkeypatch.setattr(cli, "llm_client_factory", lambda key, cfg: Recording(VALID))
+    args = ("plan", "--kind", "daily", "--date", "2026-10-13", "--dry-run")
+    assert run(config, *args)[0] == 0  # configuration : claude-sonnet-5-5
+    with Session(db_engine) as session:
+        session.add(models.Setting(key=SETTING_KEY, value="claude-opus-5-5"))
+        session.commit()
+    try:
+        assert run(config, *args)[0] == 0  # réglage de l'interface
+        assert run(config, *args, "--model", "claude-fable-5-1")[0] == 0  # choix ponctuel
+        code, output = run(config, *args, "--model", "gpt-4")
+        assert code == 2 and "claude-opus-5-5" in output
+    finally:
+        with Session(db_engine) as session:
+            session.execute(delete(models.Setting).where(models.Setting.key == SETTING_KEY))
+            session.commit()
+    assert Recording.calls == ["claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"]

@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from vigie.ai_models import MODELS, default_model, label_of
 from vigie.db import models
 from vigie.db.enums import (
     AppRole,
@@ -455,6 +456,9 @@ def generation_context(request: Request, user: User, session: Session) -> dict[s
         "budget": budget,
         "budget_warning": budget > 0 and spent >= budget * BUDGET_WARN_RATIO,
         "job": _latest_generation(session),
+        "models": list(MODELS.values()),
+        "default_model": default_model(session, request.app.state.cfg.llm.model),
+        "last_label": label_of(last_call.model) if last_call else "",
     }
 
 
@@ -467,6 +471,7 @@ def request_generation(
     day_value: Annotated[str, Form(alias="day", max_length=10)],
     use_llm: Annotated[str, Form(max_length=3)],
     next_url: Annotated[str | None, Form(alias="next")] = None,
+    model: Annotated[str, Form(max_length=40)] = "",
 ) -> Response:
     try:
         target = date.fromisoformat(day_value)
@@ -476,6 +481,8 @@ def request_generation(
         raise HTTPException(status_code=422, detail="Jour hors de la fenêtre de ± 14 jours.")
     if use_llm not in ("oui", "non"):
         raise HTTPException(status_code=422, detail="IA : oui ou non.")
+    if model and model not in MODELS:
+        raise HTTPException(status_code=422, detail="Modèle d'IA inconnu.")
     active = session.scalar(
         select(models.JobRequest).where(
             models.JobRequest.kind == JobKind.plan_generate, models.JobRequest.status.in_(ACTIVE)
@@ -483,7 +490,13 @@ def request_generation(
     )
     if active is not None:
         raise HTTPException(status_code=409, detail="Une génération est déjà en cours.")
-    payload = {"kind": kind.value, "day": target.isoformat(), "use_llm": use_llm == "oui"}
+    payload: dict[str, Any] = {
+        "kind": kind.value,
+        "day": target.isoformat(),
+        "use_llm": use_llm == "oui",
+    }
+    if model and use_llm == "oui":
+        payload["model"] = model
     try:
         job = new_job_request(JobKind.plan_generate, payload, user.email)
     except JobPayloadError:
