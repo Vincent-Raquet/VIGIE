@@ -446,3 +446,16 @@ def test_unreadable_ca_bundle_is_reported(tmp_path: Path) -> None:
 def test_empty_body_returns_none() -> None:
     c, _ = client(httpx.Response(202, content=b""))
     assert c.get("/api/v1/jobs/states") is None
+
+
+@pytest.mark.parametrize(
+    "value", ["Bearer <clé API du FAZ>", "Bearer abc\ndef", "Bearer clé", "Bearer <token>"]
+)
+def test_invalid_auth_header_is_refused_without_echo(value: str) -> None:
+    from vigie.connectors.base import ConnectorConfigError
+
+    client = SafeClient(source="t", base_url="https://source.test", allowlist=ALLOWLIST)
+    with pytest.raises(ConnectorConfigError) as exc:
+        client.set_auth_header("Authorization", SecretStr(value))
+    assert "Authorization" in str(exc.value) and value not in str(exc.value)
+    client.set_auth_header("Authorization", SecretStr("Bearer AbC123._~+/=-"))

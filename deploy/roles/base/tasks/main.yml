@@ -61,3 +61,10 @@
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
     mode: "0644"
+
+- name: Lecture du journal système sans sudo (diagnostic, journal_readers)
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: systemd-journal
+    append: true
+  loop: "{{ journal_readers | default([]) }}"

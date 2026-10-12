@@ -70,3 +70,27 @@ def test_collect_failure_records_source_down(
         down = session.scalars(select(models.Signal).where(models.Signal.source == "vigie")).one()
         assert down.external_id == "source_down:zabbix"
         assert down.resolved_at is None
+
+
+def test_invalid_config_recorded_as_source_failure(
+    config: Path, db_engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Clé déposée avec le texte d'exemple : échec enregistré (page Sources), sans la valeur.
+    config.write_text(
+        config.read_text() + "\n[sources.fortianalyzer]\nenabled = true\n"
+        'base_url = "https://faz.test"\n'
+    )
+    creds = config.parent / "creds"
+    creds.mkdir()
+    (creds / "fortianalyzer_api_key").write_text("<clé API du FAZ>")
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(creds))
+    monkeypatch.delenv("VIGIE_ENV", raising=False)
+    result = CliRunner().invoke(
+        app, ["--config", str(config), "collect", "--source", "fortianalyzer"]
+    )
+    assert result.exit_code == 1 and "invalide" in result.output
+    assert "clé API du FAZ" not in result.output
+    with Session(db_engine) as session:
+        source = session.get(models.Source, "fortianalyzer")
+        assert source is not None and source.last_error and "Authorization" in source.last_error
+        assert "clé API" not in source.last_error
