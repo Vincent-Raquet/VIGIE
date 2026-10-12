@@ -338,6 +338,30 @@
     - vigie_web_release.stdout is defined
     - vigie_web_release.stdout == "stale"
 
+# Même filet que pour vigie-web : les gestionnaires sont exécutés avant le contrôle des
+# secrets (flush_handlers) et sautent leur redémarrage ; un service permanent garderait
+# alors l'ancienne version.
+- name: Version chargée par vigie-chat
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      pid=$(systemctl show -p MainPID --value vigie-chat.service);
+      [ "$pid" -gt 0 ] && grep -qF "$(readlink -f {{ vigie_root }}/current)/" /proc/$pid/maps
+      && echo current || echo stale
+    executable: /bin/bash
+  register: vigie_chat_release
+  changed_when: false
+  check_mode: false
+  when: vigie_secrets_ok and vigie_llm_enabled | bool and not ansible_check_mode
+
+- name: Redémarrage de vigie-chat sur la version courante
+  ansible.builtin.systemd_service:
+    name: vigie-chat.service
+    state: restarted
+  when:
+    - vigie_chat_release.stdout is defined
+    - vigie_chat_release.stdout == "stale"
+
 - name: Service de discussion avec l'IA (actif seulement si l'IA l'est)
   ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
