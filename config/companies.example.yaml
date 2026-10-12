@@ -38,8 +38,12 @@ asset_rules:
   - {source: ninjaone, match: org_id, pattern: "4", company: WG}   # WALLGLASS
   - {source: ninjaone, match: org_id, pattern: "5", company: CC}   # CONSTRUCT-CENTER
   - {source: ninjaone, match: org_id, pattern: "6", company: FWD}  # FAIRWIND
-  # FortiAnalyzer : ADOM ou préfixe de devname
-  - {source: fortianalyzer, match: devname_prefix, pattern: "WI-", company: WI}
+  # FortiAnalyzer : préfixe du nom d'appareil (un seul ADOM « root »). À confirmer à la capture.
+  - {source: fortianalyzer, match: devname_prefix, pattern: "WI-",  company: WI}
+  - {source: fortianalyzer, match: devname_prefix, pattern: "SPL-", company: SPL}
+  - {source: fortianalyzer, match: devname_prefix, pattern: "WG-",  company: WG}
+  - {source: fortianalyzer, match: devname_prefix, pattern: "CC-",  company: CC}
+  - {source: fortianalyzer, match: devname_prefix, pattern: "FWD-", company: FWD}
   # Veeam : préfixe de nom de job
   # (s'applique aussi au nom des dépôts ; asset_criticality >= 1,2 = job critique).
   # Noms réels du VBR (2026-10-11) : « WI - Backup … », « REPLICATION - WI VERS SPL … ».

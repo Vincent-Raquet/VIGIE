@@ -1,0 +1,73 @@
+[
+  {
+    "data": [
+      {
+        "name": "WI-FGT-01",
+        "hostname": "WI-FGT-01",
+        "sn": "FGT60FTK0000001",
+        "conn_status": 1,
+        "ha_mode": 0,
+        "ha_slave": null,
+        "os_ver": "7.0",
+        "mr": 4,
+        "patch": 5,
+        "platform_str": "FortiGate-60F"
+      },
+      {
+        "name": "SPL-FGT-01",
+        "hostname": "SPL-FGT-01",
+        "sn": "FGT100F00000002",
+        "conn_status": 2,
+        "ha_mode": 0,
+        "ha_slave": null,
+        "os_ver": "7.0",
+        "mr": 4,
+        "patch": 5,
+        "platform_str": "FortiGate-100F"
+      },
+      {
+        "name": "WG-FGT-01",
+        "hostname": "WG-FGT-01",
+        "sn": "FGT200F00000003",
+        "conn_status": 1,
+        "ha_mode": 1,
+        "ha_group_name": "WG-HA",
+        "ha_slave": [
+          {
+            "name": "WG-FGT-01A",
+            "sn": "FGT200F00000003",
+            "status": 1,
+            "role": 1
+          },
+          {
+            "name": "WG-FGT-01B",
+            "sn": "FGT200F00000004",
+            "status": 0,
+            "role": 0
+          }
+        ],
+        "os_ver": "7.0",
+        "mr": 4,
+        "patch": 5,
+        "platform_str": "FortiGate-200F"
+      },
+      {
+        "name": "CC-FGT-01",
+        "hostname": "CC-FGT-01",
+        "sn": "FGT40F000000005",
+        "conn_status": 0,
+        "ha_mode": 0,
+        "ha_slave": null,
+        "os_ver": "7.0",
+        "mr": 2,
+        "patch": 1,
+        "platform_str": "FortiGate-40F"
+      }
+    ],
+    "status": {
+      "code": 0,
+      "message": "OK"
+    },
+    "url": "/dvmdb/adom/root/device"
+  }
+]

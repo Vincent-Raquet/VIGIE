@@ -57,15 +57,22 @@ Les tests de `tests/security/test_registered_connectors.py` s'appliquent automat
 - **Lien** : `{base}/tr_events.php?triggerid={triggerid}&eventid={eventid}` — `# TODO verify` en 7.4 (alternative `zabbix.php?action=problem.view&filter_eventids[]={eventid}`).
 - **Fixtures** : `tests/contract/zabbix/` (réelles anonymisées, cf. README du dossier).
 
-## 2. FortiAnalyzer
-- **Auth** : administrateur API REST `svc-vigie` avec profil **Read-Only** (« Restricted_User » ou profil personnalisé tout en lecture), *Trusted Hosts* limités à l'IP de la VM, clé API (Bearer). ⚠️ Selon la version (7.2/7.4/7.6), l'authentification par clé API ou par session (`sys/login/user`) diffère : vérifier.
-- **Endpoint** : `POST {base}/jsonrpc`.
-- **Allowlist** (champ `method` JSON-RPC + préfixe `url`) :
-  - `get` sur `/sys/status`, `/dvmdb/adom/{adom}/device`, `/eventmgmt/adom/{adom}/alerts`, `/incidentmgmt/adom/{adom}/incidents` (si FortiSOC).
-  - Exception documentée : `add` sur `/logview/adom/{adom}/logsearch` (création d'une tâche de recherche, sans effet sur la configuration) et `get` du résultat, `delete` **interdit**. N'activer que si les alertes d'event management ne suffisent pas.
-- **Collecte** : alertes d'event management non acquittées des 24 dernières heures ; état des appareils (connexion FortiGate ↔ FAZ, HA) ; VPN : événements `vpn` tunnel-down sur la période.
-- **Mapping société** : ADOM ou nom d'appareil (`devname` préfixé).
-- **Catégories** : `firewall`, `network` (VPN, SD-WAN), `security` (IPS, AV, botnet).
+## 2. FortiAnalyzer 8.0 (`src/vigie/connectors/fortianalyzer.py`)
+FortiAnalyzer-VM64-KVM **v8.0.0 build 0105** (GA.F), ADOM désactivés (`root`), 192.168.240.104. Sans accès à la référence officielle (FNDN), URL, paramètres et champs viennent des sources publiques (implémentations testées sur la 8.0.0 GA) : ce qui n'est pas confirmé est marqué `TODO verify` et tranché par la capture.
+- **Auth** : administrateur API `svc-vigie` (`user_type api`, profil `Restricted_User`, `rpc-permit read`, trusthost `192.168.10.17/32`), clé API en `Authorization: Bearer` (sans `session`), secret `fortianalyzer_api_key`.
+- **Endpoint** : `POST https://FAZVMSTM25009422/jsonrpc` (JSON-RPC, `"jsonrpc": "2.0"`). Le certificat d'usine n'a **ni SAN ni IP** (CN = n° de série) : le FAZ est appelé par son CN, résolu par `/etc/hosts` (Ansible), et ce certificat est le seul approuvé (`ca_bundle`, empreinte SHA-256 `C0:39:80:86:…:0C:58` vérifiée le 2026-10-12). L'appel par IP échoue (« IP address mismatch »), par principe.
+- **Réponses** : HTTP 200 même en cas de refus ; chaque résultat porte `status.code` (0 = OK, -11 = droits, -6 = URL inconnue), vérifié par le connecteur.
+- **Allowlist** (méthode JSON-RPC + URL, un objet par appel, schémas stricts) :
+  - `get` : `/sys/status` ; `/eventmgmt/adom/{adom}/alerts` (`apiver` 3, `limit` ≤ 2000, `offset`, `time-range`, `time-order`) ; `/dvmdb/adom/{adom}/device` (`fields` dans une liste fermée, `loadsub` 0) ; `/logview/adom/{adom}/logsearch/{tid}` (résultat d'une recherche) ;
+  - **exception `add`** (`override_reason`) : `/logview/adom/{adom}/logsearch`, seulement si `vpn_logsearch = true` (absente de l'allowlist sinon), filtre **imposé** `subtype==vpn and action==tunnel-down`, `logtype` event, tous les FortiGate : crée une tâche de recherche temporaire, sans effet sur la configuration.
+  - **Interdits** (`tests/security/test_fortianalyzer_allowlist.py`) : `set`, `update` (dont acquittement `alerts/ack` et commentaire d'alerte), `delete`, `exec`, `clone`, `move`, `add` ailleurs que logsearch ; lectures non listées (administrateurs, handlers, incidents, fichiers de journaux, HA du FAZ, fiche d'un appareil) ; paramètres non listés (`filter` libre…).
+- **Signaux** :
+  - **alertes** de l'Event Monitor des `window_hours` (24) dernières heures, **non acquittées** (`ackflag`, TODO verify), agrégées par event handler et par appareil ; sévérité `critical/high/medium/low/info` → 5/4/3/2/1 ; catégorie `network` si VPN/tunnel/IPsec (attribut `kind = vpn_event` : événement passé, pas l'état courant du tunnel, donc pas l'override `vpn_down_30m`), `security` si IPS/antivirus/botnet…, sinon `firewall` ;
+  - **appareils** : FortiGate déconnecté du FAZ (`conn_status` 2 ; 0 « inconnu » ignoré) et **HA dégradée** (`ha_mode` ≠ 0 et membre `ha_slave` hors service ou seul), catégorie `firewall`, `attr.state` `offline` / `ha_degraded` → override `firewall_down` (P1) ; TODO verify : champs HA en 8.0 ;
+  - **tunnels VPN tombés** : alertes VPN de l'Event Monitor ; en complément, si l'Event Monitor ne suffit pas, `vpn_logsearch = true` (journaux `tunnel-down`, agrégés par appareil et tunnel).
+- **Mapping société** : préfixe du nom d'appareil (`devname_prefix` : `WI-`, `SPL-`, `WG-`, `CC-`, `FWD-`), à confirmer à la capture.
+- **Fixtures** : synthétiques (`tests/contract/fortianalyzer_synthetic`), nommées `<méthode>_<url>.json` ; capture : `VIGIE_ENV=dev uv run python scripts/record_fixtures.py fortianalyzer`.
+- **TODO verify** (capture) : `apiver` ; noms des champs d'alerte (`triggername`, `devname`, `ackflag`, `alerttime`, `logcount`, `subject`) ; format de `time-range` (heure locale du FAZ) ; enveloppe de `data` (liste ou `{"data": [...]}`) ; champs HA ; syntaxe du filtre logsearch, `tid`, `percentage`.
 
 ## 3. NinjaOne (`src/vigie/connectors/ninjaone.py`)
 Référence : spécification officielle NinjaOne Public API 2.0 (2.0.9-draft, `https://app.ninjarmm.com/apidocs/NinjaRMM-API-v2.yaml`), instance **eu.ninjarmm.com**.
@@ -119,7 +126,7 @@ Utiliser le skill `.claude/skills/add-connector`. Candidats évoqués : Microsof
 | Source | Compte | Rôle / scope | Restriction réseau |
 |---|---|---|---|
 | Zabbix | `svc-vigie` + token | Rôle User, API allowlist `problem.get`, `trigger.get`, `proxy.get`, groupes en Read | — (token) |
-| FortiAnalyzer | `svc-vigie` (API admin) | Profil Read-Only | Trusted host = IP VM |
+| FortiAnalyzer 8.0 | `svc-vigie` (`user_type api`) | `Restricted_User`, `rpc-permit read` ; clé API (Bearer) | trusthost 192.168.10.17/32 ; secret `fortianalyzer_api_key` |
 | NinjaOne | app API « Vigie » (client credentials) | `monitoring` seul (`management` uniquement sur décision si les tickets l'exigent) | Squid (`eu.ninjarmm.com`) ; secrets `ninjaone_client_id`, `ninjaone_client_secret` |
 | Wazuh API | `svc-vigie` | Rôle `readonly` | Pare-feu manager |
 | Wazuh indexer | `svc-vigie` | `vigie_read` (search sur 2 index) | Pare-feu indexer |

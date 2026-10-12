@@ -105,10 +105,17 @@ min_epss = 0.1                                       # critique retenue si EPSS 
 # proxy = "http://127.0.0.1:3128"                    # production : sortie Internet par Squid
 
 [sources.fortianalyzer]
-enabled = false   # connecteur pas encore implémenté
-base_url = "https://faz.lan"
-adoms = ["root"]
+enabled = false
 interval_min = 15
+# Nom porté par le certificat. Certificat d'usine du FAZ (ni SAN ni IP) : son CN
+# (n° de série), résolu vers l'IP du FAZ par DNS ou /etc/hosts (Ansible : vigie_fortianalyzer_*).
+base_url = "https://FAZVMSTM25009422"
+adom = "root"                           # ADOM désactivés : root
+window_hours = 24                       # alertes non acquittées de cette période
+timezone = "Europe/Brussels"            # fuseau du FAZ (time-range)
+vpn_logsearch = false                   # true : recherche des tunnels tombés dans les journaux (si l'Event Monitor ne suffit pas)
+# ca_bundle = "~/vigie-ca/fortianalyzer.pem"   # certificat d'usine du FAZ (prod : /etc/vigie/ca/fortianalyzer.pem)
+# Clé API : secret « fortianalyzer_api_key » (VIGIE_SECRET_FORTIANALYZER_API_KEY dans .env.local en dev)
 
 [sources.wazuh]
 enabled = false   # connecteur pas encore implémenté

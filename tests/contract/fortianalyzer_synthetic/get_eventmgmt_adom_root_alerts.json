@@ -1,0 +1,83 @@
+[
+  {
+    "data": [
+      {
+        "alertid": "20261012-1",
+        "adom": "root",
+        "triggername": "Default-VPN-Down",
+        "devname": "WI-FGT-01",
+        "severity": "high",
+        "ackflag": "no",
+        "alerttime": 1791791400,
+        "logcount": 3,
+        "subject": "IPsec tunnel WI-SPL down",
+        "eventtype": "event"
+      },
+      {
+        "alertid": "20261012-2",
+        "adom": "root",
+        "triggername": "Default-VPN-Down",
+        "devname": "WI-FGT-01",
+        "severity": "high",
+        "ackflag": "no",
+        "alerttime": 1791791940,
+        "logcount": 1,
+        "subject": "IPsec tunnel WI-SPL down",
+        "eventtype": "event"
+      },
+      {
+        "alertid": "20261012-3",
+        "adom": "root",
+        "triggername": "Default-IPS-Critical",
+        "devname": "SPL-FGT-01",
+        "severity": "critical",
+        "ackflag": "no",
+        "alerttime": 1791791880,
+        "logcount": 1,
+        "subject": "Attack blocked: SQL injection <script>alert(1)</script>",
+        "eventtype": "event"
+      },
+      {
+        "alertid": "20261012-4",
+        "adom": "root",
+        "triggername": "Default-Admin-Login-Fail",
+        "devname": "WG-FGT-01",
+        "severity": "medium",
+        "ackflag": "no",
+        "alerttime": 1791791700,
+        "logcount": 1,
+        "subject": "admin login failed from 198.51.100.7",
+        "eventtype": "event"
+      },
+      {
+        "alertid": "20261012-5",
+        "adom": "root",
+        "triggername": "Default-Admin-Login-Fail",
+        "devname": "WG-FGT-01",
+        "severity": "medium",
+        "ackflag": "yes",
+        "alerttime": 1791791600,
+        "logcount": 1,
+        "subject": "",
+        "eventtype": "event"
+      },
+      {
+        "alertid": "20261012-6",
+        "adom": "root",
+        "triggername": "Default-Conf-Change",
+        "devname": "XX-FGT-99",
+        "severity": "low",
+        "ackflag": "no",
+        "alerttime": 1791791500,
+        "logcount": 1,
+        "subject": "config change",
+        "eventtype": "event"
+      }
+    ],
+    "status": {
+      "code": 0,
+      "message": "OK"
+    },
+    "url": "/eventmgmt/adom/root/alerts"
+  }
+]

@@ -47,6 +47,7 @@ SOURCE_SECRETS = {
     "defender_client_id",
     "defender_private_key",
     "ninjaone_client_secret",
+    "fortianalyzer_api_key",
 }
 # Secrets autorisés par unité : tout ce qui n'est pas listé ici est interdit.
 ALLOWED = {
@@ -250,6 +251,7 @@ def test_collect_dropin_gives_only_its_source_secret_and_addresses(veeam_host: s
             "vigie_veeam_host": veeam_host,
             "vigie_ninjaone_enabled": False,
             "vigie_defender_enabled": False,
+            "vigie_fortianalyzer_enabled": False,
         }
     )
     names = [s["name"] for s in ctx["vigie_sources_enabled"]]
@@ -378,3 +380,16 @@ def test_chat_service_is_permanent_and_holds_only_the_llm_key() -> None:
     # Les tâches ponctuelles restent oneshot, sans section [Install].
     assert _directives(units["vigie-jobs.service"])["Type"] == ["oneshot"]
     assert "[Install]" not in units["vigie-jobs.service"]
+
+
+def test_fortianalyzer_direct_to_its_ip_with_key_only() -> None:
+    ctx = _context({"vigie_fortianalyzer_enabled": True})
+    [source] = [s for s in ctx["vigie_sources_enabled"] if s["name"] == "fortianalyzer"]
+    assert source["secrets"] == ["fortianalyzer_api_key"]
+    assert source["settings"]["base_url"] == "https://FAZVMSTM25009422"
+    assert source["settings"]["ca_bundle"] == "/etc/vigie/ca/fortianalyzer.pem"
+    assert "proxy" not in source["settings"]  # réseau interne, pas Squid
+    text = _render("units/credentials.conf.j2", ctx, source=source)
+    assert _credentials(text) == {"fortianalyzer_api_key"}
+    allowed = set(_directives(text)["IPAddressAllow"][0].split())
+    assert allowed == set(ctx["dns_servers"]) | {"192.168.240.104"}

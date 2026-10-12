@@ -1,0 +1,29 @@
+[
+  {
+    "data": {
+      "percentage": 100,
+      "return-lines": 2,
+      "data": [
+        {
+          "itime": 1791791100,
+          "devname": "FWD-FGT-01",
+          "vpntunnel": "FWD-WI",
+          "action": "tunnel-down",
+          "subtype": "vpn"
+        },
+        {
+          "itime": 1791791700,
+          "devname": "FWD-FGT-01",
+          "vpntunnel": "FWD-WI",
+          "action": "tunnel-down",
+          "subtype": "vpn"
+        }
+      ]
+    },
+    "status": {
+      "code": 0,
+      "message": "OK"
+    },
+    "url": "/logview/adom/root/logsearch/42"
+  }
+]

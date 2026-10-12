@@ -102,3 +102,24 @@ def test_all_page_shapes_are_accumulated(pages: list[object], expected: object) 
         for _ in pages:
             client.get("https://ninja.test/v2/organization/2/devices")
     assert recorder.saved["GET_v2_organization_2_devices.json"] == expected
+
+
+def test_jsonrpc_results_named_by_method_and_url() -> None:
+    from vigie.connectors.base import rpc_fixture_name
+
+    assert rpc_fixture_name({"method": "problem.get", "params": {}}) == "problem.get.json"
+    assert (
+        rpc_fixture_name({"method": "get", "params": [{"url": "/eventmgmt/adom/root/alerts"}]})
+        == "get_eventmgmt_adom_root_alerts.json"
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"id": 1, "result": [{"status": {"code": 0}, "data": 1}]})
+
+    recorder = RecordingTransport(None, inner=httpx.MockTransport(handler))
+    with httpx.Client(transport=recorder) as client:
+        client.post(
+            "https://faz.test/jsonrpc",
+            json={"id": 1, "method": "get", "params": [{"url": "/sys/status"}]},
+        )
+    assert recorder.saved == {"get_sys_status.json": [{"status": {"code": 0}, "data": 1}]}
