@@ -1,0 +1,33 @@
+[
+ {
+  "data": {
+   "Admin Domain Configuration": "Disabled",
+   "BIOS version": "04000002",
+   "Branch Point": "0105",
+   "Build": "0105",
+   "Current Time": "Mon Oct 12 21:05:25 CEST 2026",
+   "Daylight Time Saving": "Yes",
+   "Disk Usage": "Free 223.02GB, Total 491.08GB",
+   "FIPS Mode": "Disabled",
+   "Hostname": "FAZVM64-TEST",
+   "License Status": "Valid",
+   "Major": 8,
+   "Max Number of Admin Domains": 5,
+   "Minor": 0,
+   "Patch": 0,
+   "Platform Full Name": "FortiAnalyzer-VM64-KVM",
+   "Platform Type": "FAZVM64-KVM",
+   "Release Version Information": " (GA.F)",
+   "Serial Number": "FAZVMSTM00000000",
+   "TZ": "Europe/Brussels",
+   "Time Zone": "(GMT+1:00) Brussels, Copenhagen, Madrid, Paris.",
+   "Version": "v8.0.0-build0105 260420 (GA.F)",
+   "x86-64 Applications": "Yes"
+  },
+  "status": {
+   "code": 0,
+   "message": "OK"
+  },
+  "url": "/sys/status"
+ }
+]

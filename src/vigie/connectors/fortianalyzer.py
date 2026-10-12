@@ -19,8 +19,9 @@ marqué `TODO verify` et tranché par la capture (`scripts/record_fixtures.py fo
 from __future__ import annotations
 
 import hashlib
+import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Literal
@@ -54,6 +55,7 @@ TITLE_MAX = 300
 DETAILS_MAX = 1000
 LISTED = 10
 SUPPORTED_MAJOR = 8
+_IP_RE = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b")
 ADOM_RE = r"[A-Za-z0-9_-]{1,35}"
 TIME_RE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$"
 # Recherche des tunnels tombés (journaux d'événements VPN). TODO verify : syntaxe du filtre.
@@ -160,6 +162,13 @@ ALLOWLIST: tuple[AllowedCall, ...] = READ_ALLOWLIST + LOGSEARCH_ALLOWLIST
 
 # --- Configuration ----------------------------------------------------------------------
 
+MINOR_TRIGGERS = (
+    "Risky App Detection by Source Endpoint",
+    "Risky App Detection by Threat",
+    "Risky Destination Detection by Source Endpoint",
+    "Risky Destination Detection by Threat",
+)
+
 
 class FortiAnalyzerConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -173,6 +182,13 @@ class FortiAnalyzerConfig(BaseModel):
     window_hours: int = Field(24, ge=1, le=168)
     timezone: str = "Europe/Brussels"  # fuseau du FAZ pour time-range ; TODO verify
     vpn_logsearch: bool = False
+    # Valeurs de regroupement de l'Event Monitor à écarter (ex. « app:NinjaOne » : l'outil de
+    # gestion de l'équipe détecté comme application à risque).
+    ignore_groupby: list[str] = Field(default_factory=list, max_length=50)
+    # Handlers d'usage (applications, sites à risque) : sévérité ramenée à `minor_severity`,
+    # ce n'est pas une compromission. Noms des handlers par défaut du FAZ 8.0 (capture).
+    minor_triggers: list[str] = Field(default_factory=lambda: list(MINOR_TRIGGERS), max_length=50)
+    minor_severity: int = Field(2, ge=1, le=5)
     ca_bundle: str | None = None
     proxy: str | None = Field(None, pattern=r"^http://127\.0\.0\.1:[0-9]{2,5}$")
 
@@ -182,17 +198,12 @@ class FortiAnalyzerConfig(BaseModel):
 SEVERITY = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1, "information": 1}
 VPN_WORDS = ("vpn", "tunnel", "ipsec")
 SECURITY_WORDS = (
-    "ips",
-    "virus",
-    "malware",
-    "botnet",
-    "attack",
-    "intrusion",
-    "compromis",
-    "ioc",
-    "sandbox",
-    "ransom",
-)
+    "ips", "virus", "malware", "botnet", "attack", "intrusion", "compromis", "ioc", "sandbox",
+    "ransom", "c&c", "recon", "exfiltration", "data leak", "risky", "suspicious",
+)  # fmt: skip
+# Champs de personnes et d'adresses des alertes : jamais repris (minimisation).
+PERSON_FIELDS = ("euname", "dsteuname")
+ADDRESS_FIELDS = ("epip", "dstepip")
 
 
 def _first(row: Mapping[str, Any], *keys: str) -> Any:
@@ -223,6 +234,18 @@ def _when(value: Any) -> datetime | None:
             return None
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     return None
+
+
+def _subject(alert: Mapping[str, Any]) -> str:
+    """Sujet de l'alerte sans nom d'utilisateur ni adresse IP (le poste reste nommé : c'est
+    lui qu'il faut traiter)."""
+    text = _text(_first(alert, "subject", "eventtype"))
+    for key, mask in [*((k, "<utilisateur>") for k in PERSON_FIELDS),
+                      *((k, "<IP>") for k in ADDRESS_FIELDS)]:  # fmt: skip
+        value = _text(alert.get(key)).strip()
+        if len(value) >= 3 and value.upper() != "N/A" and not value.startswith("0.0.0."):
+            text = text.replace(value, mask)
+    return _IP_RE.sub("<IP>", text)
 
 
 def _digest(*parts: str) -> str:
@@ -366,6 +389,10 @@ class FortiAnalyzerConnector:
             # Non acquittées seulement (TODO verify : champ et valeurs d'acquittement).
             ack = str(_first(alert, "ackflag", "ack_flag", "acknowledged") or "no").lower()
             if ack in ("yes", "1", "true", "acked", "acknowledged"):
+                continue
+            if {str(alert.get("groupby1")), str(alert.get("groupby2"))} & set(
+                self.config.ignore_groupby
+            ):
                 continue
             trigger = _text(_first(alert, "triggername", "trigger_name", "handler")) or "?"
             device = _text(_first(alert, "devname", "devs", "devid", "dev")) or "?"
@@ -511,24 +538,24 @@ class FortiAnalyzerConnector:
             SEVERITY.get(str(_first(a, "severity", "level") or "").lower(), 3) for a in alerts
         ]
         severity = max(severities, default=3)
-        haystack = f"{trigger} {_text(_first(alerts[0], 'subject', 'eventtype'))}".lower()
+        if p["trigger"] in self.config.minor_triggers:
+            severity = min(severity, self.config.minor_severity)
+        tags = " ".join(_text(a.get("tag")) for a in alerts[:20])
+        haystack = f"{trigger} {_text(_first(alerts[0], 'subject', 'eventtype'))} {tags}".lower()
         vpn = any(w in haystack for w in VPN_WORDS)
         if vpn:
             category = Category.network
         elif any(w in haystack for w in SECURITY_WORDS):
             category = Category.security
         else:
-            category = Category.firewall
+            category = Category.firewall  # événements système du FortiGate ou du FAZ
         times = [
             t for a in alerts if (t := _when(_first(a, "alerttime", "firstlogtime", "lastlogtime")))
         ]
         count = sum(int(_first(a, "logcount", "count") or 1) for a in alerts)
-        subjects = sorted(
-            {
-                clean_untrusted(_text(_first(a, "subject", "eventtype", "extrainfo")), 200)
-                for a in alerts
-            }
-            - {""}
+        subjects = sorted({clean_untrusted(_subject(a), 200) for a in alerts} - {""})
+        groups = Counter(
+            clean_untrusted(_text(a.get("groupby1")), 80) for a in alerts if a.get("groupby1")
         )
         lines = [
             f"Event handler : {trigger}",
@@ -536,6 +563,10 @@ class FortiAnalyzerConnector:
             f"Alertes non acquittées sur {self.config.window_hours} h : {len(alerts)} "
             f"({count} journaux)",
         ]
+        if groups:
+            lines.append(
+                "Regroupement : " + ", ".join(f"{g} ×{n}" for g, n in groups.most_common(5))
+            )
         if subjects:
             lines.append("Exemples : " + " ; ".join(subjects[:5]))
         return Signal(

@@ -114,6 +114,9 @@ adom = "root"                           # ADOM désactivés : root
 window_hours = 24                       # alertes non acquittées de cette période
 timezone = "Europe/Brussels"            # fuseau du FAZ (time-range)
 vpn_logsearch = false                   # true : recherche des tunnels tombés dans les journaux (si l'Event Monitor ne suffit pas)
+ignore_groupby = ["app:NinjaOne"]       # regroupements de l'Event Monitor écartés (outil de gestion de l'équipe)
+# minor_triggers = [...]                # handlers d'usage ramenés à minor_severity (défaut : Risky App / Risky Destination)
+minor_severity = 2
 # ca_bundle = "~/vigie-ca/fortianalyzer.pem"   # certificat d'usine du FAZ (prod : /etc/vigie/ca/fortianalyzer.pem)
 # Clé API : secret « fortianalyzer_api_key » (VIGIE_SECRET_FORTIANALYZER_API_KEY dans .env.local en dev)
 
