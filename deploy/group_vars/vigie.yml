@@ -126,6 +126,7 @@ vigie_source_fortianalyzer:
       window_hours: 24
       timezone: Europe/Brussels
       vpn_logsearch: false
+      ignore_groupby: ["app:NinjaOne"]   # outil de gestion de l'équipe, signalé « application à risque »
       ca_bundle: /etc/vigie/ca/fortianalyzer.pem
 vigie_sources_enabled: >-
   {{ vigie_sources_base

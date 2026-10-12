@@ -1,0 +1,50 @@
+[
+ {
+  "data": [
+   {
+    "conn_status": 0,
+    "ha_group_name": "",
+    "ha_mode": 0,
+    "hostname": "SPL-Forti",
+    "mr": 6,
+    "name": "SPL-Forti",
+    "oid": 214,
+    "os_ver": 7,
+    "patch": 7,
+    "platform_str": "FortiGate-70G",
+    "sn": "FGT70GTK0000003"
+   },
+   {
+    "conn_status": 0,
+    "ha_group_name": "",
+    "ha_mode": 0,
+    "hostname": "WG-Forti",
+    "mr": 6,
+    "name": "WG-Forti",
+    "oid": 200,
+    "os_ver": 7,
+    "patch": 6,
+    "platform_str": "FortiGate-60F",
+    "sn": "FGT70GTK0000001"
+   },
+   {
+    "conn_status": 0,
+    "ha_group_name": "",
+    "ha_mode": 0,
+    "hostname": "WI-FORTI",
+    "mr": 6,
+    "name": "WI-FORTI",
+    "oid": 213,
+    "os_ver": 7,
+    "patch": 7,
+    "platform_str": "FortiGate-70G",
+    "sn": "FGT70GTK0000002"
+   }
+  ],
+  "status": {
+   "code": 0,
+   "message": "OK"
+  },
+  "url": "/dvmdb/adom/root/device"
+ }
+]
