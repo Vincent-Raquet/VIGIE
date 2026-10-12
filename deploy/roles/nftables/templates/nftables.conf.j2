@@ -15,6 +15,9 @@ table inet vigie {
     ct state invalid drop
     meta l4proto { icmp, ipv6-icmp } accept
     tcp dport 22 ip saddr @admin_networks accept
+{% if veeam_guest_sources | default([]) %}
+    tcp dport 22 ip saddr { {{ veeam_guest_sources | join(', ') }} } accept comment "Veeam traitement invité"
+{% endif %}
     tcp dport 443 ip saddr @lan_vpn_networks accept
     tcp dport 10050 ip saddr {{ zabbix_server }} accept
     counter log prefix "nft-in-drop " level info limit rate 10/minute drop

@@ -140,3 +140,11 @@ backup_retention_days: 14
 # Ne désactive l'authentification SSH par mot de passe que si vous le demandez explicitement
 # (vérifiez d'abord que votre clé fonctionne).
 ssh_disable_password_auth: false
+# Traitement invité Veeam (sauvegarde de cette VM, SSH depuis le serveur VBR) : SSH ouvert
+# à ces seules adresses, exemptées de sshguard. Compte dédié, connexion par clé uniquement,
+# limitée à ces adresses, avec sudo (exigé par Veeam). Clé PUBLIQUE ici (non secrète) ;
+# la clé privée va dans le gestionnaire d'identifiants de Veeam. Vide = compte non créé.
+veeam_guest_sources:
+  - 10.10.10.27
+veeam_guest_user: svcveeam
+veeam_guest_pubkey: ""
