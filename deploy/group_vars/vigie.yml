@@ -4,6 +4,10 @@
 # true : le filtrage sortant ne vise que les comptes vigie-* (nadmin et Claude Code gardent
 # leur accès). Passer à false le jour où le développement quitte la VM : sortie en drop.
 vigie_dev_on_host: true
+# Comptes autorisés à lire le journal système (diagnostic des unités Vigie sans sudo), tant
+# que le développement cohabite sur la VM. Les journaux de Vigie sont masqués (jamais de
+# secret ni de corps de réponse). Vide = personne.
+journal_readers: "{{ ['nadmin'] if vigie_dev_on_host else [] }}"
 
 # --- Réseau ------------------------------------------------------------------------------
 vigie_domain: vigie.local.wallindustries.be

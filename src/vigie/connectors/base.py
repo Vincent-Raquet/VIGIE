@@ -246,6 +246,15 @@ class SafeClient:
     # --- API publique ---------------------------------------------------------
 
     def set_auth_header(self, name: str, value: SecretStr) -> None:
+        """En-tête d'authentification (valeur secrète). Une valeur non imprimable en ASCII
+        (texte d'exemple déposé à la place du secret, retour à la ligne collé…) est refusée
+        ici avec un message clair, sans jamais citer la valeur."""
+        raw = value.get_secret_value()
+        if not raw.isascii() or not raw.isprintable() or "<" in raw or ">" in raw:
+            raise ConnectorConfigError(
+                f"{self.source} : secret de l'en-tête {name} invalide (caractères non ASCII, "
+                "de contrôle ou chevrons : valeur d'exemple déposée à la place du vrai secret ?)"
+            )
         self._auth_headers[name] = value
 
     def get(self, path: str, params: Mapping[str, Any] | None = None) -> Any:

@@ -201,7 +201,9 @@ def _collect_to_db(source: str, cfg: VigieConfig, fixtures: Path | None) -> None
                 complete = not getattr(connector, "truncated", False)
                 report = store_snapshot(session, source, signals, now, complete=complete)
                 record_success(session, source, now)
-            except SourceCallError as exc:
+            except (SourceCallError, ConnectorConfigError, SecretError) as exc:
+                # Secret absent ou invalide, configuration refusée : visible sur la page
+                # Sources (message sans valeur secrète), pas seulement dans le journal.
                 failure = str(exc)
                 record_failure(session, source, failure, now)
             session.commit()
