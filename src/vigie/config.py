@@ -12,6 +12,7 @@ Secrets (SECURITY.md C7) : lus un par un, à la demande, depuis `$CREDENTIALS_DI
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 import tomllib
@@ -149,7 +150,24 @@ class WebConfig(_Strict):
     session_hours: int = Field(8, ge=1, le=24)
     # Connexion de développement : exige aussi VIGIE_ENV=dev et une écoute sur 127.0.0.1.
     dev_login: bool = False
+    # Adresses (ou réseaux) du proxy d'entrée dont les en-têtes X-Forwarded-* sont crus :
+    # 127.0.0.1 pour Caddy sur l'hôte, le réseau Docker « edge » en conteneur.
+    forwarded_allow_ips: list[str] = Field(default_factory=lambda: ["127.0.0.1"], min_length=1)
     oidc: OIDCConfig = OIDCConfig()
+
+    @field_validator("forwarded_allow_ips")
+    @classmethod
+    def _trusted_proxies(cls, value: list[str]) -> list[str]:
+        for item in value:
+            try:
+                network = ipaddress.ip_network(item)
+            except ValueError as exc:
+                raise ValueError(f"adresse ou réseau invalide : {item}") from exc
+            # « * » est refusé ci-dessus ; un réseau trop large reviendrait au même :
+            # n'importe quel client pourrait usurper son adresse (journal d'audit).
+            if network.prefixlen < 8:
+                raise ValueError(f"réseau trop large pour un proxy de confiance : {item}")
+        return value
 
 
 class SourceConfig(BaseModel):

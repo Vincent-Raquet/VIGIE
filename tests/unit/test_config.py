@@ -94,3 +94,25 @@ def test_config_path_resolution_order(tmp_path: Path) -> None:
 def test_no_implicit_fallback_to_etc() -> None:
     # La VM est aussi machine de dev : jamais de lecture implicite de la conf de prod.
     assert not str(resolve_config_path(None, {})).startswith("/etc")
+
+
+def test_forwarded_allow_ips_default_is_loopback(tmp_path: Path) -> None:
+    path = tmp_path / "vigie.toml"
+    path.write_text("")
+    assert load_config(path).web.forwarded_allow_ips == ["127.0.0.1"]
+
+
+def test_forwarded_allow_ips_accepts_addresses_and_networks(tmp_path: Path) -> None:
+    # Conteneurs : Caddy joint vigie-web depuis le réseau Docker « edge ».
+    path = tmp_path / "vigie.toml"
+    path.write_text('[web]\nforwarded_allow_ips = ["172.30.0.0/24", "127.0.0.1"]\n')
+    assert load_config(path).web.forwarded_allow_ips == ["172.30.0.0/24", "127.0.0.1"]
+
+
+@pytest.mark.parametrize("value", ['["*"]', '["0.0.0.0/0"]', '["pas-une-ip"]', "[]"])
+def test_forwarded_allow_ips_rejects_wildcards_and_garbage(tmp_path: Path, value: str) -> None:
+    # « * » ou 0.0.0.0/0 : n'importe qui pourrait usurper l'adresse client (journal d'audit).
+    path = tmp_path / "vigie.toml"
+    path.write_text(f"[web]\nforwarded_allow_ips = {value}\n")
+    with pytest.raises(ConfigError):
+        load_config(path)

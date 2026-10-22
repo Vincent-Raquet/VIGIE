@@ -24,7 +24,7 @@ def _isolated_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     Une commande lancée sans --config ne doit jamais retomber sur config/vigie.toml
     (base vigie_dev) : VIGIE_CONFIG pointe vers un fichier inexistant.
     """
-    for var in ("VIGIE_ENV", "CREDENTIALS_DIRECTORY"):
+    for var in ("VIGIE_ENV", "VIGIE_DEV_CONTAINER", "CREDENTIALS_DIRECTORY"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("VIGIE_CONFIG", str(tmp_path / "absent-vigie.toml"))
 

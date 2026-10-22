@@ -135,6 +135,7 @@ host = "127.0.0.1"         # derrière Caddy (TLS), jamais exposé directement
 port = 8000
 session_hours = 8
 dev_login = false          # true seulement en dev (exige aussi VIGIE_ENV=dev)
+forwarded_allow_ips = ["127.0.0.1"]   # proxy d'entrée cru (prod Docker : réseau « edge »)
 # database_url = "postgresql+psycopg:///vigie?user=vigie_web"   # rôle vigie_web en prod
 
 [web.oidc]

@@ -5,7 +5,8 @@ Trois façons d'ouvrir une session, toutes journalisées dans `audit_log` :
   `[web.oidc] groups` ; aucun groupe mappé → accès refusé. Si Entra signale un
   dépassement de groupes (« groups overage »), l'accès est refusé (point M de la roadmap).
 - **Développement** : seulement si `VIGIE_ENV=dev`, `[web] dev_login = true` et écoute
-  locale. Sinon les routes n'existent pas (404).
+  locale (ou conteneur de dev, `VIGIE_DEV_CONTAINER=1`, port publié sur 127.0.0.1).
+  Sinon les routes n'existent pas (404).
 - **Bris de glace** : mot de passe à usage unique créé en CLI sur le serveur
   (`vigie breakglass --enable`), haché, expirant ; supprimé dès son utilisation.
 """
@@ -183,7 +184,10 @@ def make_entra_client(cfg: OIDCConfig, client_secret: str) -> OIDCClient:
 
 
 def dev_login_enabled(dev_login: bool, host: str, env: Mapping[str, str]) -> bool:
-    return dev_login and env.get("VIGIE_ENV") == "dev" and host in LOCAL_HOSTS
+    # Conteneur de dev (compose.dev.yaml) : écoute sur 0.0.0.0 dans le conteneur, mais le port
+    # n'est publié que sur 127.0.0.1 de l'hôte ; la marque remplace la condition d'écoute.
+    local = host in LOCAL_HOSTS or env.get("VIGIE_DEV_CONTAINER") == "1"
+    return dev_login and env.get("VIGIE_ENV") == "dev" and local
 
 
 # --- Bris de glace ---------------------------------------------------------------------
