@@ -28,7 +28,7 @@ x-app: &app
   logging:
     driver: journald
     options:
-      tag: "vigie-{% raw %}{{.Name}}{% endraw %}"
+      tag: "{% raw %}{{.Name}}{% endraw %}"  # vigie-web-1, vigie-collect-zabbix…
 
 x-worker: &worker
   <<: *app

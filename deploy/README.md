@@ -157,7 +157,7 @@ Le playbook suivant réécrira `compose.yaml` d'après `dist/release.txt`.
 
 Chaque tâche est un conteneur éphémère (`docker compose run --rm`) qui ne reçoit que ses
 secrets et ses réseaux. Journaux : journald (`journalctl -u vigie-collect@zabbix` pour l'unité,
-`journalctl -t vigie-<conteneur>` pour la sortie du conteneur, `-t vigie-squid`, `-t edge-caddy`).
+`journalctl -t <conteneur>` pour la sortie du conteneur (`vigie-web-1`, `vigie-collect-zabbix`…), `-t vigie-squid`, `-t edge-caddy`).
 
 Commandes utiles :
 ```sh

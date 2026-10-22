@@ -329,10 +329,13 @@
     state: stopped
   when: vigie_secrets_ok and not vigie_llm_enabled | bool and not ansible_check_mode
 
+# Démarrée (oneshot, RemainAfterExit) : son arrêt, à l'extinction, arrête proprement les
+# conteneurs ; son démarrage refait `up`, sans effet sur des conteneurs déjà à jour.
 - name: Services permanents au démarrage de la machine
   ansible.builtin.systemd_service:
     name: vigie-compose.service
     enabled: true
+    state: started
   when: vigie_secrets_ok
 
 - name: Timers de collecte actifs
