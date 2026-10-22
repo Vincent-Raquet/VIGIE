@@ -49,6 +49,10 @@ def test_dev_login_then_logout(client: TestClient, seeded: Session) -> None:
         ({"VIGIE_ENV": "prod"}, {}),
         ({"VIGIE_ENV": "dev"}, {"dev_login": False}),
         ({"VIGIE_ENV": "dev"}, {"host": "0.0.0.0"}),  # noqa: S104 - cas refusé testé
+        # Conteneur de dev : la marque seule ne suffit pas hors VIGIE_ENV=dev.
+        ({"VIGIE_DEV_CONTAINER": "1"}, {"host": "0.0.0.0"}),  # noqa: S104
+        ({"VIGIE_ENV": "prod", "VIGIE_DEV_CONTAINER": "1"}, {"host": "0.0.0.0"}),  # noqa: S104
+        ({"VIGIE_ENV": "dev", "VIGIE_DEV_CONTAINER": "yes"}, {"host": "0.0.0.0"}),  # noqa: S104
     ],
 )
 def test_dev_login_is_impossible_outside_dev(
@@ -185,3 +189,14 @@ def test_breakglass_expired(client: TestClient, seeded: Session) -> None:
         client.post("/breakglass", data={"password": password, "csrf_token": token}).status_code
         == 404
     )
+
+
+def test_dev_login_in_dev_container() -> None:
+    # Le conteneur de dev écoute sur 0.0.0.0 (port publié sur 127.0.0.1 de l'hôte seulement,
+    # compose.dev.yaml) : la marque VIGIE_DEV_CONTAINER=1 remplace la condition d'écoute locale.
+    from vigie.web.auth import dev_login_enabled
+
+    env = {"VIGIE_ENV": "dev", "VIGIE_DEV_CONTAINER": "1"}
+    assert dev_login_enabled(True, "0.0.0.0", env)  # noqa: S104
+    assert not dev_login_enabled(False, "0.0.0.0", env)  # noqa: S104
+    assert dev_login_enabled(True, "127.0.0.1", {"VIGIE_ENV": "dev"})

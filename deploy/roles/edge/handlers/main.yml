@@ -1,0 +1,7 @@
+---
+# Caddy sans API d'administration (admin off) : la configuration est relue au redémarrage.
+- name: Redémarrer Caddy
+  community.docker.docker_compose_v2:
+    project_src: "{{ edge_dir }}"
+    state: restarted
+  when: not ansible_check_mode

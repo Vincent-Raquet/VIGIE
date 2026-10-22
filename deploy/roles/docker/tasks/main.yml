@@ -1,0 +1,77 @@
+---
+# Moteur Docker (dépôt officiel docker-ce) pour les applications du serveur, et Docker
+# rootless pour les comptes de développement (jamais membres du groupe docker, qui vaut root).
+- name: Dossier des clés apt
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Clé du dépôt Docker
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Dépôt Docker
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [deb]
+    uris: https://download.docker.com/linux/debian
+    suites: ["{{ ansible_facts.distribution_release }}"]
+    components: [stable]
+    architectures: [amd64]
+    signed_by: /etc/apt/keyrings/docker.asc
+
+- name: Docker Engine et compose
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Dossier de configuration du démon
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Configuration du démon
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: Redémarrer Docker
+
+- name: Docker actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
+  ansible.builtin.systemd_service:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Prise en compte de la configuration du démon
+  ansible.builtin.meta: flush_handlers
+
+# --- Docker rootless (développement) --------------------------------------------------
+- name: Paquets de Docker rootless
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
+  ansible.builtin.apt:
+    name: [docker-ce-rootless-extras, uidmap, dbus-user-session, slirp4netns]
+    state: present
+  when: docker_rootless_users | length > 0
+
+- name: Session systemd permanente des comptes rootless (démon sans connexion ouverte)
+  ansible.builtin.command:
+    cmd: loginctl enable-linger {{ item }}
+    creates: /var/lib/systemd/linger/{{ item }}
+  loop: "{{ docker_rootless_users }}"
+
+# Le démon rootless lui-même est installé par le compte (docs/DEV.md) :
+#   dockerd-rootless-setuptool.sh install

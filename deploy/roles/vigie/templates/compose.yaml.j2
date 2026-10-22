@@ -1,0 +1,212 @@
+# {{ ansible_managed }}
+# Vigie en conteneurs (docs/SECURITY.md C6–C8). Services permanents : squid, web, chat
+# (vigie-compose.service). Tâches ponctuelles (profil « tasks ») : lancées par les timers
+# systemd via `docker compose run --rm <service>` (vigie-*.service).
+# Chaque service ne reçoit que ses secrets (/run/secrets, déchiffrés par vigie-creds.service)
+# et ses réseaux ; tests/security/test_compose.py le vérifie.
+name: vigie
+
+x-app: &app
+  image: {{ vigie_image }}
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp:size=64m,mode=1777"]
+  pids_limit: 256
+  mem_limit: 768m
+  init: true
+  volumes:
+    - /etc/vigie:/etc/vigie:ro
+    # PostgreSQL de l'hôte par socket unix : authentification peer sur l'UID du conteneur.
+    - /var/run/postgresql:/var/run/postgresql:ro
+    - /etc/localtime:/etc/localtime:ro
+    # Autorités de l'hôte (dont les certificats internes ajoutés, ex. Zabbix) : [tls] ca_bundle.
+    - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+  environment: &app-env
+    VIGIE_CONFIG: /etc/vigie/vigie.toml
+    VIGIE_LOG_LEVEL: INFO
+    CREDENTIALS_DIRECTORY: /run/secrets
+    TZ: Europe/Brussels
+  logging:
+    driver: journald
+    options:
+      tag: "{% raw %}{{.Name}}{% endraw %}"  # vigie-web-1, vigie-collect-zabbix…
+
+x-worker: &worker
+  <<: *app
+  user: "{{ vigie_ids.worker }}:{{ vigie_ids.group }}"
+  profiles: [tasks]
+
+x-proxied-env: &proxied-env
+  <<: *app-env
+  HTTPS_PROXY: "http://squid:{{ squid_worker_port }}"
+  NO_PROXY: localhost,127.0.0.1
+
+services:
+  # --- Proxy sortant (Internet : allowlist de domaines) ---------------------------------
+  squid:
+    image: {{ vigie_squid_image }}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "13:13"
+    tmpfs:
+      - /run/squid:uid=13,gid=13,mode=0700
+      - /var/spool/squid:uid=13,gid=13,mode=0700
+      - /var/log/squid:uid=13,gid=13,mode=0700
+    pids_limit: 128
+    mem_limit: 256m
+    restart: on-failure
+    volumes:
+      - {{ vigie_compose_dir }}/squid.conf:/etc/squid/squid.conf:ro
+    logging:
+      driver: journald
+      options:
+        tag: vigie-squid
+    networks:
+      web: {ipv4_address: {{ vigie_networks.web.squid }}}
+      worker: {ipv4_address: {{ vigie_networks.worker.squid }}}
+      egress: {ipv4_address: {{ vigie_networks.egress.squid }}}
+
+  # --- Interface web : session et Entra seulement, sortie vers Squid (port web) ------------
+  web:
+    <<: *app
+    user: "{{ vigie_ids.web }}:{{ vigie_ids.group }}"
+    command: [web]
+    restart: on-failure
+    environment:
+      <<: *app-env
+      HTTPS_PROXY: "http://squid:{{ squid_web_port }}"
+      NO_PROXY: localhost,127.0.0.1
+    secrets: {{ vigie_web_credentials | to_json }}
+    depends_on: [squid]
+    networks:
+      web: {}
+      edge:
+        ipv4_address: {{ vigie_web_edge_ip }}
+        aliases: [vigie-web]
+
+  # --- Discussion avec l'IA : clé IA seule ------------------------------------------------
+  chat:
+    <<: *app
+    user: "{{ vigie_ids.worker }}:{{ vigie_ids.group }}"
+    command: [chat-worker]
+    restart: on-failure
+    environment: *proxied-env
+    secrets: {{ vigie_plan_credentials | to_json }}
+    depends_on: [squid]
+    networks: [worker]
+
+  # --- Tâches ponctuelles -----------------------------------------------------------------
+{% for s in vigie_sources_enabled %}
+{% set direct = vigie_source_egress | selectattr('name', 'equalto', s.name) | list %}
+  collect-{{ s.name }}:
+    <<: *worker
+    command: [collect, --source, {{ s.name }}, --mapping, /etc/vigie/seed]
+    secrets: {{ s.secrets | to_json }}
+{% if direct and direct[0].host is defined %}
+    extra_hosts: ["{{ direct[0].host }}:{{ direct[0].ip }}"]
+{% endif %}
+    depends_on: [squid]
+    networks: {{ (['worker'] + (['src_' + s.name] if direct else [])) | to_json }}
+{% endfor %}
+
+  plan:
+    <<: *worker
+    command: [plan, --kind, daily]
+    environment: *proxied-env
+    secrets: {{ vigie_plan_credentials | to_json }}
+    depends_on: [squid]
+    networks: [worker]
+
+  plan-requests:
+    <<: *worker
+    command: [jobs, --run-pending, --kind, plan_generate]
+    environment: *proxied-env
+    secrets: {{ vigie_plan_credentials | to_json }}
+    depends_on: [squid]
+    networks: [worker]
+
+  notify:
+    <<: *worker
+    command: [notify, --plan, latest-daily]
+    environment: *proxied-env
+    secrets: {{ vigie_notify_credentials | to_json }}
+    depends_on: [squid]
+    networks: [worker]
+
+  jobs:
+    <<: *worker
+    command: [jobs, --run-pending, --kind, source_test]
+    secrets: {{ vigie_source_secrets | to_json }}
+{% set hosts = vigie_source_egress | selectattr('host', 'defined') | list %}
+{% if hosts %}
+    extra_hosts: [{% for h in hosts %}"{{ h.host }}:{{ h.ip }}"{{ ", " if not loop.last }}{% endfor %}]
+{% endif %}
+    depends_on: [squid]
+    networks: [worker, jobs]
+
+  housekeeping:
+    <<: *worker
+    command: [housekeeping]
+    network_mode: none
+
+  selfcheck:
+    <<: *worker
+    command: [selfcheck, --out, /var/lib/vigie/selfcheck]
+    network_mode: none
+    volumes:
+      - /etc/vigie:/etc/vigie:ro
+      - /var/run/postgresql:/var/run/postgresql:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      # Lu par zabbix-agent2 sur l'hôte (fichiers sans donnée sensible).
+      - /var/lib/vigie/selfcheck:/var/lib/vigie/selfcheck
+
+  # Migrations et amorçage (propriétaire du schéma), bris de glace (compte web) : à la main
+  # ou par Ansible, jamais par un timer.
+  migrate:
+    <<: *app
+    user: "{{ vigie_ids.migrate }}:{{ vigie_ids.group }}"
+    profiles: [tasks]
+    command: [migrate]
+    environment:
+      <<: *app-env
+      VIGIE_CONFIG: /etc/vigie/migrate.toml
+    network_mode: none
+
+  breakglass:
+    <<: *app
+    user: "{{ vigie_ids.web }}:{{ vigie_ids.group }}"
+    profiles: [tasks]
+    command: [breakglass, --help]
+    network_mode: none
+
+secrets:
+{% for name in vigie_required_secrets %}
+  {{ name }}:
+    file: /run/vigie/creds/{{ name }}
+{% endfor %}
+
+networks:
+  edge:
+    external: true
+  web:
+    name: vigie_web
+    internal: true
+    ipam: {config: [{subnet: {{ vigie_networks.web.subnet }}}]}
+  worker:
+    name: vigie_worker
+    internal: true
+    ipam: {config: [{subnet: {{ vigie_networks.worker.subnet }}}]}
+  egress:
+    name: vigie_egress
+    ipam: {config: [{subnet: {{ vigie_networks.egress.subnet }}}]}
+{% for e in vigie_source_egress %}
+  src_{{ e.name }}:
+    name: vigie_src_{{ e.name }}
+    ipam: {config: [{subnet: {{ e.subnet }}}]}
+{% endfor %}
+  jobs:
+    name: vigie_jobs
+    ipam: {config: [{subnet: {{ vigie_jobs_subnet }}}]}

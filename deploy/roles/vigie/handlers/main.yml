@@ -3,16 +3,17 @@
   ansible.builtin.systemd_service:
     daemon_reload: true
 
-- name: Redémarrer vigie-web
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
-  ansible.builtin.systemd_service:
-    name: vigie-web.service
+# Configuration lue au démarrage (vigie.toml, squid.conf) : redémarrage des conteneurs.
+- name: Redémarrer les services permanents
+  community.docker.docker_compose_v2:
+    project_src: "{{ vigie_compose_dir }}"
+    services: "{{ vigie_permanent_services }}"
     state: restarted
-  when: vigie_secrets_ok | default(false)
+  when: (vigie_secrets_ok | default(false)) and not ansible_check_mode
 
-- name: Redémarrer vigie-chat
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+# Redémarre aussi vigie-compose (Requires=) : les conteneurs relisent les nouveaux fichiers.
+- name: Redéchiffrer les secrets
   ansible.builtin.systemd_service:
-    name: vigie-chat.service
+    name: vigie-creds.service
     state: restarted
-  when: (vigie_secrets_ok | default(false)) and (vigie_llm_enabled | bool)
+  when: (vigie_secrets_ok | default(false)) and not ansible_check_mode

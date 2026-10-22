@@ -1,16 +1,19 @@
 ---
-# Déploiement de Vigie sur Debian 13 (docs/SECURITY.md, skill debian-deploy).
+# Déploiement de Vigie sur Debian 13 (docs/SECURITY.md, skill debian-deploy) : hôte durci,
+# PostgreSQL partagé, Docker ; Vigie et le proxy d'entrée en conteneurs.
 # Toujours : `ansible-playbook site.yml --check --diff` avant d'appliquer.
+# Un rôle seul : `--tags docker` (ex. installer Docker avant la bascule, sans arrêt de Vigie).
 - name: Vigie
   hosts: vigie
   become: true
   roles:
-    - base
-    - hardening
-    - postgresql
-    - squid
-    - nftables
-    - vigie
-    - caddy
-    - zabbix_agent
-    - backup
+    - {role: base, tags: [base]}
+    - {role: hardening, tags: [hardening]}
+    - {role: postgresql, tags: [postgresql]}
+    - {role: nftables, tags: [nftables]}
+    - {role: docker, tags: [docker]}
+    - {role: legacy, tags: [legacy]}
+    - {role: edge, tags: [edge]}
+    - {role: vigie, tags: [vigie]}
+    - {role: zabbix_agent, tags: [zabbix_agent]}
+    - {role: backup, tags: [backup]}

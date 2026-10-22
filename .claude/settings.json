@@ -15,7 +15,8 @@
       "Bash(*systemd-creds decrypt*)",
       "Bash(*systemd-creds cat*)",
       "Bash(rm -rf /*)",
-      "Bash(git push --force*)"
+      "Bash(git push --force*)",
+      "Read(//run/vigie/**)"
     ],
     "ask": [
       "Bash(sudo *)",
@@ -32,7 +33,10 @@
       "Bash(uv run vigie notify*)",
       "Bash(uv run scripts/record_fixtures.py*)",
       "Edit(./CLAUDE.md)",
-      "Edit(./.claude/**)"
+      "Edit(./.claude/**)",
+      "Bash(scripts/dev vigie collect*)",
+      "Bash(scripts/dev vigie notify*)",
+      "Bash(scripts/dev python scripts/record_fixtures.py*)"
     ],
     "allow": [
       "Bash(uv sync*)",
@@ -54,7 +58,15 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git log*)",
-      "Bash(rg *)"
+      "Bash(rg *)",
+      "Bash(scripts/dev pytest*)",
+      "Bash(scripts/dev lint*)",
+      "Bash(scripts/dev ruff*)",
+      "Bash(scripts/dev mypy*)",
+      "Bash(scripts/dev vigie --help*)",
+      "Bash(scripts/dev vigie check*)",
+      "Bash(scripts/dev vigie plan * --dry-run*)",
+      "Bash(scripts/dev vigie seed*)"
     ]
   }
 }

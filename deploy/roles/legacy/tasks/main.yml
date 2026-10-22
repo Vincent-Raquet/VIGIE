@@ -1,0 +1,41 @@
+---
+# Retrait de l'installation native de Vigie (avant Docker, phase 8) : services arrêtés à la
+# bascule, supprimés quand legacy_purge est vrai. Les timers gardent leur nom : le rôle vigie
+# les réécrit pour les conteneurs.
+- name: Services natifs arrêtés (Caddy libère le port 443 pour le proxy d'entrée)
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: [vigie-web.service, vigie-chat.service, caddy.service, squid.service]
+  failed_when: false  # unité déjà absente
+
+- name: Unités natives et compléments par source
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ ['/etc/systemd/system/vigie-web.service', '/etc/systemd/system/vigie-chat.service']
+       + (vigie_sources_enabled | map(attribute='name')
+          | map('regex_replace', '^(.*)$', '/etc/systemd/system/vigie-collect@\1.service.d') | list) }}
+  notify: Recharger systemd
+
+- name: Paquets natifs supprimés (Caddy, Squid)
+  ansible.builtin.apt:
+    name: [caddy, squid]
+    state: absent
+    purge: true
+  when: legacy_purge | bool
+
+- name: Versions natives de l'application supprimées
+  ansible.builtin.file:
+    path: /opt/vigie
+    state: absent
+  when: legacy_purge | bool
+
+# Clé privée de l'AC interne : reprise dans /srv/edge/data, l'ancienne copie ne doit pas rester.
+- name: Données du Caddy natif supprimées (dont la clé privée de l'AC interne)
+  ansible.builtin.file:
+    path: /var/lib/caddy
+    state: absent
+  when: legacy_purge | bool

@@ -32,7 +32,7 @@ Le but est de prouver, par des vérifications concrètes, que les garanties de `
 - `uv run pip-audit` sans vulnérabilité haute non justifiée ; versions verrouillées dans `uv.lock`.
 
 ### 6. Déploiement (si concerné)
-- Sandboxing systemd et répartition des credentials conformes au skill `debian-deploy` ; nftables et Squid conformes à C6.
+- Durcissement des conteneurs, répartition des secrets et réseaux par service (`compose.yaml`) conformes au skill `debian-deploy` ; nftables (chaîne `forward`) et Squid conformes à C6.
 
 ### 7. Tests
 - `uv run pytest tests/security` vert ; ajouter un test pour toute faille corrigée pendant la revue.

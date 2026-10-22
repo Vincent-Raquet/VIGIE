@@ -113,3 +113,41 @@ def test_check_sources_reports_missing_secret(monkeypatch: pytest.MonkeyPatch) -
     assert result.exit_code == 1
     assert "source zabbix : activée, connecteur installé" in result.output
     assert "ERREUR secret zabbix_api_token" in result.output
+
+
+def _run_web(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, config: str, *args: str
+) -> dict[str, object]:
+    import uvicorn
+
+    creds = tmp_path / "creds"
+    creds.mkdir(parents=True)
+    (creds / "web_session_key").write_text("x" * 48)
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(creds))
+    path = tmp_path / "vigie.toml"
+    path.write_text(config)
+    seen: dict[str, object] = {}
+    monkeypatch.setattr(uvicorn, "run", lambda *a, **kw: seen.update(kw))
+    result = runner.invoke(app, ["--config", str(path), "web", *args])
+    assert result.exit_code == 0, result.output
+    return seen
+
+
+def test_web_trusts_proxy_headers_from_configured_addresses_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    seen = _run_web(monkeypatch, tmp_path, "")
+    assert seen["host"] == "127.0.0.1" and seen["forwarded_allow_ips"] == ["127.0.0.1"]
+    seen = _run_web(
+        monkeypatch,
+        tmp_path / "edge",
+        '[web]\nhost = "0.0.0.0"\nport = 8080\nforwarded_allow_ips = ["172.30.0.0/24"]\n',
+    )
+    assert seen["host"] == "0.0.0.0"  # noqa: S104 - écoute dans le conteneur, non publiée
+    assert seen["port"] == 8080
+    assert seen["forwarded_allow_ips"] == ["172.30.0.0/24"]
+
+
+def test_web_host_option_overrides_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    seen = _run_web(monkeypatch, tmp_path, "", "--host", "0.0.0.0")  # noqa: S104
+    assert seen["host"] == "0.0.0.0"  # noqa: S104

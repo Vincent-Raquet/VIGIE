@@ -1,0 +1,96 @@
+---
+# Proxy d'entrée partagé (projet compose « edge ») : seul conteneur à publier un port (443),
+# sur le réseau Docker « edge » auquel chaque application rattache son service web.
+- name: Compte du conteneur Caddy
+  ansible.builtin.user:
+    name: edge
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    home: /nonexistent
+
+- name: Identité du compte edge
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
+  ansible.builtin.getent:
+    database: passwd
+    key: edge
+  check_mode: false
+
+- name: Dossiers du proxy d'entrée
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ edge_dir }}", owner: root, mode: "0755"}
+    - {path: "{{ edge_dir }}/sites", owner: root, mode: "0755"}
+    - {path: "{{ edge_dir }}/data", owner: edge, mode: "0700"}
+
+# AC interne : on reprend celle du Caddy natif (racine déjà diffusée par GPO sur les postes).
+- name: Données du Caddy natif (AC interne)
+  ansible.builtin.stat:
+    path: /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+  register: edge_native_ca
+
+- name: AC interne déjà reprise
+  ansible.builtin.stat:
+    path: "{{ edge_dir }}/data/caddy/pki/authorities/local/root.crt"
+  register: edge_ca
+
+- name: Reprise de l'AC interne et des certificats du Caddy natif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
+  ansible.builtin.copy:
+    src: /var/lib/caddy/.local/share/caddy/
+    dest: "{{ edge_dir }}/data/caddy/"
+    remote_src: true
+    owner: edge
+    group: edge
+    mode: preserve
+  when: edge_native_ca.stat.exists and not edge_ca.stat.exists
+
+- name: Propriétaire des données de Caddy
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
+  ansible.builtin.file:
+    path: "{{ edge_dir }}/data"
+    state: directory
+    owner: edge
+    group: edge
+    recurse: true
+
+- name: Configuration de Caddy
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ edge_dir }}/Caddyfile"
+    mode: "0644"
+  notify: Redémarrer Caddy
+
+- name: Fichier compose du proxy d'entrée
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ edge_dir }}/compose.yaml"
+    mode: "0644"
+    validate: docker compose --file %s config --quiet
+
+- name: Proxy d'entrée à jour
+  community.docker.docker_compose_v2:
+    project_src: "{{ edge_dir }}"
+    state: present
+    pull: missing
+  when: not ansible_check_mode
+
+- name: Racine de l'AC interne (créée au premier certificat)
+  ansible.builtin.stat:
+    path: "{{ edge_dir }}/data/caddy/pki/authorities/local/root.crt"
+  register: edge_root
+
+- name: Copie de la racine à déployer par GPO sur les postes
+  ansible.builtin.copy:
+    src: "{{ edge_dir }}/data/caddy/pki/authorities/local/root.crt"
+    dest: "{{ edge_dir }}/root-ca.crt"
+    remote_src: true
+    mode: "0644"
+  when: edge_root.stat.exists

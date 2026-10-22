@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+# Services permanents de Vigie (compose.yaml) : {{ vigie_permanent_services | join(', ') }}.
+[Unit]
+Description=Vigie — services permanents (interface web, discussion IA, proxy sortant)
+Requires=docker.service vigie-creds.service
+After=docker.service vigie-creds.service postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/docker compose --project-directory {{ vigie_compose_dir }} up --detach --remove-orphans {{ vigie_permanent_services | join(' ') }}
+ExecStop=/usr/bin/docker compose --project-directory {{ vigie_compose_dir }} stop
+TimeoutStartSec=5min
+{% include 'units/_client_sandbox.j2' %}
+
+[Install]
+WantedBy=multi-user.target

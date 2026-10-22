@@ -1,17 +1,43 @@
 ---
-# Application Vigie : version figée, configuration, migrations, unités et timers.
+# Application Vigie en conteneurs : images, configuration, compose, migrations, unités et
+# timers (SECURITY.md C6–C8). Le moteur Docker vient du rôle docker, le proxy d'entrée du
+# rôle edge.
 - name: Groupe vigie (lecture de /etc/vigie)
   ansible.builtin.group:
     name: vigie
     system: true
 
-- name: Comptes de service dans le groupe vigie
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+# Comptes sans shell ni dossier : leurs UID sont ceux des conteneurs, que PostgreSQL
+# reconnaît par l'authentification peer (pg_ident, rôle postgresql).
+- name: Comptes de service
   ansible.builtin.user:
     name: "{{ item }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    home: /nonexistent
     groups: [vigie]
     append: true
   loop: [vigie-web, vigie-worker, vigie-migrate]
+
+- name: UID des comptes de service
+  ansible.builtin.getent:
+    database: passwd
+  check_mode: false
+
+- name: GID du groupe vigie
+  ansible.builtin.getent:
+    database: group
+    key: vigie
+  check_mode: false
+
+- name: Identités des conteneurs
+  ansible.builtin.set_fact:
+    vigie_ids:
+      web: "{{ ansible_facts.getent_passwd['vigie-web'][1] }}"
+      worker: "{{ ansible_facts.getent_passwd['vigie-worker'][1] }}"
+      migrate: "{{ ansible_facts.getent_passwd['vigie-migrate'][1] }}"
+      group: "{{ ansible_facts.getent_group['vigie'][1] }}"
 
 - name: Script de dépôt des secrets
   ansible.builtin.copy:
@@ -25,22 +51,49 @@
     state: directory
     mode: "0700"
 
+# --- Secrets : présence seulement (jamais lus ni affichés) ------------------------------
+- name: Secrets déposés
+  ansible.builtin.stat:
+    path: /etc/credstore.encrypted/vigie.{{ item }}
+    get_checksum: false
+  loop: "{{ vigie_required_secrets }}"
+  register: vigie_secret_files
+
+- name: Secrets manquants
+  ansible.builtin.set_fact:
+    vigie_missing_secrets: >-
+      {{ vigie_secret_files.results | rejectattr('stat.exists') | map(attribute='item') | list }}
+
+- name: État des secrets
+  ansible.builtin.set_fact:
+    vigie_secrets_ok: "{{ vigie_missing_secrets | length == 0 }}"
+
+- name: Secrets à déposer avant activation
+  ansible.builtin.debug:
+    msg: >-
+      Secrets manquants : {{ vigie_missing_secrets | join(', ') }}.
+      Déposez-les (`sudo vigie-secret set <nom>`, valeur sur l'entrée standard) puis relancez
+      le playbook : les unités ne sont activées qu'une fois tous les secrets présents.
+  when: not vigie_secrets_ok
+
 - name: Dossiers de Vigie
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: root
+    owner: "{{ item.owner | default('root') }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   loop:
     - {path: /etc/vigie, group: vigie, mode: "0750"}
     - {path: /etc/vigie/seed, group: vigie, mode: "0750"}
     - {path: /etc/vigie/seed/roles, group: vigie, mode: "0750"}
-    - {path: "{{ vigie_root }}", group: root, mode: "0755"}
-    - {path: "{{ vigie_root }}/releases", group: root, mode: "0755"}
+    - {path: "{{ vigie_compose_dir }}", group: root, mode: "0750"}
+    - {path: "{{ vigie_compose_dir }}/build", group: root, mode: "0750"}
+    - {path: "{{ vigie_compose_dir }}/build/squid", group: root, mode: "0750"}
+    - {path: /var/lib/vigie, group: root, mode: "0755"}
+    - {path: /var/lib/vigie/selfcheck, owner: vigie-worker, group: vigie-worker, mode: "0755"}
 
 - name: Configuration non secrète
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: /etc/vigie/{{ item }}
@@ -48,69 +101,70 @@
     group: vigie
     mode: "0640"
   loop: [vigie.toml, migrate.toml]
-  notify: Redémarrer vigie-web
+  notify: Redémarrer les services permanents
 
-# --- Version de l'application (deploy/build.sh) -----------------------------------------
-- name: Dossier de la version {{ vigie_release }}
-  ansible.builtin.file:
-    path: "{{ vigie_release_dir }}"
-    state: directory
-    mode: "0755"
-
-- name: Wheel et dépendances figées
-  diff: false  # requirements.txt : un millier de lignes d'empreintes
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+# --- Images (deploy/build.sh) ------------------------------------------------------------
+# Contexte de l'image de Vigie : le wheel et les dépendances figées (empreintes) de dist/,
+# jamais le dépôt (ni .env.local ni config réelle).
+- name: Contexte de construction de {{ vigie_image }}
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "{{ vigie_release_dir }}/"
-    mode: "0644"
+    dest: "{{ vigie_compose_dir }}/build/{{ vigie_release }}/"
+    mode: "0640"
+  diff: false  # requirements.txt : un millier de lignes d'empreintes
   with_fileglob:
     - "{{ vigie_dist_dir }}/*.whl"
     - "{{ vigie_dist_dir }}/requirements.txt"
+    - "{{ playbook_dir }}/docker/vigie/Dockerfile"
 
-# umask explicite : celui de root (login.defs, durcissement) rendrait le venv illisible
-# pour les comptes vigie-*.
-- name: Environnement virtuel
-  ansible.builtin.shell:
-    cmd: umask 022 && python3 -m venv {{ vigie_release_dir }}
-    creates: "{{ vigie_release_dir }}/bin/python"
+- name: Image {{ vigie_image }}
+  community.docker.docker_image_build:
+    name: vigie
+    tag: "{{ vigie_release }}"
+    path: "{{ vigie_compose_dir }}/build/{{ vigie_release }}"
+    pull: true
+    args:
+      VIGIE_RELEASE: "{{ vigie_release }}"
+  when: not ansible_check_mode  # simulation : contexte de construction non copié
 
-- name: Dépendances (empreintes vérifiées)
-  ansible.builtin.shell:
-    cmd: >-
-      umask 022 && {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
-      --require-hashes -r {{ vigie_release_dir }}/requirements.txt
-      && touch {{ vigie_release_dir }}/.deps-ok
-    creates: "{{ vigie_release_dir }}/.deps-ok"
+- name: Contexte de l'image Squid
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/docker/squid/Dockerfile"
+    dest: "{{ vigie_compose_dir }}/build/squid/Dockerfile"
+    mode: "0640"
 
-- name: Application (wheel construit localement, sans dépendance supplémentaire)
-  ansible.builtin.shell:
-    cmd: >-
-      umask 022 && {{ vigie_release_dir }}/bin/pip install --no-input --disable-pip-version-check
-      --no-deps {{ vigie_release_dir }}/vigie-*.whl
-    creates: "{{ vigie_release_dir }}/bin/vigie"
+# Reconstruite chaque mois (étiquette AAAAMM) : paquets Debian à jour.
+- name: Image {{ vigie_squid_image }}
+  community.docker.docker_image_build:
+    name: "{{ vigie_squid_image.split(':')[0] }}"
+    tag: "{{ vigie_squid_image.split(':')[1] }}"
+    path: "{{ vigie_compose_dir }}/build/squid"
+    pull: true
+  when: not ansible_check_mode  # simulation : contexte de construction non copié
 
-- name: Fichiers de la version illisibles par les comptes vigie-*
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : version pas encore installée
-  ansible.builtin.command:
-    cmd: find {{ vigie_release_dir }} ! -perm -o=r -print -quit
-  register: vigie_unreadable
-  changed_when: false
-  check_mode: false
+# --- Projet compose ----------------------------------------------------------------------
+- name: Configuration de Squid
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ vigie_compose_dir }}/squid.conf"
+    owner: root
+    group: root
+    mode: "0644"  # lu par le compte proxy du conteneur
+  notify: Redémarrer les services permanents
 
-- name: Lecture rétablie pour toute la version (avant la bascule du lien)
-  ansible.builtin.command:
-    cmd: chmod -R go+rX,go-w {{ vigie_release_dir }}
-  when: vigie_unreadable.stdout | length > 0
-  changed_when: true
+- name: Fichier compose
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ vigie_compose_dir }}/compose.yaml"
+    mode: "0640"
+    validate: docker compose --file %s config --quiet --no-interpolate
 
-- name: Version courante
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : la version n'est pas encore installée
-  ansible.builtin.file:
-    src: "{{ vigie_release_dir }}"
-    dest: "{{ vigie_root }}/current"
-    state: link
-  notify: [Redémarrer vigie-web, Redémarrer vigie-chat]
+- name: Site de Vigie sur le proxy d'entrée
+  ansible.builtin.template:
+    src: vigie.caddy.j2
+    dest: "{{ edge_dir }}/sites/vigie.caddy"
+    mode: "0644"
+  notify: Redémarrer Caddy
 
 # --- Certificats propres aux sources (auto-signés) ------------------------------------
 - name: Dossier des certificats des sources
@@ -139,13 +193,12 @@
     mode: "0644"
   when: vigie_fortianalyzer_enabled | bool
 
-- name: Nom porté par le certificat du FortiAnalyzer (ni SAN ni IP dans le certificat d'usine)
+# Le nom du FortiAnalyzer est déclaré dans les conteneurs (extra_hosts de compose.yaml).
+- name: Ancienne déclaration du FortiAnalyzer dans /etc/hosts de l'hôte
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '\s{{ vigie_fortianalyzer_name }}$'
-    line: "{{ vigie_fortianalyzer_ip }} {{ vigie_fortianalyzer_name }}"
-    mode: "0644"
-  when: vigie_fortianalyzer_enabled | bool
+    state: absent
 
 - name: Certificat public de l'application « Vigie Defender » (la clé reste dans vigie-secret)
   ansible.builtin.copy:
@@ -178,76 +231,32 @@
     directory_mode: "0750"
     mode: "0640"
 
-- name: Migrations de la base (vigie-migrate, propriétaire du schéma)
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
-  ansible.builtin.command:
-    cmd: "{{ vigie_bin }} --config /etc/vigie/migrate.toml migrate"
-  become: true
-  become_user: vigie-migrate
-  vars:
-    ansible_remote_tmp: /tmp  # compte sans dossier personnel (/nonexistent)
-  register: vigie_migrate
-  changed_when: "'Base migrée' in vigie_migrate.stdout"
-
-- name: Amorçage initial (vigie_run_seed)
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
-  ansible.builtin.command:
-    cmd: >-
-      {{ vigie_bin }} --config /etc/vigie/migrate.toml seed
-      --from /etc/vigie/seed --roles /etc/vigie/seed/roles
-  become: true
-  become_user: vigie-migrate
-  vars:
-    ansible_remote_tmp: /tmp  # compte sans dossier personnel (/nonexistent)
-  when: vigie_run_seed | bool
-  changed_when: true
-
 # --- Unités et timers -------------------------------------------------------------------
-- name: Service web
+- name: Déchiffrement des secrets pour les conteneurs
   ansible.builtin.template:
-    src: units/vigie-web.service.j2
-    dest: /etc/systemd/system/vigie-web.service
-    mode: "0644"
-  notify: [Recharger systemd, Redémarrer vigie-web]
+    src: vigie-creds-unlock.j2
+    dest: /usr/local/sbin/vigie-creds-unlock
+    mode: "0750"
+  notify: Redéchiffrer les secrets
 
-- name: Services du worker
+- name: Unités des secrets et des services permanents
   ansible.builtin.template:
-    src: units/vigie-worker.service.j2
+    src: units/{{ item }}.j2
+    dest: /etc/systemd/system/{{ item }}
+    mode: "0644"
+  loop: [vigie-creds.service, vigie-compose.service]
+  notify: Recharger systemd
+
+- name: Tâches ponctuelles
+  ansible.builtin.template:
+    src: units/vigie-task.service.j2
     dest: /etc/systemd/system/{{ item.name }}
     mode: "0644"
-  loop: "{{ vigie_worker_units }}"
+  loop: "{{ vigie_tasks }}"
   loop_control:
     label: "{{ item.name }}"
   vars:
-    unit_description: "{{ item.unit_description }}"
-    unit_exec: "{{ item.unit_exec }}"
-    unit_timeout: "{{ item.unit_timeout | default('15min') }}"
-    unit_credentials: "{{ item.unit_credentials | default([]) }}"
-    unit_proxy: "{{ item.unit_proxy | default(false) }}"
-    unit_ips: "{{ item.unit_ips | default([]) }}"
-    unit_state_dir: "{{ item.unit_state_dir | default('') }}"
-    unit_type: "{{ item.unit_type | default('oneshot') }}"
-  notify: [Recharger systemd, Redémarrer vigie-chat]
-
-- name: Dossiers des compléments par source
-  ansible.builtin.file:
-    path: /etc/systemd/system/vigie-collect@{{ item.name }}.service.d
-    state: directory
-    mode: "0755"
-  loop: "{{ vigie_sources_enabled }}"
-  loop_control:
-    label: "{{ item.name }}"
-
-- name: Secret et adresses de chaque source (collecte)
-  ansible.builtin.template:
-    src: units/credentials.conf.j2
-    dest: /etc/systemd/system/vigie-collect@{{ item.name }}.service.d/credentials.conf
-    mode: "0644"
-  loop: "{{ vigie_sources_enabled }}"
-  loop_control:
-    label: "{{ item.name }}"
-  vars:
-    source: "{{ item }}"
+    task: "{{ item }}"
   notify: Recharger systemd
 
 - name: Timers de collecte
@@ -282,96 +291,54 @@
 - name: Prise en compte des unités
   ansible.builtin.meta: flush_handlers
 
-# --- Secrets : présence seulement (jamais lus ni affichés) ------------------------------
-- name: Secrets déposés
-  ansible.builtin.stat:
-    path: /etc/credstore.encrypted/vigie.{{ item }}
-    get_checksum: false
-  loop: "{{ vigie_required_secrets }}"
-  register: vigie_secret_files
-
-- name: Secrets manquants
-  ansible.builtin.set_fact:
-    vigie_missing_secrets: >-
-      {{ vigie_secret_files.results | rejectattr('stat.exists') | map(attribute='item') | list }}
-
-- name: État des secrets
-  ansible.builtin.set_fact:
-    vigie_secrets_ok: "{{ vigie_missing_secrets | length == 0 }}"
-
-- name: Secrets à déposer avant activation
-  ansible.builtin.debug:
-    msg: >-
-      Secrets manquants : {{ vigie_missing_secrets | join(', ') }}.
-      Déposez-les (`sudo vigie-secret set <nom>`, valeur sur l'entrée standard) puis relancez
-      le playbook : les unités ne sont activées qu'une fois tous les secrets présents.
-  when: not vigie_secrets_ok
-
-- name: Service web actif
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
+- name: Secrets déchiffrés pour les conteneurs
   ansible.builtin.systemd_service:
-    name: vigie-web.service
+    name: vigie-creds.service
     enabled: true
     state: started
   when: vigie_secrets_ok
 
-# Filet de sécurité : un passage interrompu perd le redémarrage notifié ; le processus
-# garderait alors l'ancienne version (Python résout le lien `current` au démarrage).
-- name: Version chargée par vigie-web
-  ansible.builtin.shell:
+- name: Migrations de la base (vigie-migrate, propriétaire du schéma, sans réseau)
+  ansible.builtin.command:
+    cmd: docker compose --project-directory {{ vigie_compose_dir }} run --rm --no-TTY migrate
+  register: vigie_migrate
+  changed_when: "'Base migrée' in vigie_migrate.stdout"
+
+- name: Amorçage initial (vigie_run_seed)
+  ansible.builtin.command:
     cmd: >-
-      set -o pipefail;
-      pid=$(systemctl show -p MainPID --value vigie-web.service);
-      [ "$pid" -gt 0 ] && grep -qF "$(readlink -f {{ vigie_root }}/current)/" /proc/$pid/maps
-      && echo current || echo stale
-    executable: /bin/bash
-  register: vigie_web_release
-  changed_when: false
-  check_mode: false
+      docker compose --project-directory {{ vigie_compose_dir }} run --rm --no-TTY migrate
+      seed --from /etc/vigie/seed --roles /etc/vigie/seed/roles
+  when: vigie_run_seed | bool
+  changed_when: true
+
+# Recrée les conteneurs dont l'image ou la définition a changé (nouvelle version).
+- name: Services permanents à jour
+  community.docker.docker_compose_v2:
+    project_src: "{{ vigie_compose_dir }}"
+    services: "{{ vigie_permanent_services }}"
+    state: present
+    pull: never
+    remove_orphans: true
   when: vigie_secrets_ok and not ansible_check_mode
 
-- name: Redémarrage de vigie-web sur la version courante
-  ansible.builtin.systemd_service:
-    name: vigie-web.service
-    state: restarted
-  when:
-    - vigie_web_release.stdout is defined
-    - vigie_web_release.stdout == "stale"
+- name: Discussion avec l'IA arrêtée (IA désactivée)
+  community.docker.docker_compose_v2:
+    project_src: "{{ vigie_compose_dir }}"
+    services: [chat]
+    state: stopped
+  when: vigie_secrets_ok and not vigie_llm_enabled | bool and not ansible_check_mode
 
-# Même filet que pour vigie-web : les gestionnaires sont exécutés avant le contrôle des
-# secrets (flush_handlers) et sautent leur redémarrage ; un service permanent garderait
-# alors l'ancienne version.
-- name: Version chargée par vigie-chat
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail;
-      pid=$(systemctl show -p MainPID --value vigie-chat.service);
-      [ "$pid" -gt 0 ] && grep -qF "$(readlink -f {{ vigie_root }}/current)/" /proc/$pid/maps
-      && echo current || echo stale
-    executable: /bin/bash
-  register: vigie_chat_release
-  changed_when: false
-  check_mode: false
-  when: vigie_secrets_ok and vigie_llm_enabled | bool and not ansible_check_mode
-
-- name: Redémarrage de vigie-chat sur la version courante
+# Démarrée (oneshot, RemainAfterExit) : son arrêt, à l'extinction, arrête proprement les
+# conteneurs ; son démarrage refait `up`, sans effet sur des conteneurs déjà à jour.
+- name: Services permanents au démarrage de la machine
   ansible.builtin.systemd_service:
-    name: vigie-chat.service
-    state: restarted
-  when:
-    - vigie_chat_release.stdout is defined
-    - vigie_chat_release.stdout == "stale"
-
-- name: Service de discussion avec l'IA (actif seulement si l'IA l'est)
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
-  ansible.builtin.systemd_service:
-    name: vigie-chat.service
-    enabled: "{{ vigie_llm_enabled | bool }}"
-    state: "{{ 'started' if vigie_llm_enabled | bool else 'stopped' }}"
+    name: vigie-compose.service
+    enabled: true
+    state: started
   when: vigie_secrets_ok
 
 - name: Timers de collecte actifs
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: vigie-collect@{{ item.name }}.timer
     enabled: true
@@ -382,7 +349,6 @@
   when: vigie_secrets_ok
 
 - name: Autres timers (actifs ou arrêtés selon la configuration)
-  ignore_errors: "{{ ansible_check_mode }}"  # simulation : paquet ou compte pas encore créé
   ansible.builtin.systemd_service:
     name: "{{ item.name }}"
     enabled: "{{ item.enabled | bool }}"
@@ -393,16 +359,17 @@
   when: vigie_secrets_ok
 
 # --- Anciennes versions -----------------------------------------------------------------
-- name: Versions installées
-  ansible.builtin.find:
-    paths: "{{ vigie_root }}/releases"
-    file_type: directory
-  register: vigie_releases
+- name: Images de Vigie présentes
+  ansible.builtin.command:
+    cmd: docker image ls vigie --format {% raw %}'{{.CreatedAt}} {{.Tag}}'{% endraw %}
+  register: vigie_images
+  changed_when: false
+  check_mode: false
 
-- name: Suppression des versions les plus anciennes (la courante est toujours gardée)
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
+- name: Suppression des images les plus anciennes (la courante est toujours gardée)
+  ansible.builtin.command:
+    cmd: docker image rm vigie:{{ item }}
   loop: >-
-    {{ (vigie_releases.files | sort(attribute='mtime') | map(attribute='path')
-        | reject('equalto', vigie_release_dir) | list)[:-(vigie_keep_releases - 1)] }}
+    {{ (vigie_images.stdout_lines | sort | reverse | map('split', ' ') | map('last')
+        | reject('equalto', vigie_release) | list)[vigie_keep_images - 1:] }}
+  changed_when: true

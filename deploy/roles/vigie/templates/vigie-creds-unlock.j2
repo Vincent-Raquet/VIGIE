@@ -1,0 +1,19 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Déchiffre les secrets de Vigie pour les conteneurs (vigie-creds.service). Jamais de valeur
+# affichée ni journalisée ; le clair ne vit qu'en mémoire (/run, tmpfs).
+set -eu
+DIR=/run/vigie/creds
+umask 077
+[ -d "$DIR" ] || { echo "$DIR absent : lancer par systemctl start vigie-creds" >&2; exit 1; }
+unlock() {
+  name=$1 owner=$2
+  systemd-creds decrypt --name="$name" "/etc/credstore.encrypted/vigie.$name" "$DIR/.$name.tmp"
+  chown "$owner:root" "$DIR/.$name.tmp"
+  chmod 0400 "$DIR/.$name.tmp"
+  mv -f "$DIR/.$name.tmp" "$DIR/$name"
+}
+{% for name in vigie_required_secrets %}
+unlock {{ name }} {{ 'vigie-web' if name in vigie_web_credentials else 'vigie-worker' }}
+{% endfor %}
+logger -t vigie-creds "{{ vigie_required_secrets | length }} secrets déchiffrés pour les conteneurs"

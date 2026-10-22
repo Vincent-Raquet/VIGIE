@@ -574,8 +574,12 @@ def web(
     port: Annotated[
         int | None, typer.Option("--port", help="Port d'écoute (défaut : [web] port).")
     ] = None,
+    host: Annotated[
+        str | None,
+        typer.Option("--host", help="Adresse d'écoute (défaut : [web] host)."),
+    ] = None,
 ) -> None:
-    """Lance l'application web (127.0.0.1 uniquement)."""
+    """Lance l'application web (derrière Caddy, jamais exposée directement)."""
     import uvicorn
 
     path, cfg = _config(ctx)
@@ -592,11 +596,11 @@ def web(
     uvicorn.run(
         "vigie.web.app:build_from_env",
         factory=True,
-        host=cfg.web.host,
+        host=host or cfg.web.host,
         port=port or cfg.web.port,
         reload=reload,
         proxy_headers=True,
-        forwarded_allow_ips="127.0.0.1",
+        forwarded_allow_ips=cfg.web.forwarded_allow_ips,
         server_header=False,
         log_level="info",
     )

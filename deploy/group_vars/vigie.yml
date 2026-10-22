@@ -27,15 +27,43 @@ dns_servers:
 ntp_servers: []                 # vide : pool Debian par défaut (via la sortie autorisée)
 zabbix_server: 192.168.250.49
 
-# Sorties directes du worker vers les sources internes (le reste passe par Squid).
+# Sorties directes vers les sources internes (le reste passe par Squid). Chaque source a son
+# réseau Docker (subnet) : seul son conteneur de collecte y est rattaché, et nftables ne laisse
+# sortir ce réseau que vers ip:port (SECURITY.md C6). host : nom appelé par le connecteur,
+# déclaré dans le /etc/hosts du conteneur (extra_hosts) : aucun DNS depuis ces réseaux.
 vigie_source_egress:
-  - {name: zabbix, ip: 192.168.250.49, port: 443}
-  - {name: veeam, ip: 10.10.10.27, port: 9419}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
-  - {name: fortianalyzer, ip: 192.168.240.104, port: 443}   # API JSON-RPC du FAZ (trusthost : vigie_ip)
+  - {name: zabbix, ip: 192.168.250.49, port: 443, subnet: 172.30.10.0/28, host: zabbix.local.wallindustries.be}
+  - {name: veeam, ip: 10.10.10.27, port: 9419, subnet: 172.30.10.16/28}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
+  # API JSON-RPC du FAZ (trusthost : vigie_ip) ; host = CN du certificat d'usine.
+  - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 172.30.10.32/28, host: "{{ vigie_fortianalyzer_name }}"}
+
+# --- Conteneurs (Docker) ----------------------------------------------------------------
+# Installation native d'avant la phase 10 : false pendant la semaine qui suit la bascule
+# (retour arrière possible, règles nftables natives gardées) ; true ensuite le temps d'un
+# passage (rôle legacy : paquets, /opt/vigie, ancienne AC de Caddy supprimés).
+legacy_purge: false
+# Réseaux à adresses fixes de 172.30.0.0/16 (règles nftables par sous-réseau) ; les réseaux
+# des autres applications sont pris dans docker_address_pool. Aucun ne doit chevaucher le LAN
+# (192.168.0.0/16) ni le réseau Veeam (10.10.10.0/24).
+docker_address_pool: 172.31.0.0/16
+# Docker rootless pour le développement (le compte n'entre jamais dans le groupe docker).
+docker_rootless_users: "{{ ['nadmin'] if vigie_dev_on_host else [] }}"
+# Proxy d'entrée partagé (Caddy, projet compose « edge ») : seul à publier un port.
+edge_dir: /srv/edge                    # un fichier de site par application dans sites/
+edge_subnet: 172.30.0.0/24
+edge_bind_ip: "{{ vigie_ip }}"
+edge_caddy_ip: 172.30.0.2               # seul proxy dont vigie-web croit les en-têtes X-Forwarded-*
+vigie_web_edge_ip: 172.30.0.10          # vigie-web sur « edge » : joint par Caddy, ne sort jamais
+vigie_networks:
+  web: {subnet: 172.30.1.0/24, squid: 172.30.1.2}       # internal : vigie-web ↔ Squid (port web)
+  worker: {subnet: 172.30.2.0/24, squid: 172.30.2.2}    # internal : tâches ↔ Squid (port worker)
+  egress: {subnet: 172.30.3.0/24, squid: 172.30.3.2}    # Squid seul : 443 et DNS
+vigie_jobs_subnet: 172.30.10.240/28     # vigie-jobs (tests de source) : toutes les sources directes
 
 # --- Squid (sortie Internet) -------------------------------------------------------------
-squid_worker_port: 3128         # vigie-worker : IA, Graph, Teams
+squid_worker_port: 3128         # tâches et discussion : IA, Graph, Teams
 squid_web_port: 3129            # vigie-web : connexion Entra seulement
+squid_url: "http://squid:{{ squid_worker_port }}"   # nom du conteneur Squid sur le réseau worker
 squid_worker_domains:
   - api.anthropic.com
   - login.microsoftonline.com
@@ -90,7 +118,7 @@ vigie_source_ninjaone:
       scope: monitoring
       ticket_board_id: "{{ vigie_ninjaone_board_id | int }}"
       ticket_statuses: "{{ vigie_ninjaone_statuses }}"
-      proxy: "http://127.0.0.1:{{ squid_worker_port }}"
+      proxy: "{{ squid_url }}"
 # Microsoft Defender (app Entra « Vigie Defender », même tenant que la connexion : vigie_oidc).
 # Authentification par certificat, sans secret client. Le même certificat sert en dev et en
 # prod : le public (~/vigie-ca/defender.crt, poste qui lance Ansible) est copié dans
@@ -111,9 +139,9 @@ vigie_source_defender:
       os_platform_prefixes: [Windows]   # Linux → Wazuh, patchs manquants → NinjaOne
       inactive_days: 14
       max_vulns_per_company: 10
-      proxy: "http://127.0.0.1:{{ squid_worker_port }}"
+      proxy: "{{ squid_url }}"
 # FortiAnalyzer 8.0 (192.168.240.104). Certificat d'usine sans SAN : appelé par son CN
-# (n° de série), que le rôle vigie écrit dans /etc/hosts. Certificat exporté sur la machine
+# (n° de série), que compose.yaml déclare dans le /etc/hosts des conteneurs (extra_hosts). Certificat exporté sur la machine
 # qui lance Ansible (hors dépôt), copié dans /etc/vigie/ca/fortianalyzer.pem, seul approuvé
 # pour cette source. Clé API : secret fortianalyzer_api_key. false = source non déployée.
 vigie_fortianalyzer_enabled: true
