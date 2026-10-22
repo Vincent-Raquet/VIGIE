@@ -73,6 +73,21 @@
     state: absent
     purge: true
 
+# auditctl refuse de surveiller un chemin absent et s'arrête au premier refus (règles
+# suivantes non chargées) : les dossiers surveillés existent avant les règles. Mêmes
+# propriétaires et droits que dans les rôles edge et vigie (idempotence).
+- name: Dossiers surveillés par auditd
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: /srv/vigie, mode: "0750"}
+    - {path: /srv/edge, mode: "0755"}
+    - {path: /etc/docker, mode: "0755"}
+
 - name: Règles auditd de Vigie
   ansible.builtin.copy:
     src: vigie.rules

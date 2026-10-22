@@ -59,3 +59,20 @@ def test_native_rules_kept_until_legacy_purge() -> None:
     assert "tcp dport 443 ip saddr @lan_vpn_networks" not in purged
     assert 'skuid "vigie-' not in purged
     assert "chain forward" in purged
+
+
+def test_audit_watches_only_existing_or_created_paths() -> None:
+    # auditctl s'arrête au premier chemin absent : les règles suivantes ne seraient pas
+    # chargées. Tout chemin surveillé sous /srv ou /etc/docker est créé par hardening avant.
+    import yaml
+
+    rules = (DEPLOY / "roles" / "hardening" / "files" / "vigie.rules").read_text()
+    watched = [line.split()[1] for line in rules.splitlines() if line.startswith("-w ")]
+    tasks = yaml.safe_load((DEPLOY / "roles" / "hardening" / "tasks" / "main.yml").read_text())
+    names = [t["name"] for t in tasks]
+    created_task = tasks[names.index("Dossiers surveillés par auditd")]
+    created = {item["path"] for item in created_task["loop"]}
+    assert names.index("Dossiers surveillés par auditd") < names.index("Règles auditd de Vigie")
+    for path in watched:
+        if path.startswith(("/srv/", "/etc/docker")):
+            assert path.rstrip("/") in created, path
