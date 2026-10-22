@@ -10,12 +10,14 @@
     home: /nonexistent
 
 - name: Identité du compte edge
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
   ansible.builtin.getent:
     database: passwd
     key: edge
   check_mode: false
 
 - name: Dossiers du proxy d'entrée
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
@@ -39,6 +41,7 @@
   register: edge_ca
 
 - name: Reprise de l'AC interne et des certificats du Caddy natif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
   ansible.builtin.copy:
     src: /var/lib/caddy/.local/share/caddy/
     dest: "{{ edge_dir }}/data/caddy/"
@@ -49,6 +52,7 @@
   when: edge_native_ca.stat.exists and not edge_ca.stat.exists
 
 - name: Propriétaire des données de Caddy
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
   ansible.builtin.file:
     path: "{{ edge_dir }}/data"
     state: directory
@@ -64,6 +68,7 @@
   notify: Redémarrer Caddy
 
 - name: Fichier compose du proxy d'entrée
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : compte edge pas encore créé
   ansible.builtin.template:
     src: compose.yaml.j2
     dest: "{{ edge_dir }}/compose.yaml"
