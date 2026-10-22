@@ -1,0 +1,10 @@
+{
+  "log-driver": "journald",
+  "live-restore": true,
+  "no-new-privileges": true,
+  "userland-proxy": false,
+  "icc": false,
+  "default-address-pools": [
+    {"base": "{{ docker_address_pool }}", "size": 24}
+  ]
+}

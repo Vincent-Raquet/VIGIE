@@ -1,0 +1,4 @@
+---
+# false pendant la semaine qui suit la bascule (retour arrière possible sur l'installation
+# native) ; true ensuite pour supprimer paquets, venvs et anciennes unités.
+legacy_purge: false

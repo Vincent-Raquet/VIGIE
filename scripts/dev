@@ -1,0 +1,26 @@
+#!/bin/sh
+# Commandes de développement dans le conteneur (compose.dev.yaml), via le Docker rootless
+# de l'utilisateur, jamais le démon de production.
+#   scripts/dev pytest [args]        tests
+#   scripts/dev lint                 ruff + format + mypy
+#   scripts/dev web [--reload]       interface sur http://127.0.0.1:8000 (tunnel SSH)
+#   scripts/dev vigie <commande>     CLI (collect --dry-run, plan --no-llm…)
+#   scripts/dev shell                shell dans le conteneur
+#   scripts/dev <cmd> [args]         toute autre commande, via `uv run`
+set -eu
+cd "$(dirname "$0")/.."
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
+[ -S "$XDG_RUNTIME_DIR/docker.sock" ] || {
+  echo "Docker rootless absent ($DOCKER_HOST) : voir docs/DEV.md, « Installation »." >&2
+  exit 1
+}
+mkdir -p "$HOME/vigie-ca"
+run="docker compose -f compose.dev.yaml run --rm"
+case "${1:-}" in
+  "") sed -n '2,10p' "$0" >&2; exit 2 ;;
+  lint) exec $run dev sh -c 'uv run ruff check . && uv run ruff format --check . && uv run mypy src' ;;
+  web) shift; exec $run --service-ports dev uv run vigie web --host 0.0.0.0 "$@" ;;
+  shell) exec $run dev bash ;;
+  *) exec $run dev uv run "$@" ;;
+esac

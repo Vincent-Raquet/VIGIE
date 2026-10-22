@@ -1,0 +1,6 @@
+---
+# live-restore : les conteneurs continuent de tourner pendant le redémarrage du démon.
+- name: Redémarrer Docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted

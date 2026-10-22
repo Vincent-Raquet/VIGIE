@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# Secrets de Vigie déchiffrés (systemd-creds) en mémoire, /run/vigie/creds (tmpfs), un
+# fichier 0400 par secret appartenant au seul compte du conteneur qui le lit. compose.yaml
+# les monte un par un dans /run/secrets des services qui en ont besoin (SECURITY.md C7).
+[Unit]
+Description=Vigie — secrets déchiffrés pour les conteneurs
+After=local-fs.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/vigie-creds-unlock
+# Dossier créé au démarrage et effacé à l'arrêt de l'unité (clair supprimé).
+RuntimeDirectory=vigie/creds
+RuntimeDirectoryMode=0700
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

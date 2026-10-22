@@ -16,7 +16,7 @@ Vigie collecte l'état et les alertes de systèmes de supervision IT, les normal
 - UI : Jinja2 (autoescape) + htmx vendorisé (`web/static/VENDOR.md`) + feuille CSS de la maquette validée (`docs/ui/maquette.html`) ; ni Tailwind, ni Alpine (qui exigerait `unsafe-eval`), aucun CDN, aucun script ou style inline (CSP stricte, testé).
 - LLM : SDK `anthropic` Python, modèles proposés `claude-sonnet-5-5` (défaut de la configuration), `claude-opus-5-5`, `claude-fable-5-1` (`vigie/ai_models.py` : tarifs ; défaut réglable dans Paramètres, choix ponctuel pour un plan ou une question), sortie structurée via `output_config.format` (aucun outil), prompt caching sur les blocs stables, repli serveur `fallbacks="default"`.
 - Auth : OIDC Entra ID (authlib), rôles mappés depuis des groupes Entra.
-- Déploiement : Ansible (dossier `deploy/`) vers Debian 13 ; Caddy en reverse proxy ; systemd timers pour l'ordonnancement.
+- Déploiement : Ansible (dossier `deploy/`) vers Debian 13 ; Vigie en **conteneurs Docker** (`compose.yaml` rendu par le rôle `vigie`, un service par processus avec ses seuls secrets et réseaux) ; PostgreSQL de l'hôte partagé (peer par UID) ; Caddy partagé en conteneur (projet `edge`, seul à publier 443) ; timers systemd de l'hôte qui lancent `docker compose run --rm` ; secrets systemd-creds déchiffrés en tmpfs.
 
 ## Arborescence cible
 ```
@@ -35,12 +35,13 @@ tests/ (unit/, contract/ avec fixtures JSON anonymisées, security/)
 ```
 
 ## Commandes
-- Installer : `uv sync`
-- Tests : `uv run pytest` (tous) ; `uv run pytest tests/security` (garde-fous)
-- Lint/format/typage : `uv run ruff check . && uv run ruff format --check . && uv run mypy src`
-- Dev web : `uv run vigie web --reload` (clé `VIGIE_SECRET_WEB_SESSION_KEY` dans `.env.local`, `[web] dev_login = true` pour la connexion de développement)
-- Collecte à blanc sur fixtures : `uv run vigie collect --source zabbix --dry-run --fixtures tests/contract/zabbix`
-- Plan à blanc : `uv run vigie plan --kind daily --dry-run --no-llm`
+Le développement tourne dans un conteneur (`compose.dev.yaml`) du Docker **rootless** de `nadmin` via `scripts/dev` (jamais le démon de prod, `nadmin` n'est pas dans le groupe `docker`) ; `docs/DEV.md`.
+- Tests : `scripts/dev pytest` (tous) ; `scripts/dev pytest tests/security` (garde-fous)
+- Lint/format/typage : `scripts/dev lint`
+- Dev web : `scripts/dev web --reload` (clé `VIGIE_SECRET_WEB_SESSION_KEY` dans `.env.local`, `[web] dev_login = true` pour la connexion de développement)
+- Collecte à blanc sur fixtures : `scripts/dev vigie collect --source zabbix --dry-run --fixtures tests/contract/zabbix`
+- Plan à blanc : `scripts/dev vigie plan --kind daily --dry-run --no-llm`
+- Sur l'hôte (uv) : `uv run pre-commit run --all-files` (gitleaks, crochets de commit) et Ansible (`deploy/`).
 
 ## Façon de travailler
 - Avancer **phase par phase** selon `docs/ROADMAP.md`, en plan mode pour chaque nouvelle phase.

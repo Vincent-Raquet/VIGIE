@@ -1,8 +1,10 @@
 ---
-vigie_root: /opt/vigie
-vigie_release_dir: "{{ vigie_root }}/releases/{{ vigie_release }}"
-vigie_bin: "{{ vigie_root }}/current/bin/vigie"
-vigie_keep_releases: 3
+# Projet compose de Vigie (compose.yaml, squid.conf, contextes de construction des images).
+vigie_compose_dir: /srv/vigie
+vigie_image: "vigie:{{ vigie_release }}"
+# Image Squid reconstruite (apt à jour) au premier passage de chaque mois.
+vigie_squid_image: "vigie-squid:{{ '%Y%m' | strftime }}"
+vigie_keep_images: 3
 
 # Horaires (heure locale de la VM, Europe/Brussels) — SPEC §8.
 vigie_schedule:

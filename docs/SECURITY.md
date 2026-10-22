@@ -54,35 +54,42 @@ Voir SPEC §7.6. En plus :
 - Option `llm.send_ticket_text = false` (défaut) : pour les tickets (signaux `kind = ticket`), l'IA ne reçoit ni le corps (jamais collecté) **ni le sujet** : seulement le numéro du ticket, la catégorie, la priorité, la sévérité, la société et l'âge ; le sujet reste visible des techniciens dans l'interface. Masquage dans `engine/context.py`, testé par `tests/security/test_llm_injection.py`. `true` envoie le sujet (nettoyé, encapsulé), jamais le corps.
 
 ### C6 — Réseau
-- **nftables**, politique par défaut `drop` en entrée et en sortie.
-- Entrée : 443/tcp depuis le VLAN admin et le pool VPN ; 22/tcp depuis les IP d'administration uniquement ; 10050/tcp depuis le serveur et le proxy Zabbix.
+- **nftables**, politique par défaut `drop` en entrée et sur le trafic routé des conteneurs (chaîne `forward`) ; sortie de l'hôte en `drop` hors cohabitation avec le développement.
+- Entrée : 443/tcp depuis le VLAN admin et le pool VPN (port publié par le seul proxy d'entrée, filtré dans `forward` : `ct status dnat`) ; 22/tcp depuis les IP d'administration uniquement ; 10050/tcp depuis le serveur et le proxy Zabbix.
 - Sortie :
   - vers les IP/ports des sources internes uniquement (ex. Zabbix 443, FortiAnalyzer 443, Veeam 9419, Wazuh 55000/9200) ;
-  - vers le proxy Squid local, seul autorisé à sortir sur Internet en 443 ;
-  - DNS vers les résolveurs internes, NTP, et les dépôts Debian via le proxy.
-- **Squid** : allowlist de domaines (`api.anthropic.com`, `login.microsoftonline.com`, `graph.microsoft.com`, `<region>.ninjarmm.com`, domaine du webhook Teams, `deb.debian.org`, `security.debian.org`, `pypi.org`, `files.pythonhosted.org`). Tout le reste est refusé et journalisé.
-- L'utilisateur `vigie-web` n'a pas le droit de sortir sauf vers Entra (règle nftables `meta skuid`).
-- Réalisé (phase 8, `deploy/roles/{nftables,squid}`) : Squid à deux ports, 3128 pour `vigie-worker` (IA, Entra, Graph, Teams) et 3129 pour `vigie-web` (Entra seul) ; sur la boucle locale, chaque compte `vigie-*` n'atteint que son port Squid (et PostgreSQL par socket unix) ; `vigie-worker` sort en direct vers le DNS interne et les IP/ports des sources seulement. En défense supplémentaire, chaque unité porte `IPAddressDeny=any` et une liste `IPAddressAllow` minimale. Tant que le développement cohabite sur la VM (`vigie_dev_on_host: true`), la sortie par défaut reste ouverte pour les comptes non `vigie-*` ; elle passe en `drop` quand le développement quitte la VM.
+  - vers le proxy Squid, seul autorisé à sortir sur Internet en 443 ;
+  - DNS vers les résolveurs internes, NTP.
+- **Squid** : allowlist de domaines (`api.anthropic.com`, `login.microsoftonline.com`, `graph.microsoft.com`, `<region>.ninjarmm.com`, `<region>.api.security.microsoft.com`, domaine du webhook Teams). Tout le reste est refusé et journalisé.
+- `vigie-web` ne sort que vers Entra (port web de Squid).
+- Réalisé (phase 10, conteneurs ; `deploy/roles/{nftables,vigie,edge}`) : chaque service de `compose.yaml` n'est rattaché qu'aux réseaux Docker dont il a besoin, à sous-réseaux fixes :
+  - `vigie_web` et `vigie_worker` sont **internes** (aucune route) : vigie-web n'y joint que Squid (port 3129, Entra seul), les tâches et la discussion n'y joignent que Squid (port 3128) ; Squid n'écoute chaque port que sur son réseau et n'accepte que ce réseau ;
+  - `vigie_egress` : Squid seul, autorisé par nftables à sortir en 443 et vers le DNS interne ;
+  - `vigie_src_<source>` : un réseau par source interne, rattaché au seul conteneur de collecte de cette source ; nftables ne le laisse joindre que l'`ip:port` de la source (et le DNS) ; `vigie_jobs` (tests de source depuis le web) joint toutes les sources ;
+  - `edge` : proxy d'entrée partagé (Caddy) et vigie-web à adresse fixe, qui ne peut ouvrir aucune connexion par ce réseau ; seul Caddy publie un port (443 sur l'IP de la VM) ;
+  - migrations, purge, selfcheck et bris de glace : aucun réseau (`network_mode: none`), PostgreSQL par socket unix.
+  Tout autre trafic d'un réseau de Vigie est rejeté et journalisé (`nft-vigie-drop`). La table `inet vigie` ne fait jamais `flush ruleset` (elle effacerait les règles de Docker). Les applications futures du serveur sortent librement depuis leurs ponts Docker tant qu'aucune règle ne les restreint. Vérifié par `tests/security/test_compose.py`.
 
 ### C7 — Secrets
-- Stockés chiffrés avec `systemd-creds` (liés au TPM ou à la clé hôte), chargés par `LoadCredentialEncrypted=` uniquement dans les unités qui en ont besoin.
+- Stockés chiffrés avec `systemd-creds` (liés au TPM ou à la clé hôte). `vigie-creds.service` les déchiffre au démarrage en mémoire (`/run/vigie/creds`, tmpfs, 0700 root, effacé à l'arrêt de l'unité), un fichier 0400 par secret appartenant au seul compte qui le lit ; `compose.yaml` ne monte dans chaque conteneur (`/run/secrets`, lu par `$CREDENTIALS_DIRECTORY`) que les secrets de ce service.
 - Jamais en variable d'environnement globale, jamais dans `/etc/vigie/vigie.toml`, jamais dans les logs (filtre de journalisation qui masque les motifs sensibles).
 - Développement : `.env.local` dans `.gitignore`, valeurs factices dans `.env.example`.
 - Pré-commit : `gitleaks` ; CI : `gitleaks` + `pip-audit`.
 - Dépôt en production : `sudo vigie-secret set <nom>` (valeur sur l'entrée standard, `systemd-creds encrypt` → `/etc/credstore.encrypted/vigie.<nom>`) ; Ansible ne vérifie que leur présence et n'active les unités qu'une fois tous les secrets requis déposés. Aucun mot de passe de base : authentification peer + `pg_ident`.
 
 ### C8 — Séparation des privilèges
-- Utilisateurs système distincts : `vigie-web`, `vigie-worker`, `vigie-migrate` (migrations et sauvegardes), sans shell, sans sudo ; `pg_hba` n'autorise sur la base `vigie` que ces comptes mappés (et `postgres`).
+- Comptes système distincts : `vigie-web`, `vigie-worker`, `vigie-migrate` (migrations et sauvegardes), sans shell, sans sudo. Chaque conteneur tourne avec l'**UID** de son compte : PostgreSQL (hôte, partagé) l'identifie par l'authentification peer + `pg_ident` sur la socket unix montée ; `pg_hba` n'autorise sur la base `vigie` que ces comptes mappés (et `postgres`). Aucun mot de passe de base.
 - Rôles PostgreSQL : `vigie_web` (CRUD sur tables de configuration et `task.status`, lecture du reste, INSERT seul sur `audit_log`), `vigie_worker` (écriture signaux, incidents, plans, `llm_call`), `vigie_migrate` (DDL, utilisé uniquement au déploiement).
-- Sandboxing systemd sur toutes les unités : `NoNewPrivileges=yes`, `ProtectSystem=strict`, `ProtectHome=yes`, `PrivateTmp=yes`, `PrivateDevices=yes`, `ProtectKernelTunables/Modules/Logs=yes`, `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`, `SystemCallFilter=@system-service`, `CapabilityBoundingSet=`, `MemoryDenyWriteExecute=yes`, `ReadWritePaths=` minimal. Objectif : `systemd-analyze security` < 2,0 pour chaque unité.
-- Répartition des secrets (`LoadCredentialEncrypted=`) : `vigie-web` → `web_session_key`, `entra_client_secret` ; `vigie-collect@<source>` → le seul secret de la source (complément par source) ; `vigie-plan@` → `anthropic_api_key` ; `vigie-notify@` → `graph_certificate`, `teams_webhook_url` ; `vigie-jobs` (`--kind source_test`) → secrets des sources ; `vigie-plan-requests` (`--kind plan_generate`, « Générer le plan maintenant » demandé depuis le web) → `anthropic_api_key` seule, jamais un secret de source ; `vigie-chat` (service permanent, discussion avec l'IA) → `anthropic_api_key` seule ; housekeeping et selfcheck → aucun. Vérifié par `tests/security/test_systemd_units.py` (rendu des gabarits Ansible).
+- Durcissement de chaque conteneur (`compose.yaml`) : système de fichiers en lecture seule (`/tmp` en tmpfs), `cap_drop: [ALL]`, `no-new-privileges`, profil AppArmor `docker-default`, jamais root, jamais `privileged`, ni socket Docker, ni réseau ou PID de l'hôte, limites de mémoire et de processus ; seul `selfcheck` écrit sur l'hôte (`/var/lib/vigie/selfcheck`, lu par Zabbix). Les unités systemd qui lancent `docker compose` ne parlent qu'à la socket Docker (`RestrictAddressFamilies=AF_UNIX`, `IPAddressDeny=any`, aucune capacité).
+- Répartition des secrets (`secrets:` de `compose.yaml`) : `web` → `web_session_key`, `entra_client_secret` ; `collect-<source>` → les seuls secrets de la source ; `plan`, `plan-requests` (« Générer le plan maintenant ») et `chat` (discussion avec l'IA) → `anthropic_api_key` seule, jamais un secret de source ; `notify` → `graph_certificate`, `teams_webhook_url` ; `jobs` (tests de source) → secrets des sources, jamais la clé IA ; housekeeping, selfcheck, migrate, Squid → aucun. Vérifié par `tests/security/test_compose.py` (rendu des gabarits Ansible).
+- Tâches ponctuelles : un conteneur éphémère par exécution (`docker compose run --rm`), lancé par un timer systemd ; aucun ordonnanceur ne détient tous les secrets ni la socket Docker.
 
 ### C9 — Authentification et autorisation
 - OIDC Entra ID (Authorization Code + PKCE), MFA imposé par accès conditionnel sur l'application.
 - Rôles depuis les claims de groupes ; vérification côté serveur sur chaque route (décorateur `require_role`), tests d'autorisation par route.
 - Sessions : cookie `Secure`, `HttpOnly`, `SameSite=Lax`, durée 8 h ; CSRF sur toutes les requêtes mutantes.
 - Compte « bris de glace » local désactivé par défaut, activable uniquement en CLI sur le serveur (`vigie breakglass --enable --ttl 1h`), journalisé.
-- En-têtes Caddy : HSTS, CSP stricte (`default-src 'self'`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
+- En-têtes Caddy (proxy d'entrée partagé, `deploy/roles/edge`, AC interne reprise du Caddy natif) : HSTS, CSP stricte (`default-src 'self'`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
 - Accès uniquement depuis le LAN / VPN ; pas de publication Internet.
 
 ### C10 — Tests de sécurité obligatoires (`tests/security/`)
@@ -96,7 +103,8 @@ Voir SPEC §7.6. En plus :
 ### C11 — Durcissement de l'hôte
 - Debian 13 minimale, `unattended-upgrades` (sécurité), redémarrage planifié si nécessaire hors fenêtre de génération.
 - SSH : clés uniquement, `PermitRootLogin no`, `AllowUsers deploy`, algorithmes modernes ; `fail2ban` ou `sshguard`. Pendant la cohabitation avec le développement : `PermitRootLogin no` et sshguard appliqués, mais ni `AllowUsers` ni retrait du mot de passe (`ssh_disable_password_auth`) sans décision explicite, pour ne pas couper l'accès.
-- `auditd` avec règles sur `/etc/vigie`, `/etc/credstore.encrypted`, exécutions de `sudo`.
+- `auditd` avec règles sur `/etc/vigie`, `/etc/credstore.encrypted`, `/srv/vigie`, `/srv/edge`, `/etc/docker`, exécutions de `sudo`.
+- Docker (dépôt officiel) : `no-new-privileges` par défaut, journaux vers journald, `live-restore`, pas de `userland-proxy`. Le groupe `docker` équivaut à root : **aucun compte humain n'en est membre** ; le développement utilise Docker rootless (`docs/DEV.md`). Images reconstruites à chaque version (`--pull`) et l'image Squid chaque mois : `unattended-upgrades` ne couvre pas les conteneurs.
 - AppArmor activé ; chrony ; journald persistant.
 - Lynis : score ≥ 80 après déploiement.
 - Supervision de la VM par Zabbix (agent2 en mode actif, PSK).
@@ -118,7 +126,7 @@ Voir SPEC §7.6. En plus :
 > **Situation actuelle (décision du 2026-10-09)** : le développement se fait **sur la VM cible elle-même** (WI-SRV-VIGIE-01), sous le compte `nadmin` (sudo). Conséquences :
 > - aucun secret de production n'est déposé sur la VM tant que Claude Code y travaille ; une clé Anthropic de dev (workspace séparé, faible plafond) sert à la phase 5 ;
 > - `.claude/settings.json` doit interdire en plus le déchiffrement des credentials (`systemd-creds decrypt`) et demander confirmation pour `sudo` ;
-> - dev (`~/projets/vigie`, bases `vigie_dev`/`vigie_test`, port 8000) et prod (`/opt/vigie`, base `vigie`, port 8080) sont cloisonnés ; voir `docs/DEV.md` ;
+> - dev (`~/projets/vigie`, conteneur rootless de `nadmin`, bases `vigie_dev`/`vigie_test`, port 8000) et prod (`/srv/vigie`, démon Docker système, base `vigie`) sont cloisonnés ; `nadmin` n'est pas membre du groupe `docker` (qui donnerait root et les secrets déchiffrés de la prod) ; voir `docs/DEV.md` ;
 > - la phase 8 doit en tenir compte (SSH pour `nadmin`, sortie Internet de Claude Code via Squid, Ansible en `connection: local`) : à revoir explicitement avant d'y déposer les secrets réels.
 
 - `.claude/settings.json` interdit la lecture des fichiers de secrets et demande confirmation pour `ssh`, `ansible-playbook`, `git push`, `scp`, `curl`/`wget`.
@@ -127,6 +135,6 @@ Voir SPEC §7.6. En plus :
 - Ne pas donner à Claude Code d'accès MCP en écriture aux systèmes supervisés pendant ce projet.
 
 ## 4. Procédures
-- **Pause d'urgence** : `sudo systemctl stop 'vigie-*.timer'` ou bouton « Pause » dans l'UI.
-- **Compromission suspectée** : arrêter les timers, révoquer dans l'ordre la clé Anthropic, le secret Graph, les tokens des sources ; analyser `audit_log`, journald, logs Squid.
-- **Rotation** : `vigie secrets rotate <name>` (réécrit le credential chiffré, redémarre l'unité concernée), procédure dans `deploy/README.md`.
+- **Pause d'urgence** : `sudo systemctl stop 'vigie-*.timer'` (et `sudo systemctl stop vigie-compose` pour l'interface et la discussion) ou bouton « Pause » dans l'UI.
+- **Compromission suspectée** : arrêter les timers et `vigie-compose`, révoquer dans l'ordre la clé Anthropic, le secret Graph, les tokens des sources ; analyser `audit_log`, journald (dont `journalctl -t vigie-squid`, journal de Squid).
+- **Rotation** : `sudo vigie-secret set <nom>` puis `sudo systemctl restart vigie-creds` (redéchiffre et redémarre les services permanents), procédure dans `deploy/README.md`.

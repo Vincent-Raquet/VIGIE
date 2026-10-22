@@ -6,17 +6,18 @@ Le développement se fait **directement sur la VM cible** WI-SRV-VIGIE-01 (192.1
 
 | | Dev | Prod (phase 8) |
 |---|---|---|
-| Code | `~/projets/vigie` (nadmin) | `/opt/vigie/current` (wheel versionné) |
-| Utilisateurs | `nadmin` | `vigie-web`, `vigie-worker` (sans shell ni sudo) |
+| Code | `~/projets/vigie` (nadmin), conteneur `vigie-dev` (Docker **rootless** de nadmin) | image `vigie:<version>` (démon Docker système, `/srv/vigie`) |
+| Utilisateurs | `nadmin` (root du conteneur rootless = nadmin sur l'hôte) | UID de `vigie-web`, `vigie-worker`, `vigie-migrate` (sans shell ni sudo) |
 | Bases PostgreSQL | `vigie_dev`, `vigie_test` (rôle `nadmin`, peer) | `vigie` (`vigie_web`, `vigie_worker`, `vigie_migrate`) |
 | Configuration | `config/vigie.toml` (ignoré par Git) via `VIGIE_CONFIG` | `/etc/vigie/vigie.toml` via les unités systemd |
 | Secrets | `.env.local` (factices) si `VIGIE_ENV=dev` | `systemd-creds`, `$CREDENTIALS_DIRECTORY` |
-| Web | `127.0.0.1:8000`, accès par tunnel SSH | `https://vigie.local.wallindustries.be` (Caddy → `127.0.0.1:8080`) |
+| Web | `127.0.0.1:8000` (port publié par le conteneur), accès par tunnel SSH | `https://vigie.local.wallindustries.be` (proxy d'entrée `edge` → `vigie-web:8080`) |
 
 Règles :
 - **Aucun secret de production sur la VM tant que Claude Code y travaille** (cf. `SECURITY.md §3`).
 - `config.py` ne lit jamais `/etc/vigie/vigie.toml` implicitement : sans `--config` ni `VIGIE_CONFIG`, c'est `./config/vigie.toml`.
 - `.env.local` n'est lu que si `VIGIE_ENV=dev` et si `CREDENTIALS_DIRECTORY` est absent.
+- **`nadmin` n'est jamais membre du groupe `docker`** : ce groupe vaut root, donc l'accès aux secrets déchiffrés de la prod (`/run/vigie/creds`) et à ses conteneurs. Le développement passe par un démon Docker **rootless** propre à `nadmin` (`scripts/dev` l'impose), sans aucun droit sur le démon de production.
 
 ## Installation (une fois)
 
@@ -58,14 +59,32 @@ export VIGIE_ENV=dev
 export VIGIE_CONFIG="$HOME/projets/vigie/config/vigie.toml"
 ```
 
+## Développement en conteneur (phase 10)
+
+Une fois par machine (le rôle Ansible `docker` installe les paquets rootless et active la
+session permanente de `nadmin`), en `nadmin`, sans sudo :
+```bash
+dockerd-rootless-setuptool.sh install          # démon rootless (unité systemd --user)
+systemctl --user enable --now docker
+```
+`scripts/dev` utilise toujours `unix://$XDG_RUNTIME_DIR/docker.sock` (le démon rootless),
+jamais `/var/run/docker.sock`. Le conteneur (`compose.dev.yaml`, image `Dockerfile.dev` :
+Python 3.13 et uv) monte le dépôt, la socket PostgreSQL de l'hôte (`PGUSER=nadmin` : peer
+inchangé sur `vigie_dev` et `vigie_test`), `~/vigie-ca` en lecture seule ; l'environnement
+virtuel vit dans un volume (`uv sync` automatique au premier `uv run`).
+
 ## Commandes courantes
 ```bash
-uv run pytest                                          # tous les tests (réseau TCP bloqué)
-uv run ruff check . && uv run ruff format --check . && uv run mypy src
-uv run vigie --help
-uv run vigie check
-uv run pre-commit run --all-files                      # ruff, mypy, gitleaks
+scripts/dev pytest                                     # tous les tests (réseau TCP bloqué)
+scripts/dev lint                                       # ruff + format + mypy
+scripts/dev vigie --help
+scripts/dev vigie check
+scripts/dev vigie plan --kind daily --dry-run --no-llm
+scripts/dev shell                                      # shell dans le conteneur
+uv run pre-commit run --all-files                      # sur l'hôte : ruff, mypy, gitleaks
 ```
+`git`, `pre-commit` (gitleaks) et Ansible restent sur l'hôte (uv de l'hôte) : les crochets de
+commit et le déploiement n'ont pas besoin du conteneur.
 
 Interface web (à partir de la phase 6), depuis le poste admin :
 ```bash
@@ -108,8 +127,8 @@ Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer d
 ## Interface web en développement
 1. `.env.local` : `VIGIE_SECRET_WEB_SESSION_KEY=<python -c "import secrets; print(secrets.token_urlsafe(48))">` ; pour Entra, `VIGIE_SECRET_ENTRA_CLIENT_SECRET=…`.
 2. `config/vigie.toml` : `[web] dev_login = true` et, pour Entra, `[web.oidc]` (tenant, client, groupes). L'URI de redirection `http://localhost:8000/auth/callback` doit être déclarée dans l'application Entra (plus `https://vigie.local.wallindustries.be/auth/callback` pour la prod).
-3. `uv run vigie web --reload`, puis http://localhost:8000. La connexion de développement n'existe que si `VIGIE_ENV=dev`, `dev_login = true` et écoute sur 127.0.0.1.
-4. « Tester la connexion » d'une source dépose une demande : `uv run vigie jobs --run-pending` l'exécute (rôle du worker).
+3. `scripts/dev web --reload`, puis http://localhost:8000. La connexion de développement n'existe que si `VIGIE_ENV=dev`, `dev_login = true` et écoute sur 127.0.0.1 — ou, dans le conteneur de dev, `VIGIE_DEV_CONTAINER=1` (écoute 0.0.0.0 dans le conteneur, port publié sur le seul 127.0.0.1 de l'hôte).
+4. « Tester la connexion » d'une source dépose une demande : `scripts/dev vigie jobs --run-pending` l'exécute (rôle du worker).
 
 ## Diffusion (e-mail Graph et Teams)
 1. **Application Entra « Vigie Mail »** (distincte de l'application de connexion) : permission **application** `Microsoft Graph › Mail.Send`, consentement administrateur ; **certificat** (pas de secret client) :

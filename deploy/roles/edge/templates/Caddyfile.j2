@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+{
+	# Pas d'API d'administration : configuration relue au redémarrage du conteneur.
+	admin off
+	# AC interne : certificats émis et renouvelés localement, aucun accès Internet.
+	auto_https disable_redirects
+	skip_install_trust
+	servers {
+		protocols h1 h2
+	}
+}
+
+# Un fichier par application (vigie.caddy…).
+import /etc/caddy/sites/*.caddy

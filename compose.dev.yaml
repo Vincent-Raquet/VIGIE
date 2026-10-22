@@ -1,0 +1,32 @@
+# Développement en conteneur (docs/DEV.md) : à lancer avec le Docker rootless de nadmin,
+# jamais avec le démon de production (scripts/dev l'impose). En rootless, root du conteneur
+# = nadmin sur l'hôte : PostgreSQL (peer) le reconnaît, comme en développement natif.
+name: vigie-dev
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: vigie-dev
+    init: true
+    working_dir: /src
+    environment:
+      VIGIE_ENV: dev
+      VIGIE_DEV_CONTAINER: "1"         # connexion de dev possible malgré l'écoute 0.0.0.0
+      VIGIE_CONFIG: /src/config/vigie.toml
+      PGUSER: ${USER:?}                # rôle PostgreSQL de nadmin (sinon « root »)
+      HOME: /home/dev
+    volumes:
+      - .:/src
+      - venv:/venv
+      - uv-cache:/cache
+      - /var/run/postgresql:/var/run/postgresql
+      # Certificats des sources (hors dépôt) cités par config/vigie.toml (~/vigie-ca/…).
+      - ${HOME}/vigie-ca:/home/dev/vigie-ca:ro
+    ports:
+      - "127.0.0.1:8000:8000"         # jamais sur une autre adresse (connexion de dev)
+
+volumes:
+  venv:
+  uv-cache:

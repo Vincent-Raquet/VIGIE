@@ -7,7 +7,7 @@ holidays_country = "BE"
 paused = false
 
 [database]
-# Peer + pg_ident : le compte système vigie-worker se connecte en vigie_worker.
+# Peer + pg_ident : le conteneur tourne avec l'UID de vigie-worker, connecté en vigie_worker.
 url = "postgresql+psycopg:///vigie?user=vigie_worker"
 
 [llm]
@@ -20,12 +20,14 @@ fallback = true
 [notify]
 mail_enabled = {{ vigie_notify_mail_enabled | lower }}
 teams_enabled = {{ vigie_notify_teams_enabled | lower }}
-proxy = "http://127.0.0.1:{{ squid_worker_port }}"
+proxy = "{{ squid_url }}"
 draft_only = {{ vigie_notify_draft_only | lower }}
 
 [web]
-host = "127.0.0.1"
+# Dans le conteneur ; rien n'est publié : seul Caddy (réseau Docker « edge ») le joint.
+host = "0.0.0.0"
 port = {{ vigie_web_port }}
+forwarded_allow_ips = ["{{ edge_caddy_ip }}"]
 database_url = "postgresql+psycopg:///vigie?user=vigie_web"
 dev_login = false
 

@@ -4,7 +4,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from tests.security.test_systemd_units import DEPLOY, _context
+from tests.security.deploy_render import DEPLOY
+from tests.security.deploy_render import context as _context
 
 
 def render(role: str, template: str, ctx: dict[str, Any]) -> str:

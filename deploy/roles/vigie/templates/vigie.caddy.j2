@@ -1,9 +1,6 @@
 # {{ ansible_managed }}
-{
-	# AC interne : certificats émis et renouvelés localement, aucun accès Internet.
-	auto_https disable_redirects
-}
-
+# Site de Vigie sur le proxy d'entrée partagé (rôle edge) ; vigie-web n'est joignable que
+# par le réseau Docker « edge ».
 {{ vigie_domain }} {
 	tls internal
 	encode gzip
@@ -14,11 +11,9 @@
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
-	reverse_proxy 127.0.0.1:{{ vigie_web_port }}
+	reverse_proxy vigie-web:{{ vigie_web_port }}
 	log {
-		output file /var/log/caddy/vigie-access.log {
-			roll_size 20MiB
-			roll_keep 10
-		}
+		output stdout
+		format json
 	}
 }

@@ -1,0 +1,3 @@
+# Contexte de Dockerfile.dev : rien n'est copié (dépôt monté), on n'envoie donc rien au démon.
+# Jamais de secret ni de config réelle dans un contexte de construction (SECURITY.md C7).
+*

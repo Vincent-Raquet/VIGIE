@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# Tâche ponctuelle de Vigie : {{ task.description }}. Elle tourne dans son propre conteneur
+# (service « {{ task.service }} » de compose.yaml : ses seuls secrets, réseaux et compte).
+[Unit]
+Description=Vigie — {{ task.description }}
+Requires=docker.service vigie-creds.service
+After=docker.service vigie-creds.service postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker compose --project-directory {{ vigie_compose_dir }} run --rm --no-TTY --name {{ task.container }} {{ task.service }}{{ (' ' + task.args) if task.args | default('') else '' }}
+# Délai dépassé ou arrêt : le conteneur ne survit pas au client.
+ExecStopPost=-/usr/bin/docker rm --force {{ task.container }}
+TimeoutStartSec={{ task.timeout | default('15min') }}
+{% include 'units/_client_sandbox.j2' %}

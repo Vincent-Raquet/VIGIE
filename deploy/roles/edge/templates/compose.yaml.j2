@@ -1,0 +1,41 @@
+# {{ ansible_managed }}
+# Proxy d'entrée partagé du serveur : seul conteneur à publier un port. Les applications
+# rattachent leur service web au réseau « edge » (externe pour elles).
+name: edge
+
+services:
+  caddy:
+    image: {{ edge_caddy_image }}
+    user: "{{ ansible_facts.getent_passwd['edge'][1] }}:{{ ansible_facts.getent_passwd['edge'][2] }}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 256m
+    # Aucun secret : peut repartir seul au démarrage du démon.
+    restart: unless-stopped
+    ports:
+      - "{{ edge_bind_ip }}:443:443/tcp"
+    environment:
+      XDG_DATA_HOME: /data
+      XDG_CONFIG_HOME: /config
+    volumes:
+      - {{ edge_dir }}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ edge_dir }}/sites:/etc/caddy/sites:ro
+      - {{ edge_dir }}/data:/data
+    tmpfs:
+      - /config:uid={{ ansible_facts.getent_passwd['edge'][1] }},mode=0700
+    logging:
+      driver: journald
+      options:
+        tag: edge-caddy
+    networks:
+      edge:
+        ipv4_address: {{ edge_caddy_ip }}
+
+networks:
+  edge:
+    name: edge
+    ipam:
+      config:
+        - subnet: {{ edge_subnet }}

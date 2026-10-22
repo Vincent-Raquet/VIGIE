@@ -1,6 +1,6 @@
 ---
 # Répartition des secrets par unité (SECURITY.md C7, C10) : chaque unité ne reçoit que
-# ce dont elle a besoin. tests/security/test_systemd_units.py vérifie cette répartition.
+# ce dont elle a besoin. tests/security/test_compose.py vérifie cette répartition.
 vigie_source_secrets: "{{ vigie_sources_enabled | map(attribute='secrets') | flatten | unique }}"
 vigie_source_ips: "{{ vigie_source_egress | map(attribute='ip') | unique }}"
 vigie_web_credentials: >-
@@ -14,53 +14,51 @@ vigie_required_secrets: >-
   {{ (vigie_web_credentials + vigie_plan_credentials + vigie_notify_credentials
       + vigie_source_secrets) | unique | sort }}
 
-vigie_worker_units:
+# Tâches ponctuelles (timers) : chacune lance `docker compose run` sur un service de
+# compose.yaml, qui porte ses secrets, ses réseaux et son compte (SECURITY.md C7, C8).
+# tests/security/test_compose.py vérifie la répartition.
+vigie_tasks:
   - name: vigie-collect@.service
-    unit_description: collecte de la source %i (lecture seule)
-    unit_exec: "{{ vigie_bin }} collect --source %i --mapping /etc/vigie/seed"
-    unit_timeout: 10min
+    description: collecte de la source %i (lecture seule)
+    service: collect-%i
+    container: vigie-collect-%i
+    timeout: 10min
   - name: vigie-plan@.service
-    unit_description: plan %i
-    unit_exec: "{{ vigie_bin }} plan --kind %i"
-    unit_credentials: "{{ vigie_plan_credentials }}"
-    unit_proxy: true
-    unit_timeout: 20min
+    description: plan %i
+    service: plan
+    args: plan --kind %i
+    container: vigie-plan-%i
+    timeout: 20min
   - name: vigie-notify@.service
-    unit_description: diffusion du plan %i
-    unit_exec: "{{ vigie_bin }} notify --plan latest-%i"
-    unit_credentials: "{{ vigie_notify_credentials }}"
-    unit_proxy: true
+    description: diffusion du plan %i
+    service: notify
+    args: notify --plan latest-%i
+    container: vigie-notify-%i
+  # Demandes de l'interface web : tests de source (secrets des sources, jamais la clé IA)
+  # et générations de plan (clé IA, jamais les secrets des sources).
   - name: vigie-jobs.service
-    unit_description: demandes de l'interface web
-    unit_exec: "{{ vigie_bin }} jobs --run-pending --kind source_test"
-    unit_credentials: "{{ vigie_source_secrets }}"
-    unit_ips: "{{ dns_servers + vigie_source_ips }}"
-    unit_timeout: 5min
-  # « Générer le plan maintenant » (web) : mêmes droits que vigie-plan@ (clé IA, proxy),
-  # aucun secret de source.
+    description: demandes de l'interface web
+    service: jobs
+    container: vigie-jobs
+    timeout: 5min
   - name: vigie-plan-requests.service
-    unit_description: générations de plan demandées depuis le web
-    unit_exec: "{{ vigie_bin }} jobs --run-pending --kind plan_generate"
-    unit_credentials: "{{ vigie_plan_credentials }}"
-    unit_proxy: true
-    unit_timeout: 20min
-  # Discussion avec l'IA (web) : service permanent, clé IA seule, comme vigie-plan@ ; le web
-  # dépose les questions en base et ne détient jamais la clé (SECURITY.md C8).
-  - name: vigie-chat.service
-    unit_description: discussion avec l'IA (réponses aux questions de l'interface)
-    unit_exec: "{{ vigie_bin }} chat-worker"
-    unit_credentials: "{{ vigie_plan_credentials }}"
-    unit_proxy: true
-    unit_type: simple
-    unit_timeout: 1min
+    description: générations de plan demandées depuis le web
+    service: plan-requests
+    container: vigie-plan-requests
+    timeout: 20min
   - name: vigie-housekeeping.service
-    unit_description: purge selon les durées de conservation
-    unit_exec: "{{ vigie_bin }} housekeeping"
+    description: purge selon les durées de conservation
+    service: housekeeping
+    container: vigie-housekeeping
   - name: vigie-selfcheck.service
-    unit_description: état de Vigie pour l'agent Zabbix
-    unit_exec: "{{ vigie_bin }} selfcheck --out /var/lib/vigie/selfcheck"
-    unit_state_dir: vigie/selfcheck
-    unit_timeout: 2min
+    description: état de Vigie pour l'agent Zabbix
+    service: selfcheck
+    container: vigie-selfcheck
+    timeout: 2min
+
+# Services permanents (vigie-compose.service) : la discussion avec l'IA seulement si l'IA est
+# active ; le web dépose les questions en base et ne détient jamais la clé (SECURITY.md C8).
+vigie_permanent_services: "{{ ['squid', 'web'] + (['chat'] if vigie_llm_enabled else []) }}"
 
 vigie_timers:
   - {name: vigie-plan@daily.timer, timer_unit: vigie-plan@daily.service,
