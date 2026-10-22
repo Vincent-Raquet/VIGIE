@@ -4,7 +4,10 @@
   "no-new-privileges": true,
   "userland-proxy": false,
   "icc": false,
+{% if docker_bip | default('') %}
+  "bip": "{{ docker_bip }}",
+{% endif %}
   "default-address-pools": [
-    {"base": "{{ docker_address_pool }}", "size": 24}
+    {"base": "{{ docker_address_pool }}", "size": {{ docker_address_pool_size | default(24) }}}
   ]
 }

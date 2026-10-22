@@ -32,33 +32,41 @@ zabbix_server: 192.168.250.49
 # sortir ce réseau que vers ip:port (SECURITY.md C6). host : nom appelé par le connecteur,
 # déclaré dans le /etc/hosts du conteneur (extra_hosts) : aucun DNS depuis ces réseaux.
 vigie_source_egress:
-  - {name: zabbix, ip: 192.168.250.49, port: 443, subnet: 172.30.10.0/28, host: zabbix.local.wallindustries.be}
-  - {name: veeam, ip: 10.10.10.27, port: 9419, subnet: 172.30.10.16/28}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
+  - {name: zabbix, ip: 192.168.250.49, port: 443, subnet: 10.10.100.96/28, host: zabbix.local.wallindustries.be}
+  - {name: veeam, ip: 10.10.10.27, port: 9419, subnet: 10.10.100.112/28}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
   # API JSON-RPC du FAZ (trusthost : vigie_ip) ; host = CN du certificat d'usine.
-  - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 172.30.10.32/28, host: "{{ vigie_fortianalyzer_name }}"}
+  - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 10.10.100.128/28, host: "{{ vigie_fortianalyzer_name }}"}
 
 # --- Conteneurs (Docker) ----------------------------------------------------------------
 # Installation native d'avant la phase 10 : false pendant la semaine qui suit la bascule
 # (retour arrière possible, règles nftables natives gardées) ; true ensuite le temps d'un
 # passage (rôle legacy : paquets, /opt/vigie, ancienne AC de Caddy supprimés).
 legacy_purge: false
-# Réseaux à adresses fixes de 172.30.0.0/16 (règles nftables par sous-réseau) ; les réseaux
-# des autres applications sont pris dans docker_address_pool. Aucun ne doit chevaucher le LAN
-# (192.168.0.0/16) ni le réseau Veeam (10.10.10.0/24).
-docker_address_pool: 172.31.0.0/16
+# Tous les réseaux Docker de la VM sont dans 10.10.100.0/24 (décision du 2026-10-22 : les
+# plages 172.16.0.0/12 sont utilisées dans l'entreprise). Plan d'adressage :
+#   10.10.100.0/27    edge (Caddy .2, vigie-web .10, portal-web .11)
+#   10.10.100.32/28   vigie_web        10.10.100.48/28   vigie_egress
+#   10.10.100.64/27   vigie_worker     10.10.100.96/28 … .128/28  sources directes
+#   10.10.100.144/28  vigie_jobs       10.10.100.160/28  docker0 (bip)
+#   10.10.100.176/28  réservé (Portal) 10.10.100.192/26  pool des autres réseaux (4 × /28)
+# Règles nftables par sous-réseau. Aucun ne doit chevaucher le LAN ni le réseau Veeam
+# (10.10.10.0/24). Changer ces plages : voir deploy/README.md, « Renuméroter les réseaux ».
+docker_bip: 10.10.100.161/28
+docker_address_pool: 10.10.100.192/26
+docker_address_pool_size: 28
 # Docker rootless pour le développement (le compte n'entre jamais dans le groupe docker).
 docker_rootless_users: "{{ ['nadmin'] if vigie_dev_on_host else [] }}"
 # Proxy d'entrée partagé (Caddy, projet compose « edge ») : seul à publier un port.
 edge_dir: /srv/edge                    # un fichier de site par application dans sites/
-edge_subnet: 172.30.0.0/24
+edge_subnet: 10.10.100.0/27
 edge_bind_ip: "{{ vigie_ip }}"
-edge_caddy_ip: 172.30.0.2               # seul proxy dont vigie-web croit les en-têtes X-Forwarded-*
-vigie_web_edge_ip: 172.30.0.10          # vigie-web sur « edge » : joint par Caddy, ne sort jamais
+edge_caddy_ip: 10.10.100.2               # seul proxy dont vigie-web croit les en-têtes X-Forwarded-*
+vigie_web_edge_ip: 10.10.100.10         # vigie-web sur « edge » : joint par Caddy, ne sort jamais
 vigie_networks:
-  web: {subnet: 172.30.1.0/24, squid: 172.30.1.2}       # internal : vigie-web ↔ Squid (port web)
-  worker: {subnet: 172.30.2.0/24, squid: 172.30.2.2}    # internal : tâches ↔ Squid (port worker)
-  egress: {subnet: 172.30.3.0/24, squid: 172.30.3.2}    # Squid seul : 443 et DNS
-vigie_jobs_subnet: 172.30.10.240/28     # vigie-jobs (tests de source) : toutes les sources directes
+  web: {subnet: 10.10.100.32/28, squid: 10.10.100.34}     # internal : vigie-web ↔ Squid (port web)
+  worker: {subnet: 10.10.100.64/27, squid: 10.10.100.66}  # internal : tâches ↔ Squid (port worker)
+  egress: {subnet: 10.10.100.48/28, squid: 10.10.100.50}  # Squid seul : 443 et DNS
+vigie_jobs_subnet: 10.10.100.144/28    # vigie-jobs (tests de source) : toutes les sources directes
 
 # --- Squid (sortie Internet) -------------------------------------------------------------
 squid_worker_port: 3128         # tâches et discussion : IA, Graph, Teams

@@ -6,7 +6,8 @@
        + (vigie_source_egress | map(attribute='ip') | list)
        + (vigie_source_egress | map(attribute='subnet') | list)
        + (vigie_networks.values() | map(attribute='subnet') | list)
-       + [vigie_jobs_subnet, edge_subnet, vigie_web_edge_ip, edge_caddy_ip]
+       + [vigie_jobs_subnet, edge_subnet, vigie_web_edge_ip, edge_caddy_ip, docker_bip,
+          docker_address_pool]
        + (veeam_guest_sources | default([])))
       | reject('match', '^([0-9]{1,3}\\.){3}[0-9]{1,3}(/[0-9]{1,2})?$') | list | length == 0
     fail_msg: >-
