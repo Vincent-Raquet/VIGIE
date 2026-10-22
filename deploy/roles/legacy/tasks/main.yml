@@ -32,3 +32,10 @@
     path: /opt/vigie
     state: absent
   when: legacy_purge | bool
+
+# Clé privée de l'AC interne : reprise dans /srv/edge/data, l'ancienne copie ne doit pas rester.
+- name: Données du Caddy natif supprimées (dont la clé privée de l'AC interne)
+  ansible.builtin.file:
+    path: /var/lib/caddy
+    state: absent
+  when: legacy_purge | bool

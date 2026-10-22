@@ -32,7 +32,7 @@ forwarded_for delete
 httpd_suppress_version_string on
 # Conteneur en lecture seule : journaux vers journald (pilote de compose), état en tmpfs.
 access_log stdio:/dev/stdout squid
-cache_log stdio:/dev/stderr
+cache_log /dev/stderr
 logfile_rotate 0
 pid_filename /run/squid/squid.pid
 dns_nameservers {{ dns_servers | join(' ') }}

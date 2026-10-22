@@ -472,3 +472,14 @@ def test_edge_proxy_is_the_only_published_port_and_trusted_by_web() -> None:
     assert "tls internal" in site
     caddyfile = (DEPLOY / "roles" / "edge" / "templates" / "Caddyfile.j2").read_text()
     assert "admin off" in caddyfile
+
+
+def test_legacy_purge_removes_the_old_ca_private_key() -> None:
+    tasks = yaml.safe_load((DEPLOY / "roles" / "legacy" / "tasks" / "main.yml").read_text())
+    removed = {
+        t["ansible.builtin.file"]["path"]
+        for t in tasks
+        if t.get("ansible.builtin.file", {}).get("state") == "absent"
+        and t.get("when") == "legacy_purge | bool"
+    }
+    assert {"/var/lib/caddy", "/opt/vigie"} <= removed
