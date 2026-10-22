@@ -1,6 +1,7 @@
 ---
 # live-restore : les conteneurs continuent de tourner pendant le redémarrage du démon.
 - name: Redémarrer Docker
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : Docker pas encore installé
   ansible.builtin.systemd_service:
     name: docker
     state: restarted
