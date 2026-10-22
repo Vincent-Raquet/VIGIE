@@ -32,7 +32,7 @@
   ansible.builtin.copy:
     dest: /etc/systemd/system/nftables.service.d/vigie.conf
     content: |
-      # {{ ansible_managed }}
+      # Géré par Ansible (rôle nftables) : modifications manuelles écrasées.
       [Service]
       ExecStop=
       ExecStop=-/usr/sbin/nft delete table inet vigie
