@@ -464,7 +464,8 @@ def test_edge_proxy_is_the_only_published_port_and_trusted_by_web() -> None:
     caddy = edge["services"]["caddy"]
     assert caddy["ports"] == [f"{ctx['vigie_ip']}:443:443/tcp"]
     assert caddy["user"] == "980:980" and caddy["read_only"] is True
-    assert caddy["cap_drop"] == ["ALL"] and "cap_add" not in caddy
+    assert caddy["cap_drop"] == ["ALL"] and caddy["cap_add"] == ["NET_BIND_SERVICE"]
+    assert "no-new-privileges:true" in caddy["security_opt"]
     assert caddy["networks"]["edge"]["ipv4_address"] == ctx["edge_caddy_ip"]
     assert edge["networks"]["edge"]["ipam"]["config"] == [{"subnet": ctx["edge_subnet"]}]
     site = render("vigie.caddy.j2", ctx)

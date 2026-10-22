@@ -30,6 +30,7 @@ cache_mem 8 MB
 via off
 forwarded_for delete
 httpd_suppress_version_string on
+visible_hostname vigie-squid
 # Conteneur en lecture seule : journaux vers journald (pilote de compose), état en tmpfs.
 access_log stdio:/dev/stdout squid
 cache_log /dev/stderr
