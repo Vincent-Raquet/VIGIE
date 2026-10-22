@@ -225,7 +225,8 @@ sudo docker compose exec web python -c "import urllib.request as u; print(u.urlo
 sudo docker compose exec web python -c "import urllib.request as u; u.urlopen('https://example.com', timeout=10)"                                  # 403 (Squid)
 sudo docker compose exec chat python -c "import urllib.request as u; u.urlopen('https://api.anthropic.com', timeout=10)"                           # réponse HTTP (404/401), pas 403
 # Secrets : noms seulement, jamais les valeurs.
-sudo docker compose run --rm --entrypoint ls web /run/secrets   # web_session_key, entra_client_secret
+sudo docker compose exec web ls /run/secrets                   # web_session_key, entra_client_secret
+# (jamais `run` pour web : son adresse fixe sur « edge » est prise par le conteneur en marche)
 sudo docker inspect --format '{{.Name}} ro={{.HostConfig.ReadonlyRootfs}} caps={{.HostConfig.CapDrop}} user={{.Config.User}}' $(sudo docker ps -q)
 sudo systemctl start vigie-collect@zabbix && journalctl -u vigie-collect@zabbix -n 20   # collecte réelle
 systemctl list-timers 'vigie-*'
