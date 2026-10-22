@@ -25,6 +25,10 @@ table inet vigie {
 {% if veeam_guest_sources | default([]) %}
     tcp dport 22 ip saddr { {{ veeam_guest_sources | join(', ') }} } accept comment "Veeam traitement invité"
 {% endif %}
+{% if not legacy_purge %}
+    # Caddy natif (avant la bascule en conteneurs) ; ensuite, 443 est publié par Docker (forward).
+    tcp dport 443 ip saddr @lan_vpn_networks accept
+{% endif %}
     tcp dport 10050 ip saddr {{ zabbix_server }} accept
     counter log prefix "nft-in-drop " level info limit rate 10/minute drop
   }
@@ -63,9 +67,25 @@ table inet vigie {
 
   chain output {
     type filter hook output priority filter; policy {{ 'accept' if vigie_dev_on_host else 'drop' }};
+{% if not legacy_purge %}
+    # Installation native (jusqu'à legacy_purge) : chaque compte vigie-* de l'hôte ne joint que
+    # son port Squid, ses sources et le DNS. Sans effet sur les conteneurs (autre espace réseau).
+    meta skuid "vigie-web" oif lo ct state new tcp dport != {{ squid_web_port }} counter drop
+    meta skuid "vigie-worker" oif lo ct state new tcp dport != {{ squid_worker_port }} counter drop
+    meta skuid "vigie-migrate" oif lo ct state new counter drop
+{% endif %}
     oif lo accept
     ct state established,related accept
     meta l4proto { icmp, ipv6-icmp } accept
+{% if not legacy_purge %}
+    meta skuid "vigie-web" counter log prefix "nft-web-drop " limit rate 10/minute drop
+    meta skuid "vigie-migrate" counter drop
+    meta skuid "vigie-worker" ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
+{% for s in vigie_source_egress %}
+    meta skuid "vigie-worker" ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
+{% endfor %}
+    meta skuid "vigie-worker" counter log prefix "nft-worker-drop " limit rate 10/minute drop
+{% endif %}
 {% if not vigie_dev_on_host %}
 
     # Hors cohabitation : sorties du système lui-même (les conteneurs passent par forward).

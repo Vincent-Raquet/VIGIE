@@ -65,8 +65,10 @@ Fenêtre de 15 à 30 min, interface indisponible pendant la construction de l'im
    cd /srv/edge && sudo docker compose down
    git checkout <commit d'avant la phase 10> && cd deploy && uv run ansible-playbook site.yml -K
    ```
-5. Une semaine plus tard, `legacy_purge: true` le temps d'un passage : suppression des paquets
-   `caddy` et `squid` et de `/opt/vigie`.
+5. Une semaine plus tard, `legacy_purge: true` (`group_vars/vigie.yml`) le temps d'un passage :
+   suppression des paquets `caddy` et `squid`, de `/opt/vigie` et de l'ancienne AC de Caddy, et
+   des règles nftables de l'installation native (443 en entrée, sorties par compte `vigie-*`).
+   Laisser ensuite `legacy_purge: true`.
 
 ## 2. Secrets
 

@@ -44,3 +44,18 @@ def test_veeam_account_only_from_veeam_server() -> None:
     assert "PasswordAuthentication no" in elsewhere and "PubkeyAuthentication no" in elsewhere
     key = render("hardening", "sshd-vigie.conf.j2", {**ctx, "veeam_guest_auth": "key"})
     assert "PasswordAuthentication yes" not in key.split("Match User svcveeam", 1)[1]
+
+
+def test_native_rules_kept_until_legacy_purge() -> None:
+    # Avant la bascule, Caddy natif sert 443 et les unités natives sortent par l'hôte : leurs
+    # règles restent jusqu'à legacy_purge (sinon interface coupée et sortie non filtrée).
+    ctx = _context()
+    assert ctx["legacy_purge"] is False
+    kept = render("nftables", "nftables.conf.j2", ctx)
+    assert "tcp dport 443 ip saddr @lan_vpn_networks accept" in kept
+    assert 'meta skuid "vigie-worker" counter log prefix "nft-worker-drop "' in kept
+    assert 'meta skuid "vigie-web" counter log prefix "nft-web-drop "' in kept
+    purged = render("nftables", "nftables.conf.j2", {**ctx, "legacy_purge": True})
+    assert "tcp dport 443 ip saddr @lan_vpn_networks" not in purged
+    assert 'skuid "vigie-' not in purged
+    assert "chain forward" in purged

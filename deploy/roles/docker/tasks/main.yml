@@ -24,6 +24,7 @@
     signed_by: /etc/apt/keyrings/docker.asc
 
 - name: Docker Engine et compose
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
   ansible.builtin.apt:
     name:
       - docker-ce
@@ -49,6 +50,7 @@
   notify: Redémarrer Docker
 
 - name: Docker actif
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
   ansible.builtin.systemd_service:
     name: docker
     enabled: true
@@ -59,6 +61,7 @@
 
 # --- Docker rootless (développement) --------------------------------------------------
 - name: Paquets de Docker rootless
+  ignore_errors: "{{ ansible_check_mode }}"  # simulation : dépôt Docker pas encore ajouté
   ansible.builtin.apt:
     name: [docker-ce-rootless-extras, uidmap, dbus-user-session, slirp4netns]
     state: present

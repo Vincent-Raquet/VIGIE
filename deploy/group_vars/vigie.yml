@@ -36,6 +36,10 @@ vigie_source_egress:
   - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 172.30.10.32/28}   # API JSON-RPC du FAZ (trusthost : vigie_ip)
 
 # --- Conteneurs (Docker) ----------------------------------------------------------------
+# Installation native d'avant la phase 10 : false pendant la semaine qui suit la bascule
+# (retour arrière possible, règles nftables natives gardées) ; true ensuite le temps d'un
+# passage (rôle legacy : paquets, /opt/vigie, ancienne AC de Caddy supprimés).
+legacy_purge: false
 # Réseaux à adresses fixes de 172.30.0.0/16 (règles nftables par sous-réseau) ; les réseaux
 # des autres applications sont pris dans docker_address_pool. Aucun ne doit chevaucher le LAN
 # (192.168.0.0/16) ni le réseau Veeam (10.10.10.0/24).
