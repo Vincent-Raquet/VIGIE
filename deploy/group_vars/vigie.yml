@@ -42,18 +42,20 @@ vigie_source_egress:
 # (retour arrière possible, règles nftables natives gardées) ; true ensuite le temps d'un
 # passage (rôle legacy : paquets, /opt/vigie, ancienne AC de Caddy supprimés).
 legacy_purge: false
-# Tous les réseaux Docker de la VM sont dans 10.10.100.0/24 (décision du 2026-10-22 : les
+# Tous les réseaux Docker de la VM sont dans 10.10.100.0/22 (décision du 2026-10-22 : les
 # plages 172.16.0.0/12 sont utilisées dans l'entreprise). Plan d'adressage :
 #   10.10.100.0/27    edge (Caddy .2, vigie-web .10, portal-web .11)
 #   10.10.100.32/28   vigie_web        10.10.100.48/28   vigie_egress
 #   10.10.100.64/27   vigie_worker     10.10.100.96/28 … .128/28  sources directes
 #   10.10.100.144/28  vigie_jobs       10.10.100.160/28  docker0 (bip)
-#   10.10.100.176/28  réservé (Portal) 10.10.100.192/26  pool des autres réseaux (4 × /28)
+#   10.10.100.176/28  réservé (Portal) 10.10.100.192/26  libre
+#   10.10.101.0/24    réservé : futurs réseaux à adresses fixes (autres applications)
+#   10.10.102.0/23    pool des réseaux automatiques (/26, 8 réseaux)
 # Règles nftables par sous-réseau. Aucun ne doit chevaucher le LAN ni le réseau Veeam
 # (10.10.10.0/24). Changer ces plages : voir deploy/README.md, « Renuméroter les réseaux ».
 docker_bip: 10.10.100.161/28
-docker_address_pool: 10.10.100.192/26
-docker_address_pool_size: 28
+docker_address_pool: 10.10.102.0/23
+docker_address_pool_size: 26
 # Docker rootless pour le développement (le compte n'entre jamais dans le groupe docker).
 docker_rootless_users: "{{ ['nadmin'] if vigie_dev_on_host else [] }}"
 # Proxy d'entrée partagé (Caddy, projet compose « edge ») : seul à publier un port.

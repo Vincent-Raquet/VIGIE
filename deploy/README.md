@@ -450,14 +450,14 @@ IP) : Vigie l'appelle par ce nom, que `compose.yaml` déclare dans les conteneur
    l'empreinte sur la console du FAZ, relancer le playbook.
 
 
-## 16. Renuméroter les réseaux Docker (passage à 10.10.100.0/24)
+## 16. Renuméroter les réseaux Docker (passage à 10.10.100.0/22)
 
 Les réseaux Docker à sous-réseau fixe (edge, vigie_*, sources) et `docker0` ne peuvent pas
 changer de plage en place : il faut arrêter les projets compose, supprimer les réseaux,
 puis relancer les playbooks, qui les recréent avec le plan d'adressage de
 `group_vars/vigie.yml`. Coupure de Vigie **et** de Portal : environ 15 minutes.
 
-1. **Avant** : vérifier que `10.10.100.0/24` n'est routé nulle part dans l'entreprise, et
+1. **Avant** : vérifier que `10.10.100.0/22` n'est routé nulle part dans l'entreprise, et
    noter les timers actifs (les `vigie-notify@*` sont volontairement arrêtés pendant le
    rodage : ne relancer que ceux de la liste) :
    ```sh
