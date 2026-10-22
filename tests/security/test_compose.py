@@ -346,15 +346,11 @@ def test_firewall_lets_each_network_reach_only_its_destinations() -> None:
         rule = f"ip saddr {{ {e['subnet']}, {jobs} }} ip daddr {e['ip']} tcp dport {e['port']}"
         assert any(line.startswith(rule + " accept") for line in lines), e["name"]
     # Toute autre sortie des réseaux de Vigie est rejetée avant l'accès libre des autres ponts.
-    vigie_drop = next(
-        i for i, line in enumerate(lines) if line.startswith("ip saddr @vigie_subnets")
-    )
+    vigie_drop = lines.index("ip saddr @vigie_subnets counter drop")
     bridges = next(i for i, line in enumerate(lines) if line.startswith('iifname "br-*"'))
-    assert vigie_drop < bridges and lines[vigie_drop].endswith("drop")
-    web_drop = next(
-        line for line in lines if line.startswith(f"ip saddr {ctx['vigie_web_edge_ip']}")
-    )
-    assert web_drop.endswith("drop")
+    assert vigie_drop < bridges
+    web_drop = lines.index(f"ip saddr {ctx['vigie_web_edge_ip']} counter drop")
+    assert web_drop < bridges
     assert "policy drop;" in forward
     assert "ct status dnat ip saddr @lan_vpn_networks accept" in lines
 

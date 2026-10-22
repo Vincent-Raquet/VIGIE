@@ -30,25 +30,30 @@ table inet vigie {
     tcp dport 443 ip saddr @lan_vpn_networks accept
 {% endif %}
     tcp dport 10050 ip saddr {{ zabbix_server }} accept
-    counter log prefix "nft-in-drop " level info limit rate 10/minute drop
+    limit rate 10/minute log prefix "nft-in-drop " level info
+    counter drop
   }
 
   # Trafic des conteneurs (routé par l'hôte). Un « accept » ici n'est pas final : les chaînes
   # de Docker s'appliquent aussi ; un « drop » l'est toujours.
+  # « limit » est une condition : il ne borne que la journalisation, jamais le rejet (sinon,
+  # au-delà du débit, le paquet passerait à la règle suivante, ex. « br-* accept »).
   chain forward {
     type filter hook forward priority filter; policy drop;
     ct state established,related accept
     ct state invalid drop
     # Ports publiés (proxy d'entrée « edge », HTTPS) : depuis le LAN et le VPN seulement.
     ct status dnat ip saddr @lan_vpn_networks accept
-    ct status dnat counter log prefix "nft-pub-drop " limit rate 10/minute drop
+    ct status dnat limit rate 10/minute log prefix "nft-pub-drop "
+    ct status dnat counter drop
 
     # Vigie : échanges internes à chaque réseau (ex. web ↔ Squid).
 {% for net in vigie_subnets %}
     ip saddr {{ net }} ip daddr {{ net }} accept
 {% endfor %}
     # vigie-web : joint par Caddy sur « edge », n'ouvre jamais de connexion par ce réseau.
-    ip saddr {{ vigie_web_edge_ip }} counter log prefix "nft-web-drop " limit rate 10/minute drop
+    ip saddr {{ vigie_web_edge_ip }} limit rate 10/minute log prefix "nft-web-drop "
+    ip saddr {{ vigie_web_edge_ip }} counter drop
     # Squid : DNS et HTTPS, le filtrage par domaine est le sien.
     ip saddr {{ vigie_networks.egress.squid }} ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
     ip saddr {{ vigie_networks.egress.squid }} tcp dport 443 accept
@@ -57,12 +62,14 @@ table inet vigie {
 {% for s in vigie_source_egress %}
     ip saddr { {{ s.subnet }}, {{ vigie_jobs_subnet }} } ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
 {% endfor %}
-    ip saddr @vigie_subnets counter log prefix "nft-vigie-drop " limit rate 10/minute drop
+    ip saddr @vigie_subnets limit rate 10/minute log prefix "nft-vigie-drop "
+    ip saddr @vigie_subnets counter drop
 
     # Autres applications du serveur : sortie depuis les ponts Docker.
     iifname "docker0" accept
     iifname "br-*" accept
-    counter log prefix "nft-fwd-drop " limit rate 10/minute drop
+    limit rate 10/minute log prefix "nft-fwd-drop "
+    counter drop
   }
 
   chain output {
@@ -78,13 +85,15 @@ table inet vigie {
     ct state established,related accept
     meta l4proto { icmp, ipv6-icmp } accept
 {% if not legacy_purge %}
-    meta skuid "vigie-web" counter log prefix "nft-web-drop " limit rate 10/minute drop
+    meta skuid "vigie-web" limit rate 10/minute log prefix "nft-web-drop "
+    meta skuid "vigie-web" counter drop
     meta skuid "vigie-migrate" counter drop
     meta skuid "vigie-worker" ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
 {% for s in vigie_source_egress %}
     meta skuid "vigie-worker" ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
 {% endfor %}
-    meta skuid "vigie-worker" counter log prefix "nft-worker-drop " limit rate 10/minute drop
+    meta skuid "vigie-worker" limit rate 10/minute log prefix "nft-worker-drop "
+    meta skuid "vigie-worker" counter drop
 {% endif %}
 {% if not vigie_dev_on_host %}
 
@@ -93,7 +102,8 @@ table inet vigie {
     meta skuid { "root", "_apt" } tcp dport { 80, 443 } accept comment "mises à jour, images Docker"
     meta skuid "_chrony" udp dport 123 accept
     meta skuid "zabbix" ip daddr {{ zabbix_server }} tcp dport 10051 accept
-    counter log prefix "nft-out-drop " limit rate 10/minute drop
+    limit rate 10/minute log prefix "nft-out-drop "
+    counter drop
 {% endif %}
   }
 }
