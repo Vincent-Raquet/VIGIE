@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, RootModel, SecretStr, ValidationError
 
 from vigie.connectors.base import (
+    LOCAL_PROXY_RE,
     AllowedCall,
     CompanyMapper,
     ConnectorConfigError,
@@ -190,7 +191,7 @@ class FortiAnalyzerConfig(BaseModel):
     minor_triggers: list[str] = Field(default_factory=lambda: list(MINOR_TRIGGERS), max_length=50)
     minor_severity: int = Field(2, ge=1, le=5)
     ca_bundle: str | None = None
-    proxy: str | None = Field(None, pattern=r"^http://127\.0\.0\.1:[0-9]{2,5}$")
+    proxy: str | None = Field(None, pattern=LOCAL_PROXY_RE)
 
 
 # --- Connecteur -------------------------------------------------------------------------

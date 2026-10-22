@@ -27,6 +27,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from vigie.connectors.base import (
+    LOCAL_PROXY_RE,
     MAX_OBJECTS,
     AllowedCall,
     CompanyMapper,
@@ -195,7 +196,7 @@ class NinjaOneConfig(_Strict):
     pending_os_types: list[str] = Field(
         default_factory=lambda: ["SECURITY_UPDATES", "CRITICAL_UPDATES"], max_length=10
     )
-    proxy: str | None = Field(None, pattern=r"^http://127\.0\.0\.1:[0-9]{2,5}$")
+    proxy: str | None = Field(None, pattern=LOCAL_PROXY_RE)
     ca_bundle: Path | None = None
 
 

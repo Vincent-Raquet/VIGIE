@@ -64,8 +64,8 @@ Voir SPEC §7.6. En plus :
 - `vigie-web` ne sort que vers Entra (port web de Squid).
 - Réalisé (phase 10, conteneurs ; `deploy/roles/{nftables,vigie,edge}`) : chaque service de `compose.yaml` n'est rattaché qu'aux réseaux Docker dont il a besoin, à sous-réseaux fixes :
   - `vigie_web` et `vigie_worker` sont **internes** (aucune route) : vigie-web n'y joint que Squid (port 3129, Entra seul), les tâches et la discussion n'y joignent que Squid (port 3128) ; Squid n'écoute chaque port que sur son réseau et n'accepte que ce réseau ;
-  - `vigie_egress` : Squid seul, autorisé par nftables à sortir en 443 et vers le DNS interne ;
-  - `vigie_src_<source>` : un réseau par source interne, rattaché au seul conteneur de collecte de cette source ; nftables ne le laisse joindre que l'`ip:port` de la source (et le DNS) ; `vigie_jobs` (tests de source depuis le web) joint toutes les sources ;
+  - `vigie_egress` : Squid seul, autorisé par nftables à sortir en 443 et vers le DNS interne ; les conteneurs font confiance aux autorités de l'hôte (`/etc/ssl/certs/ca-certificates.crt` monté en lecture seule, dont les certificats internes ajoutés) ;
+  - `vigie_src_<source>` : un réseau par source interne, rattaché au seul conteneur de collecte de cette source ; nftables ne le laisse joindre que l'`ip:port` de la source, sans DNS (nom de la source déclaré dans le conteneur, `extra_hosts`) ; `vigie_jobs` (tests de source depuis le web) joint toutes les sources ;
   - `edge` : proxy d'entrée partagé (Caddy) et vigie-web à adresse fixe, qui ne peut ouvrir aucune connexion par ce réseau ; seul Caddy publie un port (443 sur l'IP de la VM) ;
   - migrations, purge, selfcheck et bris de glace : aucun réseau (`network_mode: none`), PostgreSQL par socket unix.
   Tout autre trafic d'un réseau de Vigie est rejeté et journalisé (`nft-vigie-drop`). La table `inet vigie` ne fait jamais `flush ruleset` (elle effacerait les règles de Docker). Les applications futures du serveur sortent librement depuis leurs ponts Docker tant qu'aucune règle ne les restreint. Vérifié par `tests/security/test_compose.py`.

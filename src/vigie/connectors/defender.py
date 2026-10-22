@@ -38,6 +38,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, f
 
 from vigie.certs import CERT_WARN_DAYS, certificate_days_left
 from vigie.connectors.base import (
+    LOCAL_PROXY_RE,
     AllowedCall,
     CompanyMapper,
     ConnectorConfigError,
@@ -161,7 +162,7 @@ class DefenderConfig(_Strict):
     new_days: int = Field(14, ge=1, le=90)
     max_vulns_per_company: int = Field(10, ge=1, le=100)
     min_epss: float = Field(0.1, ge=0, le=1)
-    proxy: str | None = Field(None, pattern=r"^http://127\.0\.0\.1:[0-9]{2,5}$")
+    proxy: str | None = Field(None, pattern=LOCAL_PROXY_RE)
 
     @field_validator("certificate", "private_key_file")
     @classmethod

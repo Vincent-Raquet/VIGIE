@@ -29,11 +29,13 @@ zabbix_server: 192.168.250.49
 
 # Sorties directes vers les sources internes (le reste passe par Squid). Chaque source a son
 # réseau Docker (subnet) : seul son conteneur de collecte y est rattaché, et nftables ne laisse
-# sortir ce réseau que vers ip:port (SECURITY.md C6).
+# sortir ce réseau que vers ip:port (SECURITY.md C6). host : nom appelé par le connecteur,
+# déclaré dans le /etc/hosts du conteneur (extra_hosts) : aucun DNS depuis ces réseaux.
 vigie_source_egress:
-  - {name: zabbix, ip: 192.168.250.49, port: 443, subnet: 172.30.10.0/28}
+  - {name: zabbix, ip: 192.168.250.49, port: 443, subnet: 172.30.10.0/28, host: zabbix.local.wallindustries.be}
   - {name: veeam, ip: 10.10.10.27, port: 9419, subnet: 172.30.10.16/28}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
-  - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 172.30.10.32/28}   # API JSON-RPC du FAZ (trusthost : vigie_ip)
+  # API JSON-RPC du FAZ (trusthost : vigie_ip) ; host = CN du certificat d'usine.
+  - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 172.30.10.32/28, host: "{{ vigie_fortianalyzer_name }}"}
 
 # --- Conteneurs (Docker) ----------------------------------------------------------------
 # Installation native d'avant la phase 10 : false pendant la semaine qui suit la bascule

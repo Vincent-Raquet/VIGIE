@@ -1,6 +1,7 @@
 """SafeClient : allowlist vérifiée avant l'envoi (SECURITY.md C2, C10)."""
 
 import json
+import re
 import ssl
 from pathlib import Path
 from typing import Any
@@ -459,3 +460,20 @@ def test_invalid_auth_header_is_refused_without_echo(value: str) -> None:
         client.set_auth_header("Authorization", SecretStr(value))
     assert "Authorization" in str(exc.value) and value not in str(exc.value)
     client.set_auth_header("Authorization", SecretStr("Bearer AbC123._~+/=-"))
+
+
+@pytest.mark.parametrize(
+    ("proxy", "ok"),
+    [
+        ("http://127.0.0.1:3128", True),  # Squid de l'hôte (installation native)
+        ("http://squid:3128", True),  # conteneur Squid de compose.yaml
+        ("http://squid.evil.test:3128", False),
+        ("http://evil.test:3128", False),
+        ("https://squid:3128", False),
+        ("http://squid:3128/x", False),
+    ],
+)
+def test_source_proxy_is_local_or_the_squid_container(proxy: str, ok: bool) -> None:
+    from vigie.connectors.base import LOCAL_PROXY_RE
+
+    assert bool(re.fullmatch(LOCAL_PROXY_RE, proxy)) is ok

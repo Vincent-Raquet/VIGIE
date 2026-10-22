@@ -20,6 +20,8 @@ x-app: &app
     # PostgreSQL de l'hôte par socket unix : authentification peer sur l'UID du conteneur.
     - /var/run/postgresql:/var/run/postgresql:ro
     - /etc/localtime:/etc/localtime:ro
+    # Autorités de l'hôte (dont les certificats internes ajoutés, ex. Zabbix) : [tls] ca_bundle.
+    - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
   environment: &app-env
     VIGIE_CONFIG: /etc/vigie/vigie.toml
     VIGIE_LOG_LEVEL: INFO
@@ -102,8 +104,8 @@ services:
     <<: *worker
     command: [collect, --source, {{ s.name }}, --mapping, /etc/vigie/seed]
     secrets: {{ s.secrets | to_json }}
-{% if s.name == 'fortianalyzer' %}
-    extra_hosts: ["{{ vigie_fortianalyzer_name }}:{{ vigie_fortianalyzer_ip }}"]
+{% if direct and direct[0].host is defined %}
+    extra_hosts: ["{{ direct[0].host }}:{{ direct[0].ip }}"]
 {% endif %}
     depends_on: [squid]
     networks: {{ (['worker'] + (['src_' + s.name] if direct else [])) | to_json }}
@@ -137,8 +139,9 @@ services:
     <<: *worker
     command: [jobs, --run-pending, --kind, source_test]
     secrets: {{ vigie_source_secrets | to_json }}
-{% if vigie_fortianalyzer_enabled | bool %}
-    extra_hosts: ["{{ vigie_fortianalyzer_name }}:{{ vigie_fortianalyzer_ip }}"]
+{% set hosts = vigie_source_egress | selectattr('host', 'defined') | list %}
+{% if hosts %}
+    extra_hosts: [{% for h in hosts %}"{{ h.host }}:{{ h.ip }}"{{ ", " if not loop.last }}{% endfor %}]
 {% endif %}
     depends_on: [squid]
     networks: [worker, jobs]
@@ -156,6 +159,7 @@ services:
       - /etc/vigie:/etc/vigie:ro
       - /var/run/postgresql:/var/run/postgresql:ro
       - /etc/localtime:/etc/localtime:ro
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       # Lu par zabbix-agent2 sur l'hôte (fichiers sans donnée sensible).
       - /var/lib/vigie/selfcheck:/var/lib/vigie/selfcheck
 

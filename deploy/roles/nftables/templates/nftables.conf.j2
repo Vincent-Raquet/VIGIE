@@ -52,9 +52,9 @@ table inet vigie {
     # Squid : DNS et HTTPS, le filtrage par domaine est le sien.
     ip saddr {{ vigie_networks.egress.squid }} ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
     ip saddr {{ vigie_networks.egress.squid }} tcp dport 443 accept
-    # Collecte directe : chaque réseau de source vers sa seule source (+ DNS).
+    # Collecte directe : chaque réseau de source vers sa seule source ; noms déclarés dans les
+    # conteneurs (extra_hosts), donc aucun DNS.
 {% for s in vigie_source_egress %}
-    ip saddr { {{ s.subnet }}, {{ vigie_jobs_subnet }} } ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
     ip saddr { {{ s.subnet }}, {{ vigie_jobs_subnet }} } ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
 {% endfor %}
     ip saddr @vigie_subnets counter log prefix "nft-vigie-drop " limit rate 10/minute drop

@@ -48,6 +48,9 @@ _DESTRUCTIVE_RPC_RE = re.compile(
     r"replace|purge|reset)(?:$|[._])",
     re.IGNORECASE,
 )
+# Seuls proxys de sortie permis à une source : Squid sur la boucle locale (installation native)
+# ou le conteneur « squid » (compose.yaml), jamais une adresse arbitraire (SECURITY.md C6).
+LOCAL_PROXY_RE = r"^http://(127\.0\.0\.1|squid):[0-9]{2,5}$"
 _BROAD_REGEX_RE = re.compile(r"(?<!\\)\.[*+]")
 
 

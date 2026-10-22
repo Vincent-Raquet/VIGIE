@@ -114,6 +114,14 @@ def test_app_services_run_with_the_host_service_accounts(ctx: dict[str, Any]) ->
         assert s["image"] == "vigie:1.0.0-test", name
 
 
+def test_containers_trust_the_host_certificate_store(ctx: dict[str, Any]) -> None:
+    # Certificats internes (Zabbix auto-signé…) ajoutés à l'hôte : [tls] ca_bundle.
+    bundle = "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+    for name, s in services(ctx).items():
+        if name != "squid":
+            assert bundle in s["volumes"], name
+
+
 def test_only_selfcheck_writes_to_the_host(ctx: dict[str, Any]) -> None:
     for name, s in services(ctx).items():
         writable = [v for v in s.get("volumes", []) if not v.endswith(":ro")]
@@ -291,10 +299,13 @@ def test_sources_through_squid_or_direct() -> None:
         "proxy" not in faz["settings"] and faz["settings"]["base_url"] == "https://FAZVMSTM25009422"
     )
     svc = services(ctx)
-    hosts = ["FAZVMSTM25009422:192.168.240.104"]
-    assert svc["collect-fortianalyzer"]["extra_hosts"] == hosts
-    assert svc["jobs"]["extra_hosts"] == hosts
-    assert "extra_hosts" not in svc["collect-zabbix"]
+    faz = ["FAZVMSTM25009422:192.168.240.104"]
+    zabbix = ["zabbix.local.wallindustries.be:192.168.250.49"]
+    assert svc["collect-fortianalyzer"]["extra_hosts"] == faz
+    assert svc["collect-zabbix"]["extra_hosts"] == zabbix
+    assert svc["jobs"]["extra_hosts"] == zabbix + faz
+    assert "extra_hosts" not in svc["collect-veeam"]  # appelé par son IP
+    assert "extra_hosts" not in svc["collect-ninjaone"]  # Squid résout lui-même
 
 
 def test_squid_listens_per_network_and_filters_by_source() -> None:
@@ -326,6 +337,11 @@ def test_firewall_lets_each_network_reach_only_its_destinations() -> None:
     squid = ctx["vigie_networks"]["egress"]["squid"]
     assert f"ip saddr {squid} tcp dport 443 accept" in lines
     jobs = ctx["vigie_jobs_subnet"]
+    # Réseaux de collecte directe : aucun DNS (noms déclarés dans les conteneurs).
+    dns = [line for line in lines if "@dns_servers" in line]
+    assert dns == [
+        f"ip saddr {squid} ip daddr @dns_servers meta l4proto {{ tcp, udp }} th dport 53 accept"
+    ]
     for e in ctx["vigie_source_egress"]:
         rule = f"ip saddr {{ {e['subnet']}, {jobs} }} ip daddr {e['ip']} tcp dport {e['port']}"
         assert any(line.startswith(rule + " accept") for line in lines), e["name"]
