@@ -125,6 +125,7 @@
     pull: true
     args:
       VIGIE_RELEASE: "{{ vigie_release }}"
+  when: not ansible_check_mode  # simulation : contexte de construction non copié
 
 - name: Contexte de l'image Squid
   ansible.builtin.copy:
@@ -139,6 +140,7 @@
     tag: "{{ vigie_squid_image.split(':')[1] }}"
     path: "{{ vigie_compose_dir }}/build/squid"
     pull: true
+  when: not ansible_check_mode  # simulation : contexte de construction non copié
 
 # --- Projet compose ----------------------------------------------------------------------
 - name: Configuration de Squid
