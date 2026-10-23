@@ -39,21 +39,19 @@ def test_real_alerts_by_rule_and_agent(
 ) -> None:
     c, sigs = connector_and_signals
     assert not c.truncated
-    flooded = "Agent event queue is flooded. Check the agent configuration."
+    # Règle 204 « Agent event queue is flooded » (niveau 12, installation des agents) :
+    # écartée par défaut (ignore_rules), sinon elle passerait en P1 (wazuh_level12).
     assert sorted(
         (s.severity, s.attributes["rule_level"], s.asset, s.title) for s in sigs
     ) == sorted(
-        [(4, 12, a, f"Wazuh — {flooded} ({a})") for a in ("srv-spl-01", "srv-spl-02", "srv-fs-01")]
-        + [
-            (4, 10, a, f"Wazuh — {desc} ({a})")
-            for desc, agents in (
-                ("Multiple Windows Logon Failures", ("srv-spl-01", "srv-spl-02", "srv-fs-01")),
-                ("Multiple Windows audit failure events", ("srv-spl-01", "srv-spl-02")),
-                ("Multiple Windows error application events.", ("srv-spl-01", "srv-spl-02")),
-                ("Multiple System error events", ("srv-spl-01", "srv-spl-02")),
-            )
-            for a in agents
-        ]
+        (4, 10, a, f"Wazuh — {desc} ({a})")
+        for desc, agents in (
+            ("Multiple Windows Logon Failures", ("srv-spl-01", "srv-spl-02", "srv-fs-01")),
+            ("Multiple Windows audit failure events", ("srv-spl-01", "srv-spl-02")),
+            ("Multiple Windows error application events.", ("srv-spl-01", "srv-spl-02")),
+            ("Multiple System error events", ("srv-spl-01", "srv-spl-02")),
+        )
+        for a in agents
     )
     counts = {(s.title, s.attributes["count"]) for s in sigs}
     assert ("Wazuh — Multiple Windows audit failure events (srv-spl-01)", 621) in counts

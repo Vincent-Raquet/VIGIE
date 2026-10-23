@@ -194,6 +194,7 @@ vigie_source_wazuh:
       username: svc-vigie
       indexer_username: svc-vigie
       min_rule_level: 10
+      ignore_rules: ["204"]               # « Agent event queue is flooded » : pas un incident
       disconnected_hours: 1
       vuln_severities: [Critical, High]   # agents Linux seulement (Windows → Defender)
       max_vulns_per_company: 10

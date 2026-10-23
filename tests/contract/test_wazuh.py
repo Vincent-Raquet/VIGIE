@@ -172,6 +172,7 @@ def test_queries_sent_to_the_indexer() -> None:
     assert {"range": {"timestamp": {"gte": "2026-10-22T06:00:00+00:00"}}} in alerts["query"][
         "bool"
     ]["filter"]
+    assert alerts["query"]["bool"]["must_not"] == [{"terms": {"rule.id": ["204"]}}]
     vulns = bodies["/wazuh-states-vulnerabilities-*/_search"]
     # Agents Linux seulement (ni 004 ni 007, Windows), manager compris.
     linux = ["000", "001", "002", "003", "005", "006", "008", "009", "010"]
@@ -279,6 +280,7 @@ def test_truncated_aggregations_and_failed_shards(tmp_path: Path) -> None:
         {"alerts_index": "*"},
         {"ca_bundle": "/etc/vigie/ca/wazuh.pem"},
         {"verify_hostname": False},
+        {"ignore_rules": ["204; DROP"]},
         {"verify_hostname": False, "api_ca_bundle": "api.pem"},
     ],
 )
@@ -316,3 +318,22 @@ def test_hostname_checked_by_default() -> None:
     c = _real()
     assert _tls(c.manager).check_hostname is True
     assert _tls(c.indexer).check_hostname is True
+
+
+def test_ignored_rules(mapper: RuleMapper) -> None:
+    # Règle 5712 écartée : ni dans la requête (must_not), ni dans les signaux.
+    sigs = signals(mapper, make(ignore_rules=["5712"]))
+    assert not any(k.startswith("alert:5712:") for k in sigs)
+    assert any(k.startswith("alert:100200:") for k in sigs)
+    # Liste vide : aucune exclusion, pas de must_not.
+    bodies: list[Any] = []
+    replay = fixture_transport(FIXTURES)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request.read()
+        if request.url.path.startswith("/wazuh-alerts"):
+            bodies.append(json.loads(request.content))
+        return replay.handle_request(request)
+
+    list(make(httpx.MockTransport(handler), ignore_rules=[]).collect(NOW))
+    assert "must_not" not in bodies[0]["query"]["bool"]

@@ -212,6 +212,16 @@ class WazuhConfig(_Strict):
         default_factory=lambda: list(DEFAULT_VULN_SEVERITIES), min_length=1
     )
     max_vulns_per_company: int = Field(10, ge=1, le=100)
+    # Règles écartées (identifiants Wazuh) : 204 « Agent event queue is flooded » (niveau 12),
+    # émise au démarrage ou à l'installation des agents, n'est pas un incident de sécurité.
+    ignore_rules: list[str] = Field(default_factory=lambda: ["204"], max_length=100)
+
+    @field_validator("ignore_rules")
+    @classmethod
+    def _rule_ids(cls, value: list[str]) -> list[str]:
+        if any(not r.isdigit() or len(r) > 10 for r in value):
+            raise ValueError("identifiants de règle numériques attendus")
+        return value
 
     @field_validator("api_ca_bundle", "indexer_ca_bundle")
     @classmethod
@@ -530,7 +540,12 @@ class WazuhConnector:
                     "filter": [
                         {"range": {"rule.level": {"gte": self.config.min_rule_level}}},
                         {"range": {"timestamp": {"gte": start.isoformat()}}},
-                    ]
+                    ],
+                    **(
+                        {"must_not": [{"terms": {"rule.id": list(self.config.ignore_rules)}}]}
+                        if self.config.ignore_rules
+                        else {}
+                    ),
                 }
             },
             "aggs": {
@@ -567,7 +582,10 @@ class WazuhConnector:
         if (rules or {}).get("sum_other_doc_count"):
             self.truncated = True
         out: list[RawSignal] = []
+        ignored = set(self.config.ignore_rules)
         for rule in _buckets(rules):
+            if str(rule.get("key", "")) in ignored:
+                continue  # déjà exclue par la requête ; garde-fou si l'index l'a renvoyée
             by_agent = rule.get("agents")
             if (by_agent or {}).get("sum_other_doc_count"):
                 self.truncated = True

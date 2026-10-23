@@ -137,6 +137,7 @@ disconnected_hours = 1                  # agent déconnecté depuis plus de N he
 stale_days = 30                         # au-delà : agent abandonné (à retirer de Wazuh)
 vuln_severities = ["Critical", "High"]  # agents Linux seulement (Windows → Defender)
 max_vulns_per_company = 10
+ignore_rules = ["204"]                  # règles écartées (204 : file d'événements de l'agent saturée)
 
 [sources.veezo]
 enabled = false   # produit à identifier
