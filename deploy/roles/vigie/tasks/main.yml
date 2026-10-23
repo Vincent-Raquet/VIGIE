@@ -193,6 +193,20 @@
     mode: "0644"
   when: vigie_fortianalyzer_enabled | bool
 
+- name: Certificats épinglés de Wazuh (API et AC de l'indexer, publics, pour cette seule source)
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/vigie/ca/{{ item.dest }}"
+    owner: root
+    group: vigie
+    mode: "0644"
+  loop:
+    - {src: "{{ vigie_wazuh_api_ca_file }}", dest: wazuh-api.pem}
+    - {src: "{{ vigie_wazuh_indexer_ca_file }}", dest: wazuh-indexer.pem}
+  loop_control:
+    label: "{{ item.dest }}"
+  when: vigie_wazuh_enabled | bool
+
 # Le nom du FortiAnalyzer est déclaré dans les conteneurs (extra_hosts de compose.yaml).
 - name: Ancienne déclaration du FortiAnalyzer dans /etc/hosts de l'hôte
   ansible.builtin.lineinfile:

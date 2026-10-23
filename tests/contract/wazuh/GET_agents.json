@@ -1,0 +1,60 @@
+{
+  "data": {
+    "affected_items": [
+      {
+        "os": {
+          "name": "Amazon Linux",
+          "platform": "amzn"
+        },
+        "lastKeepAlive": "9999-12-31T23:59:59+00:00",
+        "status": "active",
+        "name": "wazuh-manager",
+        "id": "000"
+      },
+      {
+        "os": {
+          "name": "Microsoft Windows Server 2019 Standard",
+          "platform": "windows"
+        },
+        "lastKeepAlive": "2026-10-23T14:08:26+00:00",
+        "status": "active",
+        "group": [
+          "default"
+        ],
+        "name": "srv-fs-01",
+        "id": "001"
+      },
+      {
+        "os": {
+          "name": "Microsoft Windows Server 2016 Standard",
+          "platform": "windows"
+        },
+        "lastKeepAlive": "2026-10-23T14:08:28+00:00",
+        "status": "active",
+        "group": [
+          "default"
+        ],
+        "name": "srv-spl-02",
+        "id": "002"
+      },
+      {
+        "os": {
+          "name": "Microsoft Windows Server 2016 Standard",
+          "platform": "windows"
+        },
+        "lastKeepAlive": "2026-10-23T14:08:44+00:00",
+        "status": "active",
+        "group": [
+          "default"
+        ],
+        "name": "srv-spl-01",
+        "id": "003"
+      }
+    ],
+    "total_affected_items": 4,
+    "total_failed_items": 0,
+    "failed_items": []
+  },
+  "message": "All selected agents information was returned",
+  "error": 0
+}

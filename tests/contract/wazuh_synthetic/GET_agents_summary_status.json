@@ -1,0 +1,17 @@
+{
+  "data": {
+    "connection": {
+      "active": 6,
+      "disconnected": 3,
+      "never_connected": 1,
+      "pending": 0,
+      "total": 10
+    },
+    "configuration": {
+      "synced": 9,
+      "not_synced": 1,
+      "total": 10
+    }
+  },
+  "error": 0
+}

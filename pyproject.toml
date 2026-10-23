@@ -36,6 +36,7 @@ veeam = "vigie.connectors.veeam:VeeamConnector"
 ninjaone = "vigie.connectors.ninjaone:NinjaOneConnector"
 defender = "vigie.connectors.defender:DefenderConnector"
 fortianalyzer = "vigie.connectors.fortianalyzer:FortiAnalyzerConnector"
+wazuh = "vigie.connectors.wazuh:WazuhConnector"
 
 [dependency-groups]
 deploy = [

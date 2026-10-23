@@ -1,0 +1,10 @@
+{
+  "data": {
+    "title": "Wazuh API REST",
+    "api_version": "4.12.0",
+    "revision": "rc1",
+    "hostname": "wazuh-manager",
+    "timestamp": "2026-10-23T06:00:00Z"
+  },
+  "error": 0
+}

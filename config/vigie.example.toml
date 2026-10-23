@@ -121,11 +121,23 @@ minor_severity = 2
 # Clé API : secret « fortianalyzer_api_key » (VIGIE_SECRET_FORTIANALYZER_API_KEY dans .env.local en dev)
 
 [sources.wazuh]
-enabled = false   # connecteur pas encore implémenté
-api_url = "https://wazuh.lan:55000"
-indexer_url = "https://wazuh.lan:9200"
-min_rule_level = 10
+enabled = false
 interval_min = 15
+# Tout-en-un : manager (API, JWT, rôle readonly) et indexer (OpenSearch, rôle vigie_read).
+api_url = "https://wazuh.egc-sa.local:55000"
+indexer_url = "https://wazuh.egc-sa.local:9200"
+username = "svc-vigie"                  # API ; mot de passe : secret « wazuh_api_password »
+indexer_username = "svc-vigie"          # indexer ; secret « wazuh_indexer_password »
+# api_ca_bundle = "~/vigie-ca/wazuh-api.pem"   # certificat de l'API (prod : /etc/vigie/ca/wazuh-api.pem)
+# indexer_ca_bundle = "~/vigie-ca/wazuh-indexer.pem"   # certificat de l'indexer (prod : /etc/vigie/ca/wazuh-indexer.pem)
+# verify_hostname = false   # seulement si les certificats d'usine ne portent pas le nom (exige les deux bundles)
+min_rule_level = 10                     # alertes de ce niveau et au-delà
+alert_window_hours = 24
+disconnected_hours = 1                  # agent déconnecté depuis plus de N heures
+stale_days = 30                         # au-delà : agent abandonné (à retirer de Wazuh)
+vuln_severities = ["Critical", "High"]  # agents Linux seulement (Windows → Defender)
+max_vulns_per_company = 10
+ignore_rules = ["204"]                  # règles écartées (204 : file d'événements de l'agent saturée)
 
 [sources.veezo]
 enabled = false   # produit à identifier

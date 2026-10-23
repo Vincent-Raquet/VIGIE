@@ -42,6 +42,20 @@ def test_token_is_replaced_and_pages_are_merged() -> None:
     assert saved["GET_api_v1_jobs_states.json"]["data"] == [{"id": 0}, {"id": 1}]
 
 
+def test_wazuh_jwt_is_replaced() -> None:
+    real = {"data": {"token": "eyJ.VRAI-JWT.SECRET"}, "error": 0}
+    recorder = RecordingTransport(
+        None, inner=httpx.MockTransport(lambda r: httpx.Response(200, json=real))
+    )
+    with httpx.Client(transport=recorder) as client:
+        assert client.post("https://wazuh.test:55000/security/user/authenticate").json() == real
+    assert "VRAI-JWT" not in str(recorder.saved)
+    assert recorder.saved["POST_security_user_authenticate.json"] == {
+        "data": {"token": "fixture-jwt"},
+        "error": 0,
+    }
+
+
 @pytest.mark.parametrize(
     ("env", "out", "message"),
     [
@@ -91,6 +105,13 @@ def test_compressed_responses_are_replayed_decoded() -> None:
             [{"cursor": {"name": "c"}, "results": [1]}, {"cursor": {}, "results": [2]}],
             {"cursor": {}, "results": [1, 2]},
         ),  # rapport à curseur (NinjaOne)
+        (
+            [
+                {"data": {"affected_items": [1], "total_affected_items": 2}, "error": 0},
+                {"data": {"affected_items": [2], "total_affected_items": 2}, "error": 0},
+            ],
+            {"data": {"affected_items": [1, 2], "total_affected_items": 2}, "error": 0},
+        ),  # agents (Wazuh)
     ],
 )
 def test_all_page_shapes_are_accumulated(pages: list[object], expected: object) -> None:
@@ -123,3 +144,23 @@ def test_jsonrpc_results_named_by_method_and_url() -> None:
             json={"id": 1, "method": "get", "params": [{"url": "/sys/status"}]},
         )
     assert recorder.saved == {"get_sys_status.json": [{"status": {"code": 0}, "data": 1}]}
+
+
+def test_tls_per_origin_follows_the_source_settings(tmp_path: Path) -> None:
+    from vigie.connectors.base import tls_by_origin
+
+    settings = {
+        "api_url": "https://wazuh.test:55000",
+        "indexer_url": "https://wazuh.test:9200",
+        "api_ca_bundle": str(tmp_path / "api.pem"),
+        "indexer_ca_bundle": str(tmp_path / "idx.pem"),
+        "verify_hostname": False,
+    }
+    assert tls_by_origin(settings) == {
+        "wazuh.test:55000": (tmp_path / "api.pem", False),
+        "wazuh.test:9200": (tmp_path / "idx.pem", False),
+    }
+    # Source à un seul hôte et bundle commun : transport par défaut.
+    assert tls_by_origin({"base_url": "https://vbr.test:9419", "ca_bundle": "x.pem"}) == {}
+    with pytest.raises(ValueError, match="seulement avec un bundle"):
+        RecordingTransport(None, tls={"h:1": (None, False)})

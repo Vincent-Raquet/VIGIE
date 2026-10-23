@@ -36,6 +36,8 @@ vigie_source_egress:
   - {name: veeam, ip: 10.10.10.27, port: 9419, subnet: 10.10.100.112/28}      # API REST du VBR (pare-feu Windows : 9419 depuis vigie_ip)
   # API JSON-RPC du FAZ (trusthost : vigie_ip) ; host = CN du certificat d'usine.
   - {name: fortianalyzer, ip: 192.168.240.104, port: 443, subnet: 10.10.100.128/28, host: "{{ vigie_fortianalyzer_name }}"}
+  # Wazuh tout-en-un : API du manager (55000) et indexer (9200) ; host = nom des certificats.
+  - {name: wazuh, ip: 192.168.240.148, port: [55000, 9200], subnet: 10.10.100.192/28, host: wazuh.egc-sa.local}
 
 # --- Conteneurs (Docker) ----------------------------------------------------------------
 # Installation native d'avant la phase 10 : false pendant la semaine qui suit la bascule
@@ -48,7 +50,8 @@ legacy_purge: false
 #   10.10.100.32/28   vigie_web        10.10.100.48/28   vigie_egress
 #   10.10.100.64/27   vigie_worker     10.10.100.96/28 … .128/28  sources directes
 #   10.10.100.144/28  vigie_jobs       10.10.100.160/28  docker0 (bip)
-#   10.10.100.176/28  réservé (Portal) 10.10.100.192/26  libre
+#   10.10.100.176/28  réservé (Portal) 10.10.100.192/28  source directe (Wazuh)
+#   10.10.100.208/28 … .240/28  libres (sources directes suivantes)
 #   10.10.101.0/24    réservé : futurs réseaux à adresses fixes (autres applications)
 #   10.10.102.0/23    pool des réseaux automatiques (/26, 8 réseaux)
 # Règles nftables par sous-réseau. Aucun ne doit chevaucher le LAN ni le réseau Veeam
@@ -170,12 +173,41 @@ vigie_source_fortianalyzer:
       vpn_logsearch: false
       ignore_groupby: ["app:NinjaOne"]   # outil de gestion de l'équipe, signalé « application à risque »
       ca_bundle: /etc/vigie/ca/fortianalyzer.pem
+# Wazuh 4.12+ tout-en-un (wazuh.egc-sa.local, 192.168.240.148) : manager (JWT, rôle readonly)
+# et indexer (rôle vigie_read, recherche sur les alertes et les vulnérabilités seulement).
+# Certificats d'usine (OVA) sans le nom du serveur (API : localhost ; indexer : 127.0.0.1) et
+# sans clé d'AC : épinglés, contrôle du nom désactivé pour cette seule source (SECURITY.md C2).
+# Sur la machine qui lance Ansible (hors dépôt) : certificats de l'API (wazuh-api.pem) et de
+# l'indexer (wazuh-indexer.pem, signé par root-ca.pem ; l'AC de l'OVA, sans keyUsage, est
+# refusée par le mode X.509 strict), copiés dans /etc/vigie/ca/, chacun seule ancre de son API. Secrets wazuh_api_password et wazuh_indexer_password. false = source non déployée.
+vigie_wazuh_enabled: false            # true après la capture réelle (deploy/README.md §17)
+vigie_wazuh_name: wazuh.egc-sa.local
+vigie_wazuh_api_ca_file: "~/vigie-ca/wazuh-api.pem"
+vigie_wazuh_indexer_ca_file: "~/vigie-ca/wazuh-indexer.pem"
+vigie_source_wazuh:
+  - name: wazuh
+    interval_min: 15
+    secrets: [wazuh_api_password, wazuh_indexer_password]
+    settings:
+      api_url: "https://{{ vigie_wazuh_name }}:55000"
+      indexer_url: "https://{{ vigie_wazuh_name }}:9200"
+      username: svc-vigie
+      indexer_username: svc-vigie
+      min_rule_level: 10
+      ignore_rules: ["204"]               # « Agent event queue is flooded » : pas un incident
+      disconnected_hours: 1
+      vuln_severities: [Critical, High]   # agents Linux seulement (Windows → Defender)
+      max_vulns_per_company: 10
+      api_ca_bundle: /etc/vigie/ca/wazuh-api.pem
+      indexer_ca_bundle: /etc/vigie/ca/wazuh-indexer.pem
+      verify_hostname: false
 vigie_sources_enabled: >-
   {{ vigie_sources_base
      + (vigie_source_veeam if vigie_veeam_host else [])
      + (vigie_source_ninjaone if vigie_ninjaone_enabled else [])
      + (vigie_source_defender if vigie_defender_enabled else [])
-     + (vigie_source_fortianalyzer if vigie_fortianalyzer_enabled else []) }}
+     + (vigie_source_fortianalyzer if vigie_fortianalyzer_enabled else [])
+     + (vigie_source_wazuh if vigie_wazuh_enabled else []) }}
 vigie_llm_enabled: true
 vigie_llm_budget_usd: 30
 vigie_notify_mail_enabled: false

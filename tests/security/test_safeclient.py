@@ -477,3 +477,48 @@ def test_source_proxy_is_local_or_the_squid_container(proxy: str, ok: bool) -> N
     from vigie.connectors.base import LOCAL_PROXY_RE
 
     assert bool(re.fullmatch(LOCAL_PROXY_RE, proxy)) is ok
+
+
+def _self_signed(tmp_path: Path, name: str) -> Path:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
+    now = datetime.now(UTC)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(key, hashes.SHA256())
+    )
+    path = tmp_path / f"{name}.pem"
+    path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    return path
+
+
+def test_hostname_check_off_only_with_a_pinned_bundle(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="seulement avec ca_bundle"):
+        SafeClient(source="t", base_url=BASE_URL, allowlist=ANON, check_hostname=False)
+    pinned = _self_signed(tmp_path, "pinned.test")
+    c = SafeClient(
+        source="t", base_url=BASE_URL, allowlist=ANON, ca_bundle=pinned, check_hostname=False
+    )
+    ctx = c._client._transport._pool._ssl_context  # type: ignore[attr-defined]
+    assert ctx.verify_mode == ssl.CERT_REQUIRED  # chaîne toujours vérifiée
+    assert ctx.check_hostname is False
+    assert ctx.verify_flags & ssl.VERIFY_X509_PARTIAL_CHAIN
+    # Seul le certificat épinglé est approuvé : aucune autorité du système.
+    assert [dict(x[0] for x in ca["subject"])["commonName"] for ca in ctx.get_ca_certs()] == [
+        "pinned.test"
+    ]
+    c.close()
