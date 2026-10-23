@@ -40,19 +40,25 @@ def test_real_alerts_by_rule_and_agent(
     c, sigs = connector_and_signals
     assert not c.truncated
     # Règle 204 « Agent event queue is flooded » (niveau 12, installation des agents) :
-    # écartée par défaut (ignore_rules), sinon elle passerait en P1 (wazuh_level12).
-    assert sorted(
-        (s.severity, s.attributes["rule_level"], s.asset, s.title) for s in sigs
-    ) == sorted(
-        (4, 10, a, f"Wazuh — {desc} ({a})")
-        for desc, agents in (
-            ("Multiple Windows Logon Failures", ("srv-spl-01", "srv-spl-02", "srv-fs-01")),
-            ("Multiple Windows audit failure events", ("srv-spl-01", "srv-spl-02")),
-            ("Multiple Windows error application events.", ("srv-spl-01", "srv-spl-02")),
-            ("Multiple System error events", ("srv-spl-01", "srv-spl-02")),
-        )
-        for a in agents
+    # supervision à sévérité basse (monitoring_rules), sans rule_level (pas de P1 wazuh_level12).
+    flooded = "Agent event queue is flooded. Check the agent configuration."
+    assert sorted((s.severity, str(s.category), s.asset, s.title) for s in sigs) == sorted(
+        [
+            (2, "monitoring", a, f"Wazuh — {flooded} ({a})")
+            for a in ("srv-spl-01", "srv-spl-02", "srv-fs-01")
+        ]
+        + [
+            (4, "security", a, f"Wazuh — {desc} ({a})")
+            for desc, agents in (
+                ("Multiple Windows Logon Failures", ("srv-spl-01", "srv-spl-02", "srv-fs-01")),
+                ("Multiple Windows audit failure events", ("srv-spl-01", "srv-spl-02")),
+                ("Multiple Windows error application events.", ("srv-spl-01", "srv-spl-02")),
+                ("Multiple System error events", ("srv-spl-01", "srv-spl-02")),
+            )
+            for a in agents
+        ]
     )
+    assert not any("rule_level" in s.attributes for s in sigs if str(s.category) == "monitoring")
     counts = {(s.title, s.attributes["count"]) for s in sigs}
     assert ("Wazuh — Multiple Windows audit failure events (srv-spl-01)", 621) in counts
 
@@ -63,6 +69,6 @@ def test_agents_all_active_and_no_linux_vulnerability(
     _, sigs = connector_and_signals
     # 4 agents actifs (manager Amazon Linux et 3 serveurs Windows) : aucun signal d'agent ;
     # vulnérabilités demandées pour le seul agent Linux (le manager) : aucune.
-    assert {s.attributes["kind"] for s in sigs} == {"alert"}
+    assert {s.attributes["kind"] for s in sigs} == {"alert", "agent_health"}
     # Agents dans le seul groupe « default » : aucune société (à ranger dans Wazuh).
     assert {s.company_code for s in sigs} == {None}

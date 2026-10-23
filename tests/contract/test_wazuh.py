@@ -172,7 +172,7 @@ def test_queries_sent_to_the_indexer() -> None:
     assert {"range": {"timestamp": {"gte": "2026-10-22T06:00:00+00:00"}}} in alerts["query"][
         "bool"
     ]["filter"]
-    assert alerts["query"]["bool"]["must_not"] == [{"terms": {"rule.id": ["204"]}}]
+    assert "must_not" not in alerts["query"]["bool"]  # rien d'écarté par défaut
     vulns = bodies["/wazuh-states-vulnerabilities-*/_search"]
     # Agents Linux seulement (ni 004 ni 007, Windows), manager compris.
     linux = ["000", "001", "002", "003", "005", "006", "008", "009", "010"]
@@ -281,6 +281,7 @@ def test_truncated_aggregations_and_failed_shards(tmp_path: Path) -> None:
         {"ca_bundle": "/etc/vigie/ca/wazuh.pem"},
         {"verify_hostname": False},
         {"ignore_rules": ["204; DROP"]},
+        {"monitoring_rules": ["x"]},
         {"verify_hostname": False, "api_ca_bundle": "api.pem"},
     ],
 )
@@ -335,5 +336,24 @@ def test_ignored_rules(mapper: RuleMapper) -> None:
             bodies.append(json.loads(request.content))
         return replay.handle_request(request)
 
-    list(make(httpx.MockTransport(handler), ignore_rules=[]).collect(NOW))
-    assert "must_not" not in bodies[0]["query"]["bool"]
+    list(make(httpx.MockTransport(handler), ignore_rules=["204", "5712"]).collect(NOW))
+    assert bodies[0]["query"]["bool"]["must_not"] == [{"terms": {"rule.id": ["204", "5712"]}}]
+
+
+def test_monitoring_rules_are_low_severity_and_escape_level12(mapper: RuleMapper) -> None:
+    # Règle 100200 (niveau 13) déclarée « santé d'agent » : supervision, sévérité basse, et
+    # l'override wazuh_level12 (P1) ne la voit plus.
+    sigs = signals(mapper, make(monitoring_rules=["100200"]))
+    health = _one(sigs, "alert:100200", "002")
+    assert (health.category, health.severity) == (Category.monitoring, 2)
+    assert health.attributes == {"kind": "agent_health", "wazuh_level": 13, "count": 1}
+    assert "supervision" in health.details
+    rule = {r.id: r for r in ScoringConfig().overrides}["wazuh_level12"]
+    facts = {
+        "source": health.source,
+        "category": health.category,
+        "severity": health.severity,
+        "attributes": dict(health.attributes),
+    }
+    assert not rule.matches(facts)
+    assert _one(sigs, "alert:5712", "001").category == Category.security

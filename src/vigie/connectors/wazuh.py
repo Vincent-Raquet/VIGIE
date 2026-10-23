@@ -76,6 +76,7 @@ VULN_AGENTS = 1000
 NON_LINUX_PLATFORMS = frozenset({"windows", "darwin"})
 GROUP_DEFAULT = "default"
 VULN_SEVERITY = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
+MONITORING_SEVERITY = 2  # règles de santé des agents (monitoring_rules)
 # Agents : (singulier, pluriel, sévérité). Un agent abandonné est à retirer, pas à dépanner.
 AGENT_CASES = {
     "agents_disconnected": ("agent déconnecté", "agents déconnectés", 3),
@@ -212,11 +213,14 @@ class WazuhConfig(_Strict):
         default_factory=lambda: list(DEFAULT_VULN_SEVERITIES), min_length=1
     )
     max_vulns_per_company: int = Field(10, ge=1, le=100)
-    # Règles écartées (identifiants Wazuh) : 204 « Agent event queue is flooded » (niveau 12),
-    # émise au démarrage ou à l'installation des agents, n'est pas un incident de sécurité.
-    ignore_rules: list[str] = Field(default_factory=lambda: ["204"], max_length=100)
+    # Règles (identifiants Wazuh) écartées, et règles de santé des agents ramenées en supervision
+    # à sévérité basse, sans attribut rule_level (l'override wazuh_level12 ne les voit pas) :
+    # 204 « Agent event queue is flooded » (niveau 12) signale des événements perdus, mais se
+    # déclenche surtout à l'installation des agents (capture réelle du 2026-10-23).
+    ignore_rules: list[str] = Field(default_factory=list, max_length=100)
+    monitoring_rules: list[str] = Field(default_factory=lambda: ["204"], max_length=100)
 
-    @field_validator("ignore_rules")
+    @field_validator("ignore_rules", "monitoring_rules")
     @classmethod
     def _rule_ids(cls, value: list[str]) -> list[str]:
         if any(not r.isdigit() or len(r) > 10 for r in value):
@@ -739,19 +743,27 @@ class WazuhConnector:
         ]
         if p.get("rule_groups"):
             lines.append("Groupes de règle : " + ", ".join(str(g) for g in p["rule_groups"]))
+        health = str(p["rule_id"]) in self.config.monitoring_rules
+        if health:
+            lines.append("Santé de l'agent : classée en supervision (monitoring_rules)")
+        attributes: dict[str, str | int | float | bool | None] = (
+            {"kind": "agent_health", "wazuh_level": level, "count": int(p["count"])}
+            if health
+            else {"kind": "alert", "rule_level": level, "count": int(p["count"])}
+        )
         return Signal(
             source=SOURCE,
             external_id=raw.external_id,
             company_code=_company(mapping, p["groups"], p["agent_name"]),
             asset=agent,
-            category=Category.security,
-            severity=rule_severity(level),
+            category=Category.monitoring if health else Category.security,
+            severity=MONITORING_SEVERITY if health else rule_severity(level),
             title=clean_untrusted(f"Wazuh — {description} ({agent})", TITLE_MAX),
             details=clean_untrusted("\n".join(lines), DETAILS_MAX),
             first_seen=first,
             last_seen=last,
             url_template_params={"agent_id": str(p["agent_id"]), "rule_id": str(p["rule_id"])},
-            attributes={"kind": "alert", "rule_level": level, "count": int(p["count"])},
+            attributes=attributes,
         )
 
     def _vuln_signal(self, raw: RawSignal, mapping: CompanyMapper) -> Signal:
