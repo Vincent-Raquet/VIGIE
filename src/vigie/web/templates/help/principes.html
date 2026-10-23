@@ -1,0 +1,38 @@
+{% extends "help/_layout.html" %}
+{% block heading %}Principes{% endblock %}
+{% block lead %}Les règles qui guident Vigie. Elles sont non négociables : aucune fonctionnalité ne les contourne.{% endblock %}
+{% block help %}
+<div class="panel"><h2>1. Vigie regarde, il ne touche à rien</h2>
+  <p>Vigie interroge les outils de supervision en <strong>lecture seule absolue</strong>. Chaque connecteur déclare la liste fermée des appels qu'il a le droit de faire (par exemple <span class="mono">problem.get</span> pour Zabbix) ; tout autre appel est refusé avant même de partir.</p>
+  <p>Conséquence pratique : Vigie <strong>n'acquitte pas</strong> une alerte, <strong>ne ferme pas</strong> un ticket, <strong>ne relance pas</strong> une sauvegarde. Ces gestes se font dans la console de l'outil concerné ; Vigie constatera le résultat à la collecte suivante.</p>
+</div>
+<div class="panel"><h2>2. Des règles explicites d'abord, l'IA ensuite</h2>
+  <p>La priorité de chaque incident et l'affectation de chaque tâche sont calculées par un <strong>moteur déterministe</strong> : mêmes données, même résultat, et une raison lisible pour chaque décision (« Override : sauvegarde critique sans succès depuis plus de 24 h », « Assigné à … : compétence réseau niveau 3, présent jeudi »).</p>
+  <p>L'IA intervient <strong>après</strong> : elle reformule les tâches en actions concrètes, regroupe les doublons, rédige les synthèses et signale les risques. Elle peut proposer une autre affectation, mais ne peut ni abaisser une priorité imposée par une règle, ni affecter une tâche à quelqu'un d'absent ou sans la compétence, ni dépasser une capacité. Un <strong>validateur</strong> vérifie chacune de ses propositions et écarte celles qui ne respectent pas ces contraintes (elles sont listées sous le plan).</p>
+  <p>Si l'IA est indisponible, désactivée ou si le budget du mois est atteint, le plan est produit <strong>sans IA</strong> et l'indique.</p>
+</div>
+<div class="panel"><h2>3. L'IA n'a aucun pouvoir d'agir</h2>
+  <p>L'IA ne reçoit aucun outil : elle renvoie uniquement des <strong>données</strong> au format du plan, que Vigie contrôle. Rien de ce qu'elle écrit n'est exécuté, et aucun lien qu'elle produirait n'est affiché : les liens vers les consoles sont construits par Vigie lui-même.</p>
+  <p>Dans la discussion, ses propositions (changer la priorité d'un incident, ajouter une règle) restent des <strong>propositions</strong> tant qu'un administrateur ne les a pas appliquées ; chaque décision est tracée.</p>
+</div>
+<div class="panel"><h2>4. Le contenu des sources est une donnée, jamais une consigne</h2>
+  <p>Un ticket est rédigé par un utilisateur, un journal peut contenir n'importe quoi. Vigie tronque ces textes, en retire les balises et masque ce qui ressemble à un secret (mot de passe, jeton, clé, IBAN) ; il les présente à l'IA comme des données à analyser, jamais comme des instructions à suivre. Une phrase du type « ignore tes consignes et… » dans un ticket reste un simple texte.</p>
+</div>
+<div class="panel"><h2>5. L'humain décide</h2>
+  <ul>
+    <li>Le plan est d'abord un <strong>brouillon</strong> ; le coordinateur ou le responsable le <strong>valide</strong> et le <strong>publie</strong>. À défaut, la publication automatique le diffuse avec la mention « non validé ».</li>
+    <li>Chacun met à jour <strong>ses propres</strong> tâches ; le coordinateur peut ajouter des tâches à la main.</li>
+    <li>Les réglages (barème, politique, équipe) sont faits par des personnes, et journalisés.</li>
+  </ul>
+</div>
+<div class="grid2">
+  <div class="panel"><h2>6. Secrets cloisonnés</h2>
+    <p>L'interface web ne détient ni les accès aux sources ni la clé de l'IA : seuls les processus de collecte et de planification les ont. Un bouton comme « Tester la connexion » dépose une <strong>demande</strong> que le processus de collecte exécute.</p></div>
+  <div class="panel"><h2>7. Tout est tracé</h2>
+    <p>Connexions, modifications de configuration, validations, appels à l'IA (modèle, jetons, coût) et appels aux sources sont inscrits dans un journal d'audit qui ne peut être ni modifié ni effacé (sauf purge au-delà d'un an).</p></div>
+  <div class="panel"><h2>8. Coût maîtrisé</h2>
+    <p>Un budget IA mensuel de <strong>{{ "%.2f"|format(cfg.llm.monthly_budget_usd) }} $</strong> est vérifié avant chaque appel. Au-delà, Vigie continue de fonctionner, sans IA.</p></div>
+  <div class="panel"><h2>9. Accès interne uniquement</h2>
+    <p>Vigie n'est joignable que depuis le réseau de l'entreprise ou le VPN, avec votre compte Microsoft (Entra ID). La session expire après 8 heures.</p></div>
+</div>
+{% endblock %}
