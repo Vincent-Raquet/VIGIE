@@ -91,6 +91,7 @@ Voir SPEC §7.6. En plus :
 - Compte « bris de glace » local désactivé par défaut, activable uniquement en CLI sur le serveur (`vigie breakglass --enable --ttl 1h`), journalisé.
 - En-têtes Caddy (proxy d'entrée partagé, `deploy/roles/edge`, AC interne reprise du Caddy natif) : HSTS, CSP stricte (`default-src 'self'`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
 - Accès uniquement depuis le LAN / VPN ; pas de publication Internet.
+- Aide en ligne (`/aide`, tous les rôles, lecture seule) : gabarits statiques et valeurs **non secrètes** de la configuration (barème, SLA, horaires, noms et fréquences des sources, budget IA, état de la diffusion) ; aucune donnée de source, aucun secret, aucune adresse de source.
 
 ### C10 — Tests de sécurité obligatoires (`tests/security/`)
 - Chaque connecteur : un appel hors allowlist lève `ForbiddenCallError` sans aucune requête émise (transport simulé).

@@ -231,6 +231,9 @@ sudo docker inspect --format '{{.Name}} ro={{.HostConfig.ReadonlyRootfs}} caps={
 sudo systemctl start vigie-collect@zabbix && journalctl -u vigie-collect@zabbix -n 20   # collecte réelle
 systemctl list-timers 'vigie-*'
 ls -l /var/lib/vigie/selfcheck/
+# Interface : 200 pour /healthz, 303 vers /login pour les écrans (dont /aide)
+curl -s -o /dev/null -w '%{http_code}\n' --cacert /srv/edge/root-ca.crt https://vigie.local.wallindustries.be/healthz
+curl -s -o /dev/null -w '%{http_code}\n' --cacert /srv/edge/root-ca.crt https://vigie.local.wallindustries.be/aide
 ```
 Dans Zabbix : hôte `WI-SRV-VIGIE-01`, chiffrement PSK (identité `vigie-01`, clé :
 `sudo cat /etc/zabbix/vigie.psk`, à saisir dans l'interface puis à ne pas recopier
@@ -259,6 +262,7 @@ Quand la page Rodage affiche « Critère atteint » (5 jours ouvrés consécutif
    Conseil : un premier passage avec `draft_only` encore à `true` pour vérifier l'envoi
    réel au seul coordinateur.
 3. `uv run ansible-playbook site.yml -K` : les timers `vigie-notify@daily/weekly` s'activent.
+4. Annoncer à l'équipe l'aide en ligne, en particulier **Aide › Mode d'emploi** (`/aide/mode-emploi`) : lire son plan, mettre à jour ses tâches, commenter.
 
 ## 10. Lynis : suggestions volontairement écartées
 

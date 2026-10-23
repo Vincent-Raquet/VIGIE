@@ -26,7 +26,7 @@ src/vigie/
   connectors/ (base.py, registry.py, zabbix.py, fortianalyzer.py, ninjaone.py, wazuh.py, veeam.py, veezo.py)
   engine/ (normalize.py, correlate.py, scoring.py, rules.py, assign.py, llm.py, prompts/, validator.py, planner.py)
   notify/ (graph_mail.py, teams_webhook.py, render.py)
-  web/ (app.py, auth.py, routes/, templates/, static/)
+  web/ (app.py, auth.py, routes/, templates/ dont help/ pour l'aide en ligne, static/)
   cli.py               # vigie collect|plan|notify|check|seed|budget
 roles/                 # skills de rôle (markdown) chargés en base au seed
 config/                # exemples YAML d'amorçage
@@ -51,6 +51,7 @@ Le développement tourne dans un conteneur (`compose.dev.yaml`) du Docker **root
 - Pour ajouter un système supervisé : skill `add-connector`. Pour la VM : skill `debian-deploy`.
 - Toute vérification d'API tierce se fait contre la documentation officielle de la version installée ; si un endpoint n'est pas confirmé, le marquer `# TODO verify` et le signaler plutôt que deviner.
 - Langue : code et identifiants en anglais, UI, docs et messages utilisateur en français.
+- Aide en ligne (`/aide`, gabarits `web/templates/help/`) : tout changement de comportement visible (écran, bouton, règle d'affectation, cycle des plans) s'y reporte dans le même commit ; les valeurs chiffrées (seuils, poids, SLA, horaires, budget) n'y sont jamais écrites en dur mais lues dans la configuration (`web/routes/help.py`).
 
 ## Contexte métier utile
 - Équipe : coordinateur (ingénieur système & réseau, temps plein), Giovanni (support utilisateurs, temps plein), Cédric (réseau, 1 jour/semaine), Angelo (ingénieur système, 1 jour/semaine). Détails : `config/team.example.yaml`.

@@ -21,6 +21,15 @@ Vigie est l'assistant de pilotage IT de l'équipe. Il fait la veille des systèm
 | `roles/responsable-informatique/SKILL.md` | Skill de rôle « Responsable informatique / CIO » (arbitrage, politique, reporting) |
 | `config/*.example.yaml` | Données d'amorçage : équipe, politique, sociétés, règles de scoring |
 
+## Documentation utilisateur
+
+L'application contient sa propre aide, ouverte à tous les rôles : menu **Aide** (`https://vigie.local.wallindustries.be/aide`).
+- **Principes** : lecture seule, règles explicites avant l'IA, l'humain décide, données des sources jamais prises pour des instructions.
+- **Fonctionnement** : collecte, signaux et incidents, score et priorité, affectation, rôle de l'IA et du validateur, plans, diffusion, rodage — avec les seuils, poids, overrides, SLA et horaires **en vigueur** (lus dans la configuration).
+- **Mode d'emploi** : écran par écran et par rôle (technicien, coordinateur/responsable, administrateur, lecteur), questions fréquentes.
+
+Gabarits : `src/vigie/web/templates/help/` ; route : `src/vigie/web/routes/help.py`.
+
 ## Démarrage avec Claude Code
 
 1. Crée un dépôt Git vide et copie-y tout le contenu de ce pack.

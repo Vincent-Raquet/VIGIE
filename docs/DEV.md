@@ -129,6 +129,7 @@ Claude Code accède aux MCP Zabbix et Veeam pour vérifier les API et capturer d
 2. `config/vigie.toml` : `[web] dev_login = true` et, pour Entra, `[web.oidc]` (tenant, client, groupes). L'URI de redirection `http://localhost:8000/auth/callback` doit être déclarée dans l'application Entra (plus `https://vigie.local.wallindustries.be/auth/callback` pour la prod).
 3. `scripts/dev web --reload`, puis http://localhost:8000. La connexion de développement n'existe que si `VIGIE_ENV=dev`, `dev_login = true` et écoute sur 127.0.0.1 — ou, dans le conteneur de dev, `VIGIE_DEV_CONTAINER=1` (écoute 0.0.0.0 dans le conteneur, port publié sur le seul 127.0.0.1 de l'hôte).
 4. « Tester la connexion » d'une source dépose une demande : `scripts/dev vigie jobs --run-pending` l'exécute (rôle du worker).
+5. Aide en ligne : http://localhost:8000/aide. Un écran ou un comportement modifié se reporte dans `src/vigie/web/templates/help/` (Fonctionnement, Mode d'emploi) ; les valeurs chiffrées viennent de la configuration via `web/routes/help.py`, jamais écrites en dur ; `tests/web/test_help.py`.
 
 ## Diffusion (e-mail Graph et Teams)
 1. **Application Entra « Vigie Mail »** (distincte de l'application de connexion) : permission **application** `Microsoft Graph › Mail.Send`, consentement administrateur ; **certificat** (pas de secret client) :
