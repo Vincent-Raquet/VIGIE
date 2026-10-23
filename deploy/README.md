@@ -556,3 +556,25 @@ que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie
    `sudo vigie-secret set wazuh_indexer_password`, `vigie_wazuh_enabled: true` dans
    `group_vars/vigie.yml`, puis le playbook (certificats dans `/etc/vigie/ca/wazuh-api.pem` et `wazuh-indexer.pem`, timer
    `vigie-collect@wazuh` toutes les 15 min).
+
+## 18. Squid ne redémarre plus (« Address already in use »)
+
+Symptôme : `vigie-squid-1` arrêté, le playbook échoue sur « Services permanents à jour » avec
+`failed to set up container networking: Address already in use` ; connexion Entra, IA,
+NinjaOne et Defender coupées. Cause (incident du 2026-10-23) : les IP fixes de Squid (`.34`,
+`.66`, `.50`) étaient les premières adresses distribuées par Docker ; pendant un arrêt de
+Squid, `web` ou `chat` les ont reçues. Depuis, chaque réseau a une plage automatique
+(`range` de `vigie_networks`, `ip_range` de `compose.yaml`) qui exclut les IP fixes
+(`tests/security/test_compose.py`). Une plage ne change pas en place : recréer les réseaux
+de Vigie (coupure de Vigie seul, quelques minutes ; `edge` et Portal ne sont pas touchés) :
+```sh
+systemctl list-timers 'vigie-*' --no-legend | awk '{print $NF}' | tee ~/timers-actifs.txt
+sudo systemctl stop $(cat ~/timers-actifs.txt)
+sudo systemctl stop vigie-compose
+sudo docker compose --project-directory /srv/vigie down
+sudo docker network ls | grep vigie_     # plus aucun réseau vigie_* ; sinon docker network rm
+cd ~/projets/vigie/deploy && uv run --group deploy ansible-playbook site.yml -K
+sudo systemctl start $(cat ~/timers-actifs.txt)
+sudo docker ps --format '{{.Names}} {{.Status}}' | grep vigie   # squid, web, chat « Up »
+```
+

@@ -194,14 +194,14 @@ networks:
   web:
     name: vigie_web
     internal: true
-    ipam: {config: [{subnet: {{ vigie_networks.web.subnet }}}]}
+    ipam: {config: [{subnet: {{ vigie_networks.web.subnet }}, ip_range: {{ vigie_networks.web.range }}}]}
   worker:
     name: vigie_worker
     internal: true
-    ipam: {config: [{subnet: {{ vigie_networks.worker.subnet }}}]}
+    ipam: {config: [{subnet: {{ vigie_networks.worker.subnet }}, ip_range: {{ vigie_networks.worker.range }}}]}
   egress:
     name: vigie_egress
-    ipam: {config: [{subnet: {{ vigie_networks.egress.subnet }}}]}
+    ipam: {config: [{subnet: {{ vigie_networks.egress.subnet }}, ip_range: {{ vigie_networks.egress.range }}}]}
 {% for e in vigie_source_egress %}
   src_{{ e.name }}:
     name: vigie_src_{{ e.name }}

@@ -67,10 +67,13 @@ edge_subnet: 10.10.100.0/27
 edge_bind_ip: "{{ vigie_ip }}"
 edge_caddy_ip: 10.10.100.2               # seul proxy dont vigie-web croit les en-têtes X-Forwarded-*
 vigie_web_edge_ip: 10.10.100.10         # vigie-web sur « edge » : joint par Caddy, ne sort jamais
+# range : adresses distribuées automatiquement (ip_range), hors des IP fixes. Sans elle, Docker
+# donne les premières adresses (.34, .66…) au premier conteneur venu : un Squid arrêté perd son
+# IP et ne redémarre plus (« Address already in use », incident du 2026-10-23).
 vigie_networks:
-  web: {subnet: 10.10.100.32/28, squid: 10.10.100.34}     # internal : vigie-web ↔ Squid (port web)
-  worker: {subnet: 10.10.100.64/27, squid: 10.10.100.66}  # internal : tâches ↔ Squid (port worker)
-  egress: {subnet: 10.10.100.48/28, squid: 10.10.100.50}  # Squid seul : 443 et DNS
+  web: {subnet: 10.10.100.32/28, range: 10.10.100.40/29, squid: 10.10.100.34}     # internal : vigie-web ↔ Squid (port web)
+  worker: {subnet: 10.10.100.64/27, range: 10.10.100.80/28, squid: 10.10.100.66}  # internal : tâches ↔ Squid (port worker)
+  egress: {subnet: 10.10.100.48/28, range: 10.10.100.56/29, squid: 10.10.100.50}  # Squid seul : 443 et DNS
 vigie_jobs_subnet: 10.10.100.144/28    # vigie-jobs (tests de source) : toutes les sources directes
 
 # --- Squid (sortie Internet) -------------------------------------------------------------
@@ -180,7 +183,7 @@ vigie_source_fortianalyzer:
 # Sur la machine qui lance Ansible (hors dépôt) : certificats de l'API (wazuh-api.pem) et de
 # l'indexer (wazuh-indexer.pem, signé par root-ca.pem ; l'AC de l'OVA, sans keyUsage, est
 # refusée par le mode X.509 strict), copiés dans /etc/vigie/ca/, chacun seule ancre de son API. Secrets wazuh_api_password et wazuh_indexer_password. false = source non déployée.
-vigie_wazuh_enabled: false            # true après la capture réelle (deploy/README.md §17)
+vigie_wazuh_enabled: true             # capture réelle du 2026-10-23 (deploy/README.md §17)
 vigie_wazuh_name: wazuh.egc-sa.local
 vigie_wazuh_api_ca_file: "~/vigie-ca/wazuh-api.pem"
 vigie_wazuh_indexer_ca_file: "~/vigie-ca/wazuh-indexer.pem"
