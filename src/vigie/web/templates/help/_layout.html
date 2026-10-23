@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Aide{% if current %} · {{ pages[current] }}{% endif %}{% endblock %}
+{% block content %}
+<section class="stack">
+  <header class="page">
+    <div><h1>{% block heading %}Aide{% endblock %}</h1><div class="sub">{% block lead %}{% endblock %}</div></div>
+    <nav class="row" aria-label="Pages d'aide">
+      <a class="btn{% if not current %} primary{% endif %}" href="/aide"{% if not current %} aria-current="page"{% endif %}>Sommaire</a>
+      {% for slug, label in pages.items() %}<a class="btn{% if slug == current %} primary{% endif %}" href="/aide/{{ slug }}"{% if slug == current %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+  </header>
+  {% block help %}{% endblock %}
+</section>
+{% endblock %}

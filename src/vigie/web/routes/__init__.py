@@ -8,6 +8,7 @@ from vigie.web.routes import (
     api,
     audit,
     chat,
+    help,
     plans,
     policy,
     projects,
@@ -32,6 +33,7 @@ MODULES = (
     sources,
     settings,
     audit,
+    help,
 )
 
 

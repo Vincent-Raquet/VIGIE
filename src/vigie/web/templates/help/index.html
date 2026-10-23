@@ -1,0 +1,25 @@
+{% extends "help/_layout.html" %}
+{% block heading %}Aide de Vigie{% endblock %}
+{% block lead %}Vigie lit l'état des outils de supervision, en déduit les priorités du jour et de la semaine, et propose à chacun un plan de tâches adapté à ses compétences et à sa présence.{% endblock %}
+{% block help %}
+<div class="grid2">
+  <div class="panel"><h2><a href="/aide/principes">Principes</a></h2>
+    <p>Ce que Vigie fait et ce qu'il s'interdit : lecture seule, règles explicites avant l'IA, l'humain décide, données des sources jamais prises pour des instructions.</p></div>
+  <div class="panel"><h2><a href="/aide/fonctionnement">Fonctionnement</a></h2>
+    <p>Le trajet d'une alerte jusqu'à une tâche : collecte, signaux, incidents, score et priorité P1–P4, affectation, rôle de l'IA, plans quotidien et hebdomadaire, diffusion.</p></div>
+  <div class="panel"><h2><a href="/aide/mode-emploi">Mode d'emploi</a></h2>
+    <p>Écran par écran : lire son plan, mettre à jour ses tâches, valider et publier, juger les tâches pendant le rodage, discuter avec l'IA, configurer l'équipe, la politique et le barème.</p></div>
+  <div class="panel"><h2>Votre accès</h2>
+    <p>Vous êtes connecté avec le rôle <strong>{{ user.role.value }}</strong>. {% if user.role.value == "admin" %}Vous avez accès à tous les écrans.{% elif user.role.value == "manager" %}Vous lisez et validez les plans, et gérez la politique et les projets.{% elif user.role.value == "tech" %}Vous lisez les plans et mettez à jour le statut de vos tâches.{% else %}Vous consultez les plans hebdomadaires.{% endif %}
+    Le rôle vient de votre groupe Entra ID (<span class="mono">SG-Vigie-Admin</span>, <span class="mono">-Manager</span>, <span class="mono">-Tech</span>, <span class="mono">-Viewer</span>) ; pour en changer, adressez-vous au coordinateur.</p></div>
+</div>
+<div class="panel"><h2>En bref</h2>
+  <ol>
+    <li>À intervalles réguliers (15 minutes en général), Vigie <strong>lit</strong> les alertes des sources (Zabbix, Veeam, NinjaOne, Defender, FortiAnalyzer…).</li>
+    <li>Il les regroupe en <strong>incidents</strong> et calcule une <strong>priorité P1 à P4</strong>, toujours expliquée.</li>
+    <li>Chaque jour ouvré à {{ cfg.plans.daily_at.strftime("%H:%M") }}, il construit le <strong>plan du jour</strong> ; le {{ weekly_day }} à {{ cfg.plans.weekly_at.strftime("%H:%M") }}, le <strong>plan de la semaine</strong>.</li>
+    <li>L'IA reformule et commente le plan ; un <strong>validateur</strong> écarte toute proposition non conforme.</li>
+    <li>Le coordinateur valide, l'équipe exécute et met à jour ses tâches <strong>dans Vigie</strong> (jamais dans les outils supervisés).</li>
+  </ol>
+</div>
+{% endblock %}

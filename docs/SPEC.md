@@ -319,6 +319,7 @@ Pages (FR, responsive, utilisable sur mobile) :
 9. **Paramètres** — horaires, auto-publication, budget LLM, modèle, destinataires, pause globale, barème (seuils, poids, estimations, ancienneté).
 10. **Audit & coûts**.
 11. **Rodage** — jugement des tâches (pertinente, bien affectée) sur Aujourd'hui, série de jours validés, motifs de rejet, coût IA par plan et projection mensuelle.
+12. **Aide** — principes, fonctionnement (valeurs du barème, des SLA et des horaires en vigueur) et mode d'emploi par rôle ; tous les rôles.
 
 Accessibilité : contrastes AA, navigation clavier. Aucun script ou police chargés depuis un CDN.
 

@@ -1,0 +1,134 @@
+{% extends "help/_layout.html" %}
+{% block heading %}Fonctionnement{% endblock %}
+{% block lead %}Le trajet d'une alerte, de l'outil de supervision jusqu'à une tâche dans votre plan. Les valeurs indiquées sont celles en vigueur.{% endblock %}
+{% block help %}
+<div class="panel"><h2>Vue d'ensemble</h2>
+  <p class="formula">collecte → signaux → incidents → score et priorité → tâches → affectation → IA (facultative) → validateur → plan brouillon → validation → publication et diffusion</p>
+  <ul>
+    <li><a href="#collecte">Collecte des sources</a></li>
+    <li><a href="#signaux">Signaux et incidents</a></li>
+    <li><a href="#priorite">Score et priorité</a></li>
+    <li><a href="#affectation">Affectation des tâches</a></li>
+    <li><a href="#ia">Rôle de l'IA</a></li>
+    <li><a href="#plans">Plans quotidien et hebdomadaire</a></li>
+    <li><a href="#suivi">Suivi des tâches et reports</a></li>
+    <li><a href="#diffusion">Diffusion</a></li>
+    <li><a href="#rodage">Rodage</a></li>
+  </ul>
+</div>
+
+<div class="panel" id="collecte"><h2>1. Collecte des sources</h2>
+  <p>Un processus séparé interroge chaque source à intervalle fixe, en lecture seule :</p>
+  <div class="table-wrap"><table><thead><tr><th>Source</th><th>Fréquence</th><th>État</th></tr></thead><tbody>
+  {% for name, src in sources %}<tr><td>{{ name }}</td><td class="mono">toutes les {{ src.interval_min }} min</td><td>{{ "activée" if src.enabled else "désactivée" }}</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">Aucune source configurée.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p>Chaque collecte est un <strong>instantané</strong> : une alerte qui n'apparaît plus dans la source est considérée comme <strong>résolue</strong>. Une source injoignable devient elle-même un signal (catégorie <span class="mono">monitoring</span>, P2, puis P1 au-delà de 4 h) : une supervision aveugle est un problème à traiter.</p>
+</div>
+
+<div class="panel" id="signaux"><h2>2. Signaux et incidents</h2>
+  <p>Chaque alerte est <strong>normalisée</strong> en <em>signal</em> : société (WI, SPL, WG, CC, FWD, d'après des règles de rattachement), actif, catégorie, sévérité ramenée sur une échelle commune de 0 (non classée) à 5 (désastre), titre et détail tronqué. Une empreinte permet de reconnaître la même alerte d'une collecte à l'autre : elle n'est pas dupliquée, son nombre d'occurrences augmente.</p>
+  <p>Les signaux portant sur le <strong>même actif</strong> à moins de 60 minutes d'intervalle sont regroupés en un <em>incident</em>, même s'ils viennent de sources différentes (par exemple Zabbix « hôte injoignable » + NinjaOne « appareil hors ligne » + Veeam « job en échec » sur le même serveur). L'incident prend la sévérité la plus haute. C'est l'incident, pas le signal, qui est priorisé et donne lieu à une tâche.</p>
+  <div class="table-wrap"><table><thead><tr><th>Catégorie</th><th>Compétence(s) requise(s)</th><th class="num">Estimation par défaut</th></tr></thead><tbody>
+  {% for cat, est in estimates.items() %}<tr><td class="mono">{{ cat }}</td><td>{{ category_skill.get(cat, ["selon le jalon"])|join(" + ") }}</td><td class="num">{{ est|fr_num(2) }} h</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="sub">Une vulnérabilité sur un serveur demande en plus la compétence <span class="mono">systeme</span>.</p>
+</div>
+
+<div class="panel" id="priorite"><h2>3. Score et priorité</h2>
+  <p>Chaque incident reçoit un score :</p>
+  <p class="formula">score = poids de sévérité × criticité de la société × criticité de l'actif × ancienneté × récurrence × poids de catégorie + bonus de politique</p>
+  <div class="grid2">
+    <div>
+      <h3 class="sub">Poids de sévérité</h3>
+      <table><tbody>{% for n in range(6) %}<tr><td>Sévérité {{ n }}</td><td class="num">{{ scoring.severity_weight[n]|fr_num(2) }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+    <div>
+      <h3 class="sub">Coefficients</h3>
+      <ul>
+        <li><strong>Société</strong> : de 0,5 à 1,5 (écran Politique).</li>
+        <li><strong>Actif</strong> : de 0,5 à 1,5 selon le type (production, cœur de réseau, pare-feu : élevé ; poste : bas) ; défaut {{ scoring.asset_criticality_default|fr_num(2) }}.</li>
+        <li><strong>Ancienneté</strong> : +{{ (scoring.age_factor_per_day * 100)|fr_num(1) }} % par jour ouvert, plafonné à {{ scoring.age_factor_max_days }} jours.</li>
+        <li><strong>Récurrence</strong> : +{{ (scoring.recurrence_factor * 100)|fr_num(1) }} % par occurrence sur {{ scoring.recurrence_window_days }} jours, plafonné à {{ scoring.recurrence_max }}.</li>
+        <li><strong>Catégorie</strong> : {% for k, v in scoring.category_weight.items() %}{{ "autres" if k == "default" else k }} ×{{ v|fr_num(2) }}{% if not loop.last %}, {% endif %}{% endfor %}.</li>
+        <li><strong>Politique</strong> : pour chaque axe prioritaire actif concerné, poids de l'axe × {{ scoring.policy_bonus_per_weight|fr_num }} ; plafonné à {{ scoring.policy_bonus_max|fr_num }}.</li>
+      </ul>
+    </div>
+  </div>
+  <h3 class="sub">Seuils et délais cibles (SLA)</h3>
+  <div class="table-wrap"><table><thead><tr><th>Priorité</th><th>Score minimal</th><th>Délai cible</th><th>Sens</th></tr></thead><tbody>
+    <tr><td><span class="pill P1">P1</span></td><td class="num">{{ scoring.thresholds.P1|fr_num }}</td><td class="num">{{ sla.P1 }} h</td><td>Urgent : service ou sécurité compromis. Échéance stricte.</td></tr>
+    <tr><td><span class="pill P2">P2</span></td><td class="num">{{ scoring.thresholds.P2|fr_num }}</td><td class="num">{{ sla.P2 }} h</td><td>Important : à traiter rapidement. Échéance stricte.</td></tr>
+    <tr><td><span class="pill P3">P3</span></td><td class="num">{{ scoring.thresholds.P3|fr_num }}</td><td class="num">{{ sla.P3 }} h</td><td>À planifier dans les jours qui viennent. Échéance indicative.</td></tr>
+    <tr><td><span class="pill P4">P4</span></td><td class="num">en dessous</td><td class="num">{{ sla.P4 }} h</td><td>Quand la capacité le permet. Échéance indicative.</td></tr>
+  </tbody></table></div>
+  <h3 class="sub">Règles d'override</h3>
+  <p>Certaines situations imposent une priorité minimale quel que soit le score. Une règle <strong>relève</strong> la priorité, jamais ne l'abaisse, et sa raison est affichée sur l'incident :</p>
+  <ul>{% for r in scoring.overrides %}<li><span class="pill {{ r.priority.value }}">{{ r.priority.value }}</span> {{ r.reason }}</li>{% endfor %}</ul>
+  <p>Un administrateur peut enfin fixer à la main la priorité d'un incident (depuis une proposition de la discussion IA) ; elle est affichée avec son auteur et peut être retirée.</p>
+</div>
+
+<div class="panel" id="affectation"><h2>4. Affectation des tâches</h2>
+  <p>Les tâches candidates sont les incidents ouverts, les jalons de projets dont l'échéance tombe dans les {{ cfg.plans.milestone_window_days }} jours, et les tâches non terminées du plan précédent. Pour chacune :</p>
+  <ol>
+    <li><strong>Compétences</strong> : celles de la catégorie (toutes si plusieurs), ou celles du jalon.</li>
+    <li><strong>Candidats</strong> : personnes actives ayant la compétence — niveau 2 au moins pour un P1/P2, niveau 1 sinon — et <strong>présentes</strong> (ce jour-là pour le plan quotidien, dans la semaine pour l'hebdomadaire), absences et jours fériés belges déduits.</li>
+    <li><strong>Choix</strong> : le jour le plus tôt possible, puis le responsable désigné (jalon), le niveau le plus élevé, la capacité restante, la préférence (aime / neutre / à éviter) et enfin l'équité de charge sur la période. Le coordinateur n'est pas un candidat ordinaire : il est le <strong>recours</strong>.</li>
+    <li><strong>Capacité</strong> : heures de présence × taux planifiable de la personne (80 % en général, 50 % pour le coordinateur afin de garder une réserve). On n'affecte jamais au-delà ; au plus {{ cfg.plans.max_tasks_per_person_per_day }} tâches par personne et par jour. Le surplus va au <strong>non planifié</strong>.</li>
+    <li><strong>Ordre</strong> : P1 d'abord ; à priorité égale, une priorité imposée par une règle passe avant une priorité de score, et les jalons avant les incidents (par tranches de 4 h). Un P1 ou un P2 n'est jamais planifié après son délai cible.</li>
+  </ol>
+  <h3 class="sub">Quand le spécialiste est absent</h3>
+  <ul>
+    <li><strong>P1</strong> : la tâche part au coordinateur, marquée <span class="esc">Escalade</span>, et une tâche de suivi (analyse de cause) est prévue le prochain jour de présence du spécialiste. Les escalades sont plafonnées à {{ (cfg.plans.coordinator_overload_max * 100)|round|int }} % de la capacité du jour du coordinateur ; au-delà, elles apparaissent en tête du non planifié comme « P1 non couvert — arbitrage nécessaire ».</li>
+    <li><strong>P2</strong> : planifiée au prochain jour de présence du spécialiste si le délai cible le permet, sinon chez le coordinateur s'il a de la capacité, sinon non planifiée.</li>
+    <li><strong>P3/P4</strong> : le délai n'est qu'une cible, la tâche attend le spécialiste ; à défaut, coordinateur s'il est compétent et disponible, sinon non planifiée.</li>
+  </ul>
+  <p>Chaque tâche porte une <strong>justification</strong> lisible sous son titre.</p>
+</div>
+
+<div class="panel" id="ia"><h2>5. Rôle de l'IA</h2>
+  <p>Modèle par défaut : <strong>{{ model }}</strong>{% if not cfg.llm.enabled %} — <strong>l'IA est actuellement désactivée</strong>{% endif %}. Vigie lui transmet la politique, l'équipe (compétences, consignes), les skills de rôle, les disponibilités, les jalons, les incidents scorés et la proposition d'affectation du moteur. En retour, elle :</p>
+  <ul>
+    <li>reformule chaque tâche en <strong>actions concrètes</strong> ;</li>
+    <li>regroupe les doublons restants et peut proposer une autre affectation, justifiée ;</li>
+    <li>rédige la <strong>synthèse</strong> (exécutive et par personne) ;</li>
+    <li>signale des <strong>risques</strong> et propose des <strong>escalades</strong>.</li>
+  </ul>
+  <p>Le validateur contrôle chaque élément : personne existante, active, présente et compétente ; incidents et jalons existants ; priorité jamais abaissée sous une règle ; capacités respectées ; textes bornés, sans lien. Un élément refusé est remplacé par la proposition du moteur (ou renvoyé au non planifié) et listé sous « proposition(s) de l'IA écartée(s) ». Une tâche inventée par l'IA ne peut dépasser P3.</p>
+  <p>Coût : chaque appel est journalisé (écran Audit &amp; coûts) et décompté du budget mensuel de {{ "%.2f"|format(cfg.llm.monthly_budget_usd) }} $.</p>
+</div>
+
+<div class="panel" id="plans"><h2>6. Plans quotidien et hebdomadaire</h2>
+  <div class="grid2">
+    <div><h3 class="sub">Plan quotidien (« light »)</h3>
+      <ul>
+        <li>Généré à <strong>{{ cfg.plans.daily_at.strftime("%H:%M") }}</strong> les jours ouvrés (hors jours fériés belges), pour les personnes présentes.</li>
+        <li>Contenu : nouveautés P1/P2 depuis la veille, tâches du jour par personne, tâches prévues plus tard, sources en panne, non planifié.</li>
+        <li>Publié automatiquement à <strong>{{ cfg.plans.daily_publish_at.strftime("%H:%M") }}</strong>, avec la mention « non validé » s'il n'a pas été validé.</li>
+      </ul></div>
+    <div><h3 class="sub">Plan hebdomadaire (complet)</h3>
+      <ul>
+        <li>Généré le <strong>{{ weekly_day }} à {{ cfg.plans.weekly_at.strftime("%H:%M") }}</strong>.</li>
+        <li>Contenu : synthèse, grille personne × jour, jalons de la semaine et jalons à risque, non planifié à arbitrer.</li>
+        <li>Attend une validation ; publication automatique à <strong>{{ cfg.plans.weekly_auto_publish_at.strftime("%H:%M") }}</strong> sinon.</li>
+      </ul></div>
+  </div>
+  <p>Cycle de vie : <span class="pill P2">brouillon non validé</span> → <span class="pill okc">validé</span> → <span class="pill okc">publié</span>. Un plan peut aussi être régénéré à la demande (« Générer maintenant… »), avec ou sans IA ; le nouveau plan est créé en brouillon.</p>
+  <p>Un jalon est dit <strong>à risque</strong> quand sa charge restante dépasse la capacité des personnes compétentes d'ici son échéance.</p>
+</div>
+
+<div class="panel" id="suivi"><h2>7. Suivi des tâches et reports</h2>
+  <p>Statuts : <em>à faire</em>, <em>en cours</em>, <em>bloquée</em>, <em>terminée</em>, <em>abandonnée</em> (avec un motif). Le statut est enregistré uniquement dans Vigie.</p>
+  <p>Quand tous les signaux liés à une tâche sont résolus dans la source, la tâche passe en <em>terminée ? (signaux résolus)</em> : il reste à confirmer.</p>
+  <p>Une tâche non terminée est <strong>reportée</strong> au plan suivant avec un compteur (« reportée ×2 ») ; au-delà de {{ cfg.plans.carry_over_escalation_after }} reports, elle est escaladée au coordinateur.</p>
+</div>
+
+<div class="panel" id="diffusion"><h2>8. Diffusion</h2>
+  <p>À la publication, chaque personne reçoit un e-mail avec ses tâches et un lien vers Vigie, le coordinateur reçoit un récapitulatif (synthèse, escalades, risques), et une carte sans détail est postée dans Teams. Les destinataires sont uniquement les personnes actives de l'équipe.</p>
+  <p>État actuel : e-mail <strong>{{ "activé" if cfg.notify.mail_enabled else "désactivé" }}</strong>, Teams <strong>{{ "activé" if cfg.notify.teams_enabled else "désactivé" }}</strong>{% if cfg.notify.draft_only %}, <strong>mode rodage</strong> : tout part au seul coordinateur{% endif %}.</p>
+</div>
+
+<div class="panel" id="rodage"><h2>9. Rodage</h2>
+  <p>Avant d'envoyer les plans à toute l'équipe, le coordinateur juge chaque tâche (pertinente ? bien affectée ?). Un jour est <strong>validé</strong> si au moins {{ (rodage.COVERAGE_THRESHOLD * 100)|int }} % des tâches ont été jugées et au moins {{ (rodage.RATE_THRESHOLD * 100)|int }} % sont pertinentes et bien affectées. Après {{ rodage.STREAK_TARGET }} jours ouvrés validés de suite, la diffusion à l'équipe peut être activée. Les rejets servent à régler le barème.</p>
+</div>
+{% endblock %}

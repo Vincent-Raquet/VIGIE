@@ -52,6 +52,7 @@ NAV = (
     NavItem("Configuration", "Sources", "/sources", ADMIN),
     NavItem("Configuration", "Paramètres", "/parametres", ADMIN),
     NavItem("Administration", "Audit & coûts", "/audit", ADMIN),
+    NavItem("Aide", "Aide", "/aide", ALL),
 )
 
 

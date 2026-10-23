@@ -1,0 +1,133 @@
+{% extends "help/_layout.html" %}
+{% block heading %}Mode d'emploi{% endblock %}
+{% block lead %}Écran par écran, selon votre rôle. Vous êtes connecté avec le rôle <strong>{{ user.role.value }}</strong> : la section qui vous concerne est signalée.{% endblock %}
+{% block help %}
+{% set role = user.role.value %}
+<div class="panel"><h2>Sommaire</h2>
+  <ul>
+    <li><a href="#tous">Pour tous : se connecter, naviguer</a></li>
+    <li><a href="#tech">Technicien : lire son plan, mettre à jour ses tâches</a>{% if role == "tech" %} <span class="tag okc">votre rôle</span>{% endif %}</li>
+    <li><a href="#lead">Coordinateur et responsable : valider, publier, arbitrer</a>{% if role in ("admin", "manager") %} <span class="tag okc">votre rôle</span>{% endif %}</li>
+    <li><a href="#admin">Administrateur : configurer Vigie</a>{% if role == "admin" %} <span class="tag okc">votre rôle</span>{% endif %}</li>
+    <li><a href="#viewer">Lecteur : rapports hebdomadaires</a>{% if role == "viewer" %} <span class="tag okc">votre rôle</span>{% endif %}</li>
+    <li><a href="#faq">Questions fréquentes</a></li>
+  </ul>
+</div>
+
+<div class="panel" id="tous"><h2>Pour tous</h2>
+  <ul>
+    <li><strong>Connexion</strong> : avec votre compte Microsoft, depuis le réseau de l'entreprise ou le VPN. La session dure 8 heures.</li>
+    <li><strong>Navigation</strong> : le menu de gauche ne montre que les écrans autorisés pour votre rôle. Le compteur à côté d'« Aujourd'hui » indique le nombre de P1 du jour.</li>
+    <li><strong>Thème</strong> : le bouton « Thème » en bas du menu bascule entre clair et sombre.</li>
+    <li><strong>Priorités</strong> : <span class="pill P1">P1</span> urgent, <span class="pill P2">P2</span> important, <span class="pill P3">P3</span> à planifier, <span class="pill P4">P4</span> quand possible. Le détail du calcul est dans <a href="/aide/fonctionnement#priorite">Fonctionnement</a>.</li>
+  </ul>
+</div>
+
+<div class="panel" id="tech"><h2>Technicien</h2>
+  <h3 class="sub">Lire son plan — écran Aujourd'hui</h3>
+  <ul>
+    <li>Une carte par personne présente : charge planifiée / capacité, synthèse rédigée par l'IA, puis les tâches, P1 en tête.</li>
+    <li>Chaque tâche affiche sa priorité, son estimation, les <strong>actions</strong> proposées, et en dessous sa <strong>justification</strong> (pourquoi elle vous revient) avec un lien vers l'incident.</li>
+    <li>La mention <span class="esc">Escalade</span> signale une tâche reprise par le coordinateur faute de spécialiste présent, ou reportée trop souvent.</li>
+    <li>Plus bas : nouveautés P1/P2 depuis la veille, tâches prévues plus tard, sources en panne et non planifié.</li>
+  </ul>
+  <h3 class="sub">Mettre à jour une tâche</h3>
+  <ol>
+    <li>Choisissez le statut dans la liste sous la tâche : <em>à faire</em>, <em>en cours</em>, <em>bloquée</em>, <em>terminée</em> ou <em>abandonnée</em>.</li>
+    <li>Pour <em>abandonnée</em>, indiquez le motif dans le champ à côté.</li>
+    <li>Cliquez « Enregistrer ». Vous ne pouvez modifier que <strong>vos</strong> tâches.</li>
+  </ol>
+  <p>Une tâche en <em>terminée ? (signaux résolus)</em> a vu ses alertes disparaître de la source : confirmez-la en la passant à <em>terminée</em>, ou remettez-la <em>en cours</em> si le problème n'est pas réglé.</p>
+  <p><strong>Commentaires</strong> : dépliez « commentaire(s) » sous une tâche pour lire ou ajouter une note (blocage, information utile). Toute l'équipe peut commenter.</p>
+  <p class="sub">Rappel : mettre une tâche à <em>terminée</em> dans Vigie ne ferme rien dans la source. Traitez l'alerte dans la console concernée (lien « ouvrir » sur la fiche incident).</p>
+  <h3 class="sub">Comprendre un incident — écran Signaux &amp; incidents</h3>
+  <ul>
+    <li>La liste se filtre par statut, priorité, société et source.</li>
+    <li>La fiche « détail » montre la <strong>raison de la priorité</strong> (calcul ou règle), les signaux regroupés avec leur sévérité, première et dernière apparition, nombre d'occurrences, le lien vers la console source et les tâches liées.</li>
+  </ul>
+  <h3 class="sub">La semaine — écran Semaine</h3>
+  <p>Grille personne × jour (« absent » si vous n'êtes pas planifiable), jalons de la semaine, non planifié, puis vos tâches de la semaine, modifiables de la même façon.</p>
+  <h3 class="sub">Discuter avec l'IA</h3>
+  <p>Un panneau « Discuter des priorités avec l'IA » se trouve sous le plan du jour et sur chaque fiche incident. Posez une question (« Pourquoi cet incident est-il en P2 ? », « Lequel de #123 et #456 traiter d'abord ? ») ; citez les incidents par <span class="mono">#numéro</span>. L'IA peut proposer un changement de priorité, que seul un administrateur peut appliquer. « Réinitialiser le contexte » archive la conversation et repart de zéro ; vos conversations restent visibles dans « Discussions IA ».</p>
+</div>
+
+<div class="panel" id="lead"><h2>Coordinateur et responsable</h2>
+  <h3 class="sub">Valider et publier un plan</h3>
+  <ol>
+    <li>Relisez le plan (Aujourd'hui ou Semaine). L'en-tête indique l'état (brouillon, validé, publié) et s'il a été affiné par l'IA ou produit sans IA (avec la raison).</li>
+    <li>Parcourez la <strong>synthèse</strong>, les <strong>risques</strong>, les <strong>escalades proposées</strong> et, le cas échéant, les propositions de l'IA <strong>écartées</strong> par le validateur.</li>
+    <li>« Valider le plan » marque votre accord ; « Publier » le diffuse. Sans action, le plan quotidien est publié automatiquement à {{ cfg.plans.daily_publish_at.strftime("%H:%M") }} et l'hebdomadaire à {{ cfg.plans.weekly_auto_publish_at.strftime("%H:%M") }}, avec la mention « non validé ».</li>
+  </ol>
+  <h3 class="sub">Régénérer un plan — « Générer maintenant… »</h3>
+  <ol>
+    <li>Ouvrez « Générer maintenant… » sur Aujourd'hui ou Semaine : le coût de la dernière itération IA et la dépense du mois sont affichés.</li>
+    <li>Choisissez le jour, le modèle d'IA (par défaut {{ model }}) et « avec l'IA » ou « sans IA (gratuit) ». Au-delà de 80 % du budget, préférez sans IA.</li>
+    <li>« Lancer la génération » : elle démarre dans la minute, une seule à la fois ; l'état est suivi sur la page. Le nouveau plan est un brouillon.</li>
+  </ol>
+  <p>Utile après une correction de barème, l'ajout d'une absence ou un incident majeur en cours de journée.</p>
+  <h3 class="sub">Ajouter une tâche à la main</h3>
+  <p>En bas de l'écran Semaine : titre, catégorie, priorité, personne, jour et estimation. Elle s'ajoute au plan affiché.</p>
+  <h3 class="sub">Arbitrer le non planifié</h3>
+  <p>Le bloc « Non planifié » liste ce qui n'a pas trouvé de place faute de capacité ou de compétence présente. Un « P1 non couvert — arbitrage nécessaire » en tête demande une décision : décaler autre chose, ajouter un jour supplémentaire à quelqu'un (Équipe), ou relever la tâche à la main.</p>
+  <h3 class="sub">Rodage : juger les tâches</h3>
+  <ol>
+    <li>Sous chaque tâche d'Aujourd'hui, indiquez <em>Pertinente</em> oui/non et <em>Bien affectée</em> oui/non, avec une note facultative, puis « Juger ».</li>
+    <li>En bas de page, « Ce qui manquait au plan » recueille ce que Vigie aurait dû proposer.</li>
+    <li>L'écran <strong>Rodage</strong> suit la série de jours validés (objectif : {{ rodage.STREAK_TARGET }} de suite), les tâches rejetées par catégorie et origine, et le coût IA. Les rejets indiquent où régler le barème.</li>
+  </ol>
+  <h3 class="sub">Politique</h3>
+  <ul>
+    <li><strong>Axes prioritaires</strong> : titre, description, poids 1 à 5, période de validité, mots-clés et catégories. Un incident qui correspond à un axe actif reçoit un bonus de score.</li>
+    <li><strong>Règles</strong> : phrases courtes transmises à l'IA (ex. « Toute vulnérabilité CVSS ≥ 9 exposée Internet est traitée sous 48 h »). Elles orientent la rédaction ; elles ne changent pas le calcul du moteur.</li>
+    <li><strong>Criticité des sociétés</strong> (0,5 à 1,5) et <strong>SLA cibles</strong> par priorité.</li>
+    <li>Chaque modification est historisée.</li>
+  </ul>
+  <h3 class="sub">Projets et jalons</h3>
+  <p>Un projet regroupe des jalons : échéance, responsable, charge et reste à faire en heures, compétences requises, statut. Tenez le <strong>reste (h)</strong> à jour : c'est lui que le planificateur réserve dans les {{ cfg.plans.milestone_window_days }} jours avant l'échéance et qui détermine si un jalon est « à risque ».</p>
+</div>
+
+<div class="panel" id="admin"><h2>Administrateur</h2>
+  <h3 class="sub">Équipe</h3>
+  <ul>
+    <li>La <strong>matrice de compétences</strong> donne une vue d'ensemble (1 notions, 2 autonome, 3 expert ; ↑ aime, ↓ à éviter). Un niveau 2 est nécessaire pour recevoir un P1/P2.</li>
+    <li>Fiche personne : e-mail (identifiant Entra), rôle applicatif, skill de rôle, <strong>taux planifiable</strong> (part des heures de présence que Vigie peut remplir), heures par jour de la semaine, compétences et préférences, et <strong>consignes</strong> libres transmises au moteur et à l'IA (ex. « pas d'intervention sur site FWD »). Décocher « Active » retire la personne des plans et des envois.</li>
+    <li><strong>Absences</strong> : congé, maladie, formation, autre — ou <strong>jour supplémentaire</strong> avec un nombre d'heures, pour une présence exceptionnelle. Effet au plan suivant.</li>
+  </ul>
+  <h3 class="sub">Skills de rôle</h3>
+  <p>Documents Markdown qui décrivent comment un rôle arbitre (ex. <span class="mono">responsable-informatique</span>, <span class="mono">ingenieur-coordinateur</span>). Ils sont injectés dans le contexte de l'IA. Chaque enregistrement crée une nouvelle version, comparable aux précédentes ; « Exporter » les récupère pour Claude.</p>
+  <h3 class="sub">Sources</h3>
+  <p>État de chaque source (OK, en panne, jamais collectée), dernière collecte réussie, dernière erreur, signaux ouverts. « Tester la connexion » demande au processus de collecte un contrôle en lecture seule ; le résultat s'affiche dans la colonne « Dernier test » après quelques instants (rechargez la page).</p>
+  <h3 class="sub">Paramètres</h3>
+  <ul>
+    <li><strong>Pause globale</strong> : suspend la collecte et/ou la génération des plans (maintenance d'une source, période de fermeture).</li>
+    <li><strong>Modèle d'IA</strong> par défaut : {% for m in models %}{{ m.label }}{% if not loop.last %}, {% endif %}{% endfor %} ; le budget est décompté au tarif de chacun.</li>
+    <li><strong>Barème</strong> : seuils P1/P2/P3, poids par sévérité et par catégorie, estimations par défaut, effet de l'ancienneté. Les valeurs sont contrôlées avant enregistrement et l'effet est visible au plan suivant (ou tout de suite avec « Générer maintenant… »). Les règles d'override se règlent dans <span class="mono">scoring.yaml</span>, ou via une proposition de la discussion IA appliquée par un administrateur.</li>
+    <li>Le reste (horaires, diffusion, sources) est affiché en lecture seule : il relève de la configuration du serveur.</li>
+  </ul>
+  <h3 class="sub">Propositions de l'IA</h3>
+  <p>Dans une discussion, une proposition (priorité d'un incident, nouvelle règle d'override) porte les boutons « Appliquer » et « Rejeter ». Appliquée, une priorité manuelle s'affiche sur la fiche incident avec son auteur et peut être retirée (« Retirer la priorité manuelle »). Chaque décision est journalisée.</p>
+  <h3 class="sub">Audit &amp; coûts</h3>
+  <p>Derniers appels à l'IA (modèle, jetons, coût, issue) et journal d'audit filtrable par action : connexions, validations, modifications de configuration, décisions sur les propositions.</p>
+</div>
+
+<div class="panel" id="viewer"><h2>Lecteur</h2>
+  <p>L'écran <strong>Semaine</strong> présente le plan hebdomadaire : synthèse, grille de l'équipe, jalons et jalons à risque, non planifié. Les discussions avec l'IA sont consultables en lecture seule.</p>
+</div>
+
+<div class="panel" id="faq"><h2>Questions fréquentes</h2>
+  <h3 class="sub">Une tâche m'est affectée alors que ce n'est pas mon domaine.</h3>
+  <p>Lisez sa justification : elle indique la compétence retenue. Si votre fiche est inexacte, demandez sa correction à l'administrateur ; en attendant, commentez la tâche ou passez-la en <em>abandonnée</em> avec le motif.</p>
+  <h3 class="sub">J'ai réglé le problème mais la tâche réapparaît.</h3>
+  <p>Vigie reprend tout incident encore ouvert dans la source. Vérifiez que l'alerte a bien disparu dans la console (problème résolu, sauvegarde relancée avec succès…). Une tâche non terminée est aussi reportée automatiquement au plan suivant.</p>
+  <h3 class="sub">Je suis absent demain.</h3>
+  <p>Faites ajouter l'absence dans Équipe : le plan suivant en tient compte et redistribue vos tâches selon les compétences des personnes présentes.</p>
+  <h3 class="sub">Pourquoi cet incident est-il P1 ?</h3>
+  <p>Ouvrez sa fiche : « Raison de la priorité » détaille le calcul ou la règle d'override appliquée. Vous pouvez aussi poser la question à l'IA depuis cette fiche.</p>
+  <h3 class="sub">Le plan indique « sans IA ».</h3>
+  <p>L'IA était désactivée, le budget du mois atteint ou l'appel a échoué : le plan est complet (priorités et affectation viennent du moteur), seuls les textes reformulés et les synthèses manquent.</p>
+  <h3 class="sub">Aucun plan aujourd'hui.</h3>
+  <p>Jour férié, week-end, génération suspendue (pause globale) ou erreur. Un coordinateur peut le lancer avec « Générer maintenant… ».</p>
+  <h3 class="sub">Puis-je fermer un ticket ou acquitter une alerte depuis Vigie ?</h3>
+  <p>Non, par conception : Vigie est en lecture seule. Utilisez le lien « ouvrir » de la fiche incident pour aller dans la console.</p>
+</div>
+{% endblock %}
