@@ -466,7 +466,9 @@ puis relancer les playbooks, qui les recréent avec le plan d'adressage de
    noter les timers actifs (les `vigie-notify@*` sont volontairement arrêtés pendant le
    rodage : ne relancer que ceux de la liste) :
    ```sh
-   systemctl list-timers 'vigie-*' --no-legend | awk '{print $NF}' | tee ~/timers-actifs.txt
+   systemctl list-units 'vigie-*.timer' --state=active --no-legend --plain | awk '{print $1}' | tee ~/timers-actifs.txt
+   # noms en .timer uniquement : la colonne ACTIVATES de list-timers donne les services, que
+   # « systemctl start » lancerait aussitôt (incident du 2026-10-23)
    ```
 2. **Arrêt** (Portal, Vigie, puis le proxy d'entrée, propriétaire du réseau `edge`) :
    ```sh
@@ -557,24 +559,22 @@ que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie
    `group_vars/vigie.yml`, puis le playbook (certificats dans `/etc/vigie/ca/wazuh-api.pem` et `wazuh-indexer.pem`, timer
    `vigie-collect@wazuh` toutes les 15 min).
 
-## 18. Squid ne redémarre plus (« Address already in use »)
+## 18. Squid ne redémarre plus (« Address already in use » ou « Cannot assign requested address »)
 
-Symptôme : `vigie-squid-1` arrêté, le playbook échoue sur « Services permanents à jour » avec
-`failed to set up container networking: Address already in use` ; connexion Entra, IA,
-NinjaOne et Defender coupées. Cause (incident du 2026-10-23) : les IP fixes de Squid (`.34`,
-`.66`, `.50`) étaient les premières adresses distribuées par Docker ; pendant un arrêt de
-Squid, `web` ou `chat` les ont reçues. Depuis, chaque réseau a une plage automatique
-(`range` de `vigie_networks`, `ip_range` de `compose.yaml`) qui exclut les IP fixes
-(`tests/security/test_compose.py`). Une plage ne change pas en place : recréer les réseaux
-de Vigie (coupure de Vigie seul, quelques minutes ; `edge` et Portal ne sont pas touchés) :
+Symptôme : `vigie-squid-1` arrêté ou redémarrant en boucle ; connexion Entra, IA, NinjaOne et
+Defender coupées. Cause (incident du 2026-10-23) : les IP fixes de Squid (`.34`, `.66`, `.50`)
+sont les premières adresses distribuées par Docker ; si Squid est arrêté pendant qu'un autre
+conteneur démarre, celui-ci les reçoit. Une plage automatique (`ip_range`) a été essayée le
+même jour : Docker créait alors Squid sans ses IP fixes (« Cannot assign requested address »),
+d'où le retour arrière. Rétablissement : recréer le projet pour que Squid démarre le premier
+(coupure de Vigie seul, quelques minutes ; `edge` et Portal ne sont pas touchés). Ne pas
+arrêter les timers : un `systemctl start` sur la colonne ACTIVATES de `list-timers` lancerait
+les services eux-mêmes (plans compris).
 ```sh
-systemctl list-timers 'vigie-*' --no-legend | awk '{print $NF}' | tee ~/timers-actifs.txt
-sudo systemctl stop $(cat ~/timers-actifs.txt)
 sudo systemctl stop vigie-compose
 sudo docker compose --project-directory /srv/vigie down
 sudo docker network ls | grep vigie_     # plus aucun réseau vigie_* ; sinon docker network rm
-cd ~/projets/vigie/deploy && uv run --group deploy ansible-playbook site.yml -K
-sudo systemctl start $(cat ~/timers-actifs.txt)
-sudo docker ps --format '{{.Names}} {{.Status}}' | grep vigie   # squid, web, chat « Up »
+sudo docker compose --project-directory /srv/vigie up -d squid    # Squid d'abord
+sudo docker compose --project-directory /srv/vigie up -d          # puis web et chat
+sudo docker ps --format '{{.Names}} {{.Status}}' | grep vigie     # squid, web, chat « Up »
 ```
-

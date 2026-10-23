@@ -263,22 +263,6 @@ def test_web_reached_by_caddy_only_through_a_fixed_address() -> None:
     assert ctx["vigie_web_edge_ip"] != ctx["edge_caddy_ip"]
 
 
-def test_fixed_ips_are_outside_the_dynamic_range(ctx: dict[str, Any]) -> None:
-    # Sans ip_range, Docker distribue d'abord les adresses fixes de Squid (.34, .66) aux autres
-    # conteneurs : Squid arrêté ne redémarre plus (incident du 2026-10-23).
-    import ipaddress
-
-    nets = compose(ctx)["networks"]
-    for key, spec in ctx["vigie_networks"].items():
-        (ipam,) = nets[key]["ipam"]["config"]
-        subnet = ipaddress.ip_network(ipam["subnet"])
-        dynamic = ipaddress.ip_network(ipam["ip_range"])
-        squid = ipaddress.ip_address(spec["squid"])
-        assert dynamic.subnet_of(subnet), key  # type: ignore[arg-type]
-        assert squid in subnet and squid not in dynamic, key
-        assert next(subnet.hosts()) not in dynamic, key  # passerelle
-
-
 def test_fixed_subnets_do_not_overlap_each_other_or_the_lan() -> None:
     import ipaddress
 
