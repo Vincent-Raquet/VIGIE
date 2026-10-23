@@ -489,6 +489,8 @@ def fixture_transport(directory: Path) -> httpx.BaseTransport:
 
 
 TOKEN_PATHS = frozenset({"/api/oauth2/token", "/ws/oauth/token"})  # Veeam, NinjaOne
+WAZUH_TOKEN_PATH = "/security/user/authenticate"  # noqa: S105 - JWT de l'API Wazuh
+FAKE_WAZUH_TOKEN = {"data": {"token": "fixture-jwt"}, "error": 0}
 TOKEN_SUFFIX = "/oauth2/v2.0/token"  # noqa: S105 - Entra (Defender), tenant dans le chemin
 FAKE_TOKEN = {
     "access_token": "fixture-access-token",
@@ -538,6 +540,8 @@ class RecordingTransport(httpx.BaseTransport):
         elif response.status_code == 200 and body.strip():
             if request.url.path in TOKEN_PATHS or request.url.path.endswith(TOKEN_SUFFIX):
                 self.saved[name] = FAKE_TOKEN  # jamais le vrai jeton
+            elif request.url.path == WAZUH_TOKEN_PATH:
+                self.saved[name] = FAKE_WAZUH_TOKEN
             else:
                 self._merge(name, json.loads(body))
         # `body` est déjà décompressé : ne pas transmettre Content-Encoding (sinon httpx
@@ -551,11 +555,23 @@ class RecordingTransport(httpx.BaseTransport):
 
     def _merge(self, name: str, data: Any) -> None:
         """Pages successives d'un même chemin cumulées : liste brute (NinjaOne), `data`
-        (Veeam, boards NinjaOne), `results` (rapports NinjaOne à curseur) ou `value` (OData,
-        Defender et Graph)."""
+        (Veeam, boards NinjaOne), `data.affected_items` (Wazuh), `results` (rapports NinjaOne
+        à curseur) ou `value` (OData, Defender et Graph)."""
         previous = self.saved.get(name)
         if isinstance(previous, list) and isinstance(data, list):
             self.saved[name] = previous + data
+            return
+        # Wazuh : {"data": {"affected_items": [...], "total_affected_items": n}}.
+        before = previous.get("data") if isinstance(previous, dict) else None
+        after = data.get("data") if isinstance(data, dict) else None
+        if (
+            isinstance(before, dict)
+            and isinstance(after, dict)
+            and isinstance(before.get("affected_items"), list)
+            and isinstance(after.get("affected_items"), list)
+        ):
+            items = before["affected_items"] + after["affected_items"]
+            self.saved[name] = {**data, "data": {**after, "affected_items": items}}
             return
         for key in ("data", "results", "value"):
             if (

@@ -193,6 +193,15 @@
     mode: "0644"
   when: vigie_fortianalyzer_enabled | bool
 
+- name: AC de l'installation Wazuh (publique, approuvée pour cette seule source)
+  ansible.builtin.copy:
+    src: "{{ vigie_wazuh_ca_file }}"
+    dest: /etc/vigie/ca/wazuh.pem
+    owner: root
+    group: vigie
+    mode: "0644"
+  when: vigie_wazuh_enabled | bool
+
 # Le nom du FortiAnalyzer est déclaré dans les conteneurs (extra_hosts de compose.yaml).
 - name: Ancienne déclaration du FortiAnalyzer dans /etc/hosts de l'hôte
   ansible.builtin.lineinfile:

@@ -25,6 +25,8 @@ SOURCE_SECRETS = {
     "defender_private_key",
     "ninjaone_client_secret",
     "fortianalyzer_api_key",
+    "wazuh_api_password",
+    "wazuh_indexer_password",
 }
 LLM = {"anthropic_api_key"}
 # Secrets autorisés par service : tout ce qui n'est pas listé ici est interdit. Les services
@@ -49,6 +51,7 @@ ALL_ON = {
     "vigie_notify_mail_enabled": True,
     "vigie_notify_teams_enabled": True,
     "vigie_oidc": {"tenant_id": "t", "client_id": "c", "groups": {}},
+    "vigie_wazuh_enabled": True,
 }
 
 
@@ -286,7 +289,13 @@ def test_only_internet_services_use_the_worker_proxy(ctx: dict[str, Any]) -> Non
 
 
 def test_sources_through_squid_or_direct() -> None:
-    ctx = context({"vigie_ninjaone_enabled": True, "vigie_defender_enabled": True})
+    ctx = context(
+        {
+            "vigie_ninjaone_enabled": True,
+            "vigie_defender_enabled": True,
+            "vigie_wazuh_enabled": True,
+        }
+    )
     by_name = {s["name"]: s for s in ctx["vigie_sources_enabled"]}
     egress = {e["name"] for e in ctx["vigie_source_egress"]}
     for name in ("ninjaone", "defender"):
@@ -303,7 +312,14 @@ def test_sources_through_squid_or_direct() -> None:
     zabbix = ["zabbix.local.wallindustries.be:192.168.250.49"]
     assert svc["collect-fortianalyzer"]["extra_hosts"] == faz
     assert svc["collect-zabbix"]["extra_hosts"] == zabbix
-    assert svc["jobs"]["extra_hosts"] == zabbix + faz
+    wazuh = ["wazuh.egc-sa.local:192.168.240.148"]
+    assert svc["collect-wazuh"]["extra_hosts"] == wazuh
+    assert svc["collect-wazuh"]["networks"] == ["worker", "src_wazuh"]
+    assert svc["collect-wazuh"]["secrets"] == ["wazuh_api_password", "wazuh_indexer_password"]
+    assert by_name["wazuh"]["settings"]["api_url"] == "https://wazuh.egc-sa.local:55000"
+    assert by_name["wazuh"]["settings"]["indexer_url"] == "https://wazuh.egc-sa.local:9200"
+    assert "proxy" not in by_name["wazuh"]["settings"]
+    assert svc["jobs"]["extra_hosts"] == zabbix + faz + wazuh
     assert "extra_hosts" not in svc["collect-veeam"]  # appelé par son IP
     assert "extra_hosts" not in svc["collect-ninjaone"]  # Squid résout lui-même
 
@@ -343,7 +359,9 @@ def test_firewall_lets_each_network_reach_only_its_destinations() -> None:
         f"ip saddr {squid} ip daddr @dns_servers meta l4proto {{ tcp, udp }} th dport 53 accept"
     ]
     for e in ctx["vigie_source_egress"]:
-        rule = f"ip saddr {{ {e['subnet']}, {jobs} }} ip daddr {e['ip']} tcp dport {e['port']}"
+        port = e["port"]
+        dport = port if isinstance(port, int) else "{ " + ", ".join(map(str, port)) + " }"
+        rule = f"ip saddr {{ {e['subnet']}, {jobs} }} ip daddr {e['ip']} tcp dport {dport}"
         assert any(line.startswith(rule + " accept") for line in lines), e["name"]
     # Toute autre sortie des réseaux de Vigie est rejetée avant l'accès libre des autres ponts.
     vigie_drop = lines.index("ip saddr @vigie_subnets counter drop")

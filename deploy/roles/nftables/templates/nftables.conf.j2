@@ -10,6 +10,8 @@ table inet vigie {
   set admin_networks { type ipv4_addr; flags interval; elements = { {{ admin_networks | join(', ') }} } }
   set lan_vpn_networks { type ipv4_addr; flags interval; elements = { {{ lan_vpn_networks | join(', ') }} } }
   set dns_servers { type ipv4_addr; elements = { {{ dns_servers | join(', ') }} } }
+{# port d'une source : entier, ou liste (Wazuh tout-en-un : API 55000 et indexer 9200). #}
+{% macro dports(p) %}{{ p if p is number else '{ ' ~ (p | join(', ')) ~ ' }' }}{% endmacro %}
 {% set vigie_subnets = (vigie_networks.values() | map(attribute='subnet') | list)
                        + (vigie_source_egress | map(attribute='subnet') | list) + [vigie_jobs_subnet] %}
   # Réseaux Docker de Vigie : rien n'en sort hors des règles explicites de la chaîne forward.
@@ -60,7 +62,7 @@ table inet vigie {
     # Collecte directe : chaque réseau de source vers sa seule source ; noms déclarés dans les
     # conteneurs (extra_hosts), donc aucun DNS.
 {% for s in vigie_source_egress %}
-    ip saddr { {{ s.subnet }}, {{ vigie_jobs_subnet }} } ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
+    ip saddr { {{ s.subnet }}, {{ vigie_jobs_subnet }} } ip daddr {{ s.ip }} tcp dport {{ dports(s.port) }} accept comment "{{ s.name }}"
 {% endfor %}
     ip saddr @vigie_subnets limit rate 10/minute log prefix "nft-vigie-drop "
     ip saddr @vigie_subnets counter drop
@@ -90,7 +92,7 @@ table inet vigie {
     meta skuid "vigie-migrate" counter drop
     meta skuid "vigie-worker" ip daddr @dns_servers meta l4proto { tcp, udp } th dport 53 accept
 {% for s in vigie_source_egress %}
-    meta skuid "vigie-worker" ip daddr {{ s.ip }} tcp dport {{ s.port }} accept comment "{{ s.name }}"
+    meta skuid "vigie-worker" ip daddr {{ s.ip }} tcp dport {{ dports(s.port) }} accept comment "{{ s.name }}"
 {% endfor %}
     meta skuid "vigie-worker" limit rate 10/minute log prefix "nft-worker-drop "
     meta skuid "vigie-worker" counter drop

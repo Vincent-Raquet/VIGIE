@@ -1,0 +1,262 @@
+{
+  "took": 30,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 8,
+      "relation": "eq"
+    },
+    "max_score": null,
+    "hits": []
+  },
+  "aggregations": {
+    "cves": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "CVE-2026-0001",
+          "doc_count": 3,
+          "cvss": {
+            "value": 9.8
+          },
+          "first": {
+            "value": 0,
+            "value_as_string": "2026-10-02T10:00:00.000Z"
+          },
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "001",
+                "doc_count": 1
+              },
+              {
+                "key": "006",
+                "doc_count": 1
+              },
+              {
+                "key": "002",
+                "doc_count": 1
+              }
+            ]
+          },
+          "packages": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "openssl",
+                "doc_count": 1
+              }
+            ]
+          },
+          "last": {
+            "hits": {
+              "total": {
+                "value": 1,
+                "relation": "eq"
+              },
+              "max_score": null,
+              "hits": [
+                {
+                  "_index": "wazuh-alerts-4.x-2026.10.23",
+                  "_id": "x",
+                  "_score": null,
+                  "_source": {
+                    "vulnerability": {
+                      "id": "CVE-2026-0001",
+                      "severity": "Critical",
+                      "score": {
+                        "base": 9.8
+                      },
+                      "published_at": "2026-10-01T00:00:00Z"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "CVE-2026-0003",
+          "doc_count": 1,
+          "cvss": {
+            "value": 8.1
+          },
+          "first": {
+            "value": 0,
+            "value_as_string": "2026-09-20T10:00:00.000Z"
+          },
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "001",
+                "doc_count": 1
+              }
+            ]
+          },
+          "packages": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "sudo",
+                "doc_count": 1
+              }
+            ]
+          },
+          "last": {
+            "hits": {
+              "total": {
+                "value": 1,
+                "relation": "eq"
+              },
+              "max_score": null,
+              "hits": [
+                {
+                  "_index": "wazuh-alerts-4.x-2026.10.23",
+                  "_id": "x",
+                  "_score": null,
+                  "_source": {
+                    "vulnerability": {
+                      "id": "CVE-2026-0003",
+                      "severity": "High",
+                      "score": {
+                        "base": 8.1
+                      },
+                      "published_at": "2026-09-15T00:00:00Z"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "CVE-2026-0002",
+          "doc_count": 1,
+          "cvss": {
+            "value": 7.5
+          },
+          "first": {
+            "value": 0,
+            "value_as_string": "2026-09-05T10:00:00.000Z"
+          },
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "007",
+                "doc_count": 1
+              }
+            ]
+          },
+          "packages": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "Microsoft Edge",
+                "doc_count": 1
+              }
+            ]
+          },
+          "last": {
+            "hits": {
+              "total": {
+                "value": 1,
+                "relation": "eq"
+              },
+              "max_score": null,
+              "hits": [
+                {
+                  "_index": "wazuh-alerts-4.x-2026.10.23",
+                  "_id": "x",
+                  "_score": null,
+                  "_source": {
+                    "vulnerability": {
+                      "id": "CVE-2026-0002",
+                      "severity": "High",
+                      "score": {
+                        "base": 7.5
+                      },
+                      "published_at": "2026-09-01T00:00:00Z"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "CVE-2026-0004",
+          "doc_count": 1,
+          "cvss": {
+            "value": 9.1
+          },
+          "first": {
+            "value": 0,
+            "value_as_string": "2026-08-05T10:00:00.000Z"
+          },
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "099",
+                "doc_count": 1
+              }
+            ]
+          },
+          "packages": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "glibc",
+                "doc_count": 1
+              }
+            ]
+          },
+          "last": {
+            "hits": {
+              "total": {
+                "value": 1,
+                "relation": "eq"
+              },
+              "max_score": null,
+              "hits": [
+                {
+                  "_index": "wazuh-alerts-4.x-2026.10.23",
+                  "_id": "x",
+                  "_score": null,
+                  "_source": {
+                    "vulnerability": {
+                      "id": "CVE-2026-0004",
+                      "severity": "Critical",
+                      "score": {
+                        "base": 9.1
+                      },
+                      "published_at": "2026-08-01T00:00:00Z"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

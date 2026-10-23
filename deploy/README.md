@@ -95,6 +95,7 @@ sudo vigie-secret rm teams_webhook_url
 | `ninjaone_client_id`, `ninjaone_client_secret` | collect-ninjaone, jobs | `vigie_ninjaone_enabled: true` (§12) |
 | `fortianalyzer_api_key` | collect-fortianalyzer, jobs | `vigie_fortianalyzer_enabled: true` (§15) |
 | `defender_client_id`, `defender_private_key` | collect-defender, jobs | `vigie_defender_enabled: true` (§13) |
+| `wazuh_api_password`, `wazuh_indexer_password` | collect-wazuh, jobs | `vigie_wazuh_enabled: true` (§17) |
 
 Au démarrage, `vigie-creds.service` déchiffre les secrets dans `/run/vigie/creds` (mémoire,
 0700 root, un fichier 0400 par secret au nom du compte qui le lit) ; chaque conteneur ne
@@ -283,7 +284,7 @@ processus, sysstat, debsums, needrestart (liste seule), rkhunter, bannières, SS
 | `/home`, `/var`, `/tmp` sur partitions séparées | Partitionnement fixé à l'installation de la VM. |
 | fail2ban | sshguard en place. |
 | apt-listbugs | Peut bloquer les mises à jour non interactives. |
-| Journaux vers un hôte externe, AIDE | Prévu avec l'agent Wazuh (connecteur à venir). |
+| Journaux vers un hôte externe, AIDE | Prévu avec l'agent Wazuh (connecteur prêt, §17 ; agent sur la VM à installer). |
 
 ## 11. Source Veeam B&R (10.10.10.27, API REST 9419)
 
@@ -500,3 +501,43 @@ puis relancer les playbooks, qui les recréent avec le plan d'adressage de
 
 Retour arrière : revenir au commit précédent de `group_vars/vigie.yml` (et de
 `portal.yml`) et refaire la même procédure.
+
+## 17. Source Wazuh 4.12+ (192.168.240.148, API 55000 et indexer 9200)
+
+Installation tout-en-un `wazuh.egc-sa.local` : Vigie appelle le manager et l'indexer par ce nom,
+que `compose.yaml` déclare dans les conteneurs `collect-wazuh` et `jobs` (`extra_hosts`), et
+n'approuve que l'AC de l'installation. Le réseau `vigie_src_wazuh` (10.10.100.192/28) ne sort
+que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie_source_egress`).
+
+1. **Comptes** (lecture seule) :
+   - API : utilisateur `svc-vigie` lié au rôle prédéfini `readonly` (Server management →
+     Security → Users), rien d'autre ;
+   - indexer : utilisateur interne `svc-vigie` et rôle `vigie_read`, sans permission de cluster
+     (Indexer management → Security), par exemple :
+     ```yaml
+     vigie_read:
+       index_permissions:
+         - index_patterns: ["wazuh-alerts-4.x-*", "wazuh-states-vulnerabilities-*"]
+           allowed_actions: ["indices:data/read/search"]
+     ```
+     rôle mappé au seul utilisateur `svc-vigie`. Ne jamais lui donner `readall`, ni l'accès aux
+     archives (`wazuh-archives-*`, journaux complets).
+     Si la recherche répond 403 malgré ce rôle, ajouter la seule permission de cluster
+     `cluster_composite_ops_ro` (lecture), comme dans l'exemple de la documentation Wazuh.
+2. **AC** (publique), copiée depuis le serveur Wazuh (`/etc/wazuh-indexer/certs/root-ca.pem`, ou
+   l'archive `wazuh-certificates.tar` de l'installation) vers `~/vigie-ca/wazuh.pem`, puis vérifiée :
+   ```sh
+   openssl s_client -connect 192.168.240.148:9200 -servername wazuh.egc-sa.local -CAfile ~/vigie-ca/wazuh.pem </dev/null 2>/dev/null | grep 'Verify return code'
+   openssl s_client -connect 192.168.240.148:55000 -servername wazuh.egc-sa.local -CAfile ~/vigie-ca/wazuh.pem </dev/null 2>/dev/null | grep 'Verify return code'
+   # attendu : 0 (ok) des deux côtés ; sinon l'API 55000 garde son certificat auto-signé
+   # d'origine (/var/ossec/api/configuration/ssl) : le concaténer à wazuh.pem.
+   ```
+3. **Dev** : `[sources.wazuh]` dans `config/vigie.toml` (modèle : `config/vigie.example.toml`,
+   `enabled = true`, `ca_bundle = "~/vigie-ca/wazuh.pem"`), mots de passe dans `.env.local`
+   (`VIGIE_SECRET_WAZUH_API_PASSWORD=…`, `VIGIE_SECRET_WAZUH_INDEXER_PASSWORD=…`), puis
+   `VIGIE_ENV=dev uv run vigie check --sources` et
+   `VIGIE_ENV=dev uv run python scripts/record_fixtures.py wazuh` (le JWT n'est jamais enregistré).
+4. **Production** : `sudo vigie-secret set wazuh_api_password` et
+   `sudo vigie-secret set wazuh_indexer_password`, `vigie_wazuh_enabled: true` dans
+   `group_vars/vigie.yml`, puis le playbook (AC dans `/etc/vigie/ca/wazuh.pem`, timer
+   `vigie-collect@wazuh` toutes les 15 min).

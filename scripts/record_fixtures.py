@@ -76,10 +76,13 @@ def main() -> int:
     except SourceCallError as exc:
         print(f"Authentification : ÉCHEC {exc}")
         return 1
-    # Un client par hôte (Defender : API Defender et Graph), sinon `client`.
+    # Un client par hôte (Defender : API Defender et Graph ; Wazuh : manager et indexer),
+    # sinon `client`.
     clients = [
         c
-        for c in (getattr(connector, n, None) for n in ("client", "mde", "graph"))
+        for c in (
+            getattr(connector, n, None) for n in ("client", "mde", "graph", "manager", "indexer")
+        )
         if isinstance(c, SafeClient)
     ]
     print("Lectures autorisées par l'allowlist :")
@@ -94,6 +97,8 @@ def main() -> int:
             params = {"pageSize": 1}  # NinjaOne
         elif "$top" in call.query:
             params = {"$top": 1}  # OData (Defender, Graph)
+        elif {"offset", "limit"} <= call.query:
+            params = {"offset": 0, "limit": 1}  # Wazuh
         client = next(c for c in clients if call in c._allowlist)
         try:
             client.get(path, params)

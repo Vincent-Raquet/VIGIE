@@ -71,5 +71,10 @@ asset_rules:
   - {source: defender, match: agent_group, pattern: "WG",  company: WG}
   - {source: defender, match: agent_group, pattern: "CC",  company: CC}
   - {source: defender, match: agent_group, pattern: "FWD", company: FWD}
-  # Wazuh : groupe d'agents
-  - {source: wazuh, match: agent_group, pattern: "wg", company: WG}
+  # Wazuh : groupe d'agents, un par société (le groupe « default » est ignoré). À défaut,
+  # préfixe du nom d'agent (devname_prefix). TODO verify : noms des groupes sur l'instance.
+  - {source: wazuh, match: agent_group, pattern: "wi",  company: WI}
+  - {source: wazuh, match: agent_group, pattern: "spl", company: SPL}
+  - {source: wazuh, match: agent_group, pattern: "wg",  company: WG}
+  - {source: wazuh, match: agent_group, pattern: "cc",  company: CC}
+  - {source: wazuh, match: agent_group, pattern: "fwd", company: FWD}

@@ -21,7 +21,7 @@ Chaque phase démarre en **plan mode** dans Claude Code et se termine par : test
 - Réalisé : `SafeClient`/`AllowedCall` (contrôles à la définition et à l'appel, redirections refusées), `vigie.redact` (masquage), journaux JSON masqués (`vigie.logs`), tests statiques AST, tests appliqués automatiquement à chaque connecteur enregistré.
 
 ## Phase 3 — Connecteurs (3–4 jours)
-Première livraison : **Zabbix puis Veeam**. Les autres sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`) : NinjaOne ✅, Microsoft Defender ✅, patchs NinjaOne en attente > 7 jours ✅, FortiAnalyzer ✅ (capture réelle à faire), puis **Wazuh** et squelette **Veezo** (à faire). Pour chacun, suivre le skill `add-connector` :
+Première livraison : **Zabbix puis Veeam**. Les autres sont ajoutés ensuite un par un, sans toucher au moteur (registre par entry points `vigie.connectors`) : NinjaOne ✅, Microsoft Defender ✅, patchs NinjaOne en attente > 7 jours ✅, FortiAnalyzer ✅ (capture réelle à faire), Wazuh ✅ (capture réelle à faire), puis squelette **Veezo** (à faire). Pour chacun, suivre le skill `add-connector` :
 - vérification de l'API dans la doc de la version ;
 - allowlist + test « appel interdit » ;
 - fixtures anonymisées + tests de contrat ;
@@ -35,7 +35,8 @@ Première livraison : **Zabbix puis Veeam**. Les autres sont ajoutés ensuite un
   - NinjaOne ✅ en production (alertes, patchs en échec, tickets ; **patchs de sécurité en attente depuis plus de 7 jours** : un signal par patch daté par Vigie, un incident par société et type, attributs moteur `min_age_h` et `incident_group`) ;
   - Microsoft Defender ✅ en production (vulnérabilités Critical/High Windows avec analyse de criticité, incidents XDR high, appareils inactifs ; certificat, capture réelle anonymisée) ; reste : étiquette « FWD » et appareils « valeur élevée » dans Defender ;
   - FortiAnalyzer 8.0 ✅ connecteur (Event Monitor, appareils et HA, VPN ; JSON-RPC `get` sur URL listées, logsearch optionnel) sur fixtures synthétiques ; reste : capture réelle (`TODO verify` de `CONNECTORS.md` §2) et mise en service ;
-  - Wazuh (vulnérabilités Linux, alertes) et Veezo : à faire.
+  - Wazuh 4.12+ ✅ connecteur (alertes de niveau ≥ 10 par règle et agent, agents déconnectés, jamais connectés ou abandonnés par société, vulnérabilités Critical/High des agents Linux par CVE et société ; manager en JWT `readonly`, indexer en `_search` strict sans script) sur fixtures synthétiques ; sortie nftables vers deux ports d'une même source ; reste : capture réelle (`TODO verify` de `CONNECTORS.md` §4) et mise en service (`vigie_wazuh_enabled`) ;
+  - Veezo : à faire.
 - Réalisé (Zabbix) : connecteur 7.4 (`problem.get` + `trigger.get` + `proxy.get`, `apiinfo.version` anonyme), rattachement société `vigie.mapping.RuleMapper`, agrégation des hôtes bruyants, fixtures réelles anonymisées (`scripts/anonymize_fixtures.py`), rejeu `fixture_transport`, `vigie collect --dry-run [--fixtures]`, `vigie check --sources`. L'enregistrement des signaux en base (fingerprint, résolution) relève de la phase 4.
 
 ## Phase 4 — Moteur déterministe (2–3 jours, TDD)
