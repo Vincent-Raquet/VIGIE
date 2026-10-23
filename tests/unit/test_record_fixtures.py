@@ -144,3 +144,23 @@ def test_jsonrpc_results_named_by_method_and_url() -> None:
             json={"id": 1, "method": "get", "params": [{"url": "/sys/status"}]},
         )
     assert recorder.saved == {"get_sys_status.json": [{"status": {"code": 0}, "data": 1}]}
+
+
+def test_tls_per_origin_follows_the_source_settings(tmp_path: Path) -> None:
+    from vigie.connectors.base import tls_by_origin
+
+    settings = {
+        "api_url": "https://wazuh.test:55000",
+        "indexer_url": "https://wazuh.test:9200",
+        "api_ca_bundle": str(tmp_path / "api.pem"),
+        "indexer_ca_bundle": str(tmp_path / "idx.pem"),
+        "verify_hostname": False,
+    }
+    assert tls_by_origin(settings) == {
+        "wazuh.test:55000": (tmp_path / "api.pem", False),
+        "wazuh.test:9200": (tmp_path / "idx.pem", False),
+    }
+    # Source à un seul hôte et bundle commun : transport par défaut.
+    assert tls_by_origin({"base_url": "https://vbr.test:9419", "ca_bundle": "x.pem"}) == {}
+    with pytest.raises(ValueError, match="seulement avec un bundle"):
+        RecordingTransport(None, tls={"h:1": (None, False)})

@@ -506,7 +506,7 @@ Retour arrière : revenir au commit précédent de `group_vars/vigie.yml` (et de
 
 Installation tout-en-un `wazuh.egc-sa.local` : Vigie appelle le manager et l'indexer par ce nom,
 que `compose.yaml` déclare dans les conteneurs `collect-wazuh` et `jobs` (`extra_hosts`), et
-n'approuve que l'AC de l'installation. Le réseau `vigie_src_wazuh` (10.10.100.192/28) ne sort
+n'approuve que les certificats épinglés (étape 3). Le réseau `vigie_src_wazuh` (10.10.100.192/28) ne sort
 que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie_source_egress`).
 
 1. **Comptes** (lecture seule) :
@@ -524,20 +524,35 @@ que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie
      archives (`wazuh-archives-*`, journaux complets).
      Si la recherche répond 403 malgré ce rôle, ajouter la seule permission de cluster
      `cluster_composite_ops_ro` (lecture), comme dans l'exemple de la documentation Wazuh.
-2. **AC** (publique), copiée depuis le serveur Wazuh (`/etc/wazuh-indexer/certs/root-ca.pem`, ou
-   l'archive `wazuh-certificates.tar` de l'installation) vers `~/vigie-ca/wazuh.pem`, puis vérifiée :
-   ```sh
-   openssl s_client -connect 192.168.240.148:9200 -servername wazuh.egc-sa.local -CAfile ~/vigie-ca/wazuh.pem </dev/null 2>/dev/null | grep 'Verify return code'
-   openssl s_client -connect 192.168.240.148:55000 -servername wazuh.egc-sa.local -CAfile ~/vigie-ca/wazuh.pem </dev/null 2>/dev/null | grep 'Verify return code'
-   # attendu : 0 (ok) des deux côtés ; sinon l'API 55000 garde son certificat auto-signé
-   # d'origine (/var/ossec/api/configuration/ssl) : le concaténer à wazuh.pem.
+2. **Indexer joignable** (serveur Wazuh) : il n'écoute d'usine que sur `127.0.0.1`. Étendre la
+   seule couche HTTP (le transport reste local : pas de contrôles de démarrage « production »)
+   dans `/etc/wazuh-indexer/opensearch.yml`, après sauvegarde :
+   ```yaml
+   http.host: ["127.0.0.1", "192.168.240.148"]
    ```
-3. **Dev** : `[sources.wazuh]` dans `config/vigie.toml` (modèle : `config/vigie.example.toml`,
-   `enabled = true`, `ca_bundle = "~/vigie-ca/wazuh.pem"`), mots de passe dans `.env.local`
+   puis `sudo systemctl restart wazuh-indexer` et `sudo ss -ltnp | grep 9200`. Réserver le port
+   9200 à Vigie (192.168.10.17) dans le pare-feu du serveur Wazuh (ou de l'hyperviseur).
+   Retour arrière : retirer la ligne et redémarrer.
+3. **Certificats épinglés** (publics, sur la machine qui lance Ansible, hors dépôt) : la clé de
+   l'AC de l'OVA n'existe plus, ses certificats ne portent pas le nom du serveur (API :
+   `localhost` ; indexer : `127.0.0.1`) et `root-ca.pem`, sans extension *Key Usage*, est refusé
+   par le mode X.509 strict. Chaque API n'approuve que son propre certificat, sans contrôle du nom :
+   ```sh
+   cd ~/vigie-ca   # root-ca.pem du serveur (/etc/wazuh-indexer/certs/) copié dans wazuh.pem
+   openssl s_client -connect 192.168.240.148:55000 </dev/null 2>/dev/null | openssl x509 > wazuh-api.pem
+   openssl s_client -connect 192.168.240.148:9200  </dev/null 2>/dev/null | openssl x509 > wazuh-indexer.pem
+   openssl verify -CAfile wazuh.pem wazuh-indexer.pem          # attendu : OK
+   openssl x509 -in wazuh-api.pem -noout -fingerprint -sha256  # comparer avec le serveur :
+   #   sudo openssl x509 -in /var/ossec/api/configuration/ssl/server.crt -noout -fingerprint -sha256
+   ```
+   Le certificat de l'API expire le 2027-03-13 (celui de l'indexer en 2036) : à son
+   renouvellement, refaire cette étape et relancer le playbook.
+4. **Dev** : `[sources.wazuh]` dans `config/vigie.toml` (modèle : `config/vigie.example.toml`,
+   `enabled = true`, `api_ca_bundle`, `indexer_ca_bundle`, `verify_hostname = false`), mots de passe dans `.env.local`
    (`VIGIE_SECRET_WAZUH_API_PASSWORD=…`, `VIGIE_SECRET_WAZUH_INDEXER_PASSWORD=…`), puis
    `VIGIE_ENV=dev uv run vigie check --sources` et
    `VIGIE_ENV=dev uv run python scripts/record_fixtures.py wazuh` (le JWT n'est jamais enregistré).
-4. **Production** : `sudo vigie-secret set wazuh_api_password` et
+5. **Production** : `sudo vigie-secret set wazuh_api_password` et
    `sudo vigie-secret set wazuh_indexer_password`, `vigie_wazuh_enabled: true` dans
-   `group_vars/vigie.yml`, puis le playbook (AC dans `/etc/vigie/ca/wazuh.pem`, timer
+   `group_vars/vigie.yml`, puis le playbook (certificats dans `/etc/vigie/ca/wazuh-api.pem` et `wazuh-indexer.pem`, timer
    `vigie-collect@wazuh` toutes les 15 min).

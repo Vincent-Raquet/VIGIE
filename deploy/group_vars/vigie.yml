@@ -175,12 +175,15 @@ vigie_source_fortianalyzer:
       ca_bundle: /etc/vigie/ca/fortianalyzer.pem
 # Wazuh 4.12+ tout-en-un (wazuh.egc-sa.local, 192.168.240.148) : manager (JWT, rôle readonly)
 # et indexer (rôle vigie_read, recherche sur les alertes et les vulnérabilités seulement).
-# AC de l'installation (root-ca.pem) exportée sur la machine qui lance Ansible (hors dépôt),
-# copiée dans /etc/vigie/ca/wazuh.pem, seule approuvée pour cette source. Secrets
-# wazuh_api_password et wazuh_indexer_password. false = source non déployée.
+# Certificats d'usine (OVA) sans le nom du serveur (API : localhost ; indexer : 127.0.0.1) et
+# sans clé d'AC : épinglés, contrôle du nom désactivé pour cette seule source (SECURITY.md C2).
+# Sur la machine qui lance Ansible (hors dépôt) : certificats de l'API (wazuh-api.pem) et de
+# l'indexer (wazuh-indexer.pem, signé par root-ca.pem ; l'AC de l'OVA, sans keyUsage, est
+# refusée par le mode X.509 strict), copiés dans /etc/vigie/ca/, chacun seule ancre de son API. Secrets wazuh_api_password et wazuh_indexer_password. false = source non déployée.
 vigie_wazuh_enabled: false            # true après la capture réelle (deploy/README.md §17)
 vigie_wazuh_name: wazuh.egc-sa.local
-vigie_wazuh_ca_file: "~/vigie-ca/wazuh.pem"
+vigie_wazuh_api_ca_file: "~/vigie-ca/wazuh-api.pem"
+vigie_wazuh_indexer_ca_file: "~/vigie-ca/wazuh-indexer.pem"
 vigie_source_wazuh:
   - name: wazuh
     interval_min: 15
@@ -194,7 +197,9 @@ vigie_source_wazuh:
       disconnected_hours: 1
       vuln_severities: [Critical, High]   # agents Linux seulement (Windows → Defender)
       max_vulns_per_company: 10
-      ca_bundle: /etc/vigie/ca/wazuh.pem
+      api_ca_bundle: /etc/vigie/ca/wazuh-api.pem
+      indexer_ca_bundle: /etc/vigie/ca/wazuh-indexer.pem
+      verify_hostname: false
 vigie_sources_enabled: >-
   {{ vigie_sources_base
      + (vigie_source_veeam if vigie_veeam_host else [])

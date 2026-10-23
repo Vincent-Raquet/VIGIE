@@ -34,6 +34,7 @@ from vigie.connectors.base import (
     RecordingTransport,
     SafeClient,
     SourceCallError,
+    tls_by_origin,
 )
 
 
@@ -59,7 +60,9 @@ def main() -> int:
         return 2
     settings = cfg.sources[args.source].model_dump()
     ca = settings.get("ca_bundle") or cfg.tls.ca_bundle
-    transport = RecordingTransport(Path(ca).expanduser() if ca else None)
+    transport = RecordingTransport(
+        Path(ca).expanduser() if ca else None, tls=tls_by_origin(settings)
+    )
     context = ConnectorContext(
         settings=settings, secret=get_secret, ca_bundle=cfg.tls.ca_bundle, transport=transport
     )

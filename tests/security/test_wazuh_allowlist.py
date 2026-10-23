@@ -172,7 +172,17 @@ def test_search_schema_accepts_the_connector_queries() -> None:
 def test_passwords_sent_once_as_basic_and_never_logged(caplog: pytest.LogCaptureFixture) -> None:
     recorder = Recorder(
         httpx.Response(200, json={"data": {"token": "jwt-du-test"}}),
-        httpx.Response(200, json={"data": {"affected_items": [], "total_affected_items": 0}}),
+        httpx.Response(
+            200,
+            json={
+                "data": {
+                    "affected_items": [
+                        {"id": "001", "status": "active", "os": {"platform": "ubuntu"}}
+                    ],
+                    "total_affected_items": 1,
+                }
+            },
+        ),
         httpx.Response(200, json={"aggregations": {}}),
         httpx.Response(200, json={"aggregations": {}}),
     )

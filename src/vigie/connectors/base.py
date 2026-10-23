@@ -209,9 +209,14 @@ class SafeClient:
         max_response_bytes: int = MAX_RESPONSE_BYTES,
         jsonrpc_version: str | None = "2.0",
         headers: Mapping[str, str] | None = None,
+        check_hostname: bool = True,
     ) -> None:
         if not base_url.startswith("https://"):
             raise ValueError(f"{source} : HTTPS obligatoire")
+        # Épinglage (SECURITY.md C2) : sans contrôle du nom, seuls les certificats du bundle
+        # propre à la source sont approuvés (jamais les autorités du système).
+        if not check_hostname and ca_bundle is None:
+            raise ValueError(f"{source} : contrôle du nom désactivable seulement avec ca_bundle")
         if not allowlist:
             raise ValueError(f"{source} : allowlist vide")
         self.source = source
@@ -232,6 +237,12 @@ class SafeClient:
             verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
         except (OSError, ssl.SSLError):
             raise SourceCallError(f"{source} : bundle CA illisible ({ca_bundle})") from None
+        if not check_hostname:
+            # Certificat épinglé dont le nom ne correspond pas à l'adresse (Wazuh : certificats
+            # d'usine à 127.0.0.1 ou localhost). La chaîne reste vérifiée (CERT_REQUIRED) contre
+            # ce seul bundle ; un certificat feuille peut y servir d'ancre (chaîne partielle).
+            verify.check_hostname = False
+            verify.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
         self._client = httpx.Client(
             timeout=httpx.Timeout(READ_TIMEOUT_S, connect=CONNECT_TIMEOUT_S),
             verify=verify,
@@ -510,6 +521,22 @@ def _rpc_envelope(request: httpx.Request) -> dict[str, Any] | None:
     return body if isinstance(body, dict) and "method" in body and "id" in body else None
 
 
+def tls_by_origin(settings: Mapping[str, Any]) -> dict[str, tuple[Path | None, bool]]:
+    """Bundle propre à chaque API d'une source à plusieurs hôtes : `<x>_url` → `<x>_ca_bundle`
+    (Wazuh : api_url, indexer_url), avec `verify_hostname` (certificats épinglés)."""
+    check = bool(settings.get("verify_hostname", True))
+    out: dict[str, tuple[Path | None, bool]] = {}
+    for key, url in settings.items():
+        if not key.endswith("_url") or not isinstance(url, str) or not url.startswith("https://"):
+            continue
+        ca = settings.get(key.removesuffix("_url") + "_ca_bundle")
+        if ca is None and check:
+            continue  # bundle commun ou du système : transport par défaut
+        parsed = httpx.URL(url)
+        out[f"{parsed.host}:{parsed.port or 443}"] = (Path(ca).expanduser() if ca else None, check)
+    return out
+
+
 class RecordingTransport(httpx.BaseTransport):
     """Transport réel (TLS vérifié) qui garde une copie des réponses JSON.
 
@@ -517,17 +544,36 @@ class RecordingTransport(httpx.BaseTransport):
     autorisé à importer httpx. Les requêtes passent toujours par l'allowlist du SafeClient.
     """
 
-    def __init__(self, ca_bundle: Path | None, inner: httpx.BaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        ca_bundle: Path | None,
+        inner: httpx.BaseTransport | None = None,
+        tls: Mapping[str, tuple[Path | None, bool]] | None = None,
+    ) -> None:
+        """`tls` : par origine `hôte:port`, (bundle, contrôle du nom), comme le SafeClient de
+        chaque API (Wazuh : certificats épinglés propres au manager et à l'indexer)."""
+
+        def transport(cafile: Path | None, check_hostname: bool = True) -> httpx.BaseTransport:
+            verify = ssl.create_default_context(cafile=str(cafile) if cafile else None)
+            if not check_hostname:
+                if cafile is None:
+                    raise ValueError("contrôle du nom désactivable seulement avec un bundle")
+                verify.check_hostname = False
+                verify.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
+            return httpx.HTTPTransport(verify=verify)
+
+        self._by_origin: dict[str, httpx.BaseTransport] = {}
         if inner is None:
-            verify = ssl.create_default_context(cafile=str(ca_bundle) if ca_bundle else None)
-            inner = httpx.HTTPTransport(verify=verify)
+            inner = transport(ca_bundle)
+            self._by_origin = {o: transport(ca, check) for o, (ca, check) in (tls or {}).items()}
         self._inner = inner
         self.saved: dict[str, Any] = {}
         # Bilan de tous les appels (méthode, chemin, statut, taille), même sans corps.
         self.calls: list[tuple[str, str, int, int]] = []
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
-        response = self._inner.handle_request(request)
+        origin = f"{request.url.host}:{request.url.port or 443}"
+        response = self._by_origin.get(origin, self._inner).handle_request(request)
         body = response.read()
         self.calls.append((request.method, request.url.path, response.status_code, len(body)))
         name = f"{request.method}_{request.url.path.strip('/').replace('/', '_')}.json"

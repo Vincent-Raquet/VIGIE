@@ -173,9 +173,35 @@ def test_queries_sent_to_the_indexer() -> None:
         "bool"
     ]["filter"]
     vulns = bodies["/wazuh-states-vulnerabilities-*/_search"]
+    # Agents Linux seulement (ni 004 ni 007, Windows), manager compris.
+    linux = ["000", "001", "002", "003", "005", "006", "008", "009", "010"]
     assert vulns["query"]["bool"]["filter"] == [
-        {"terms": {"vulnerability.severity": ["Critical", "High"]}}
+        {"terms": {"vulnerability.severity": ["Critical", "High"]}},
+        {"terms": {"agent.id": linux}},
     ]
+
+
+def test_no_linux_agent_no_vulnerability_query() -> None:
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        if request.url.path == "/security/user/authenticate":
+            return httpx.Response(200, json={"data": {"token": "t"}})
+        if request.url.path == "/agents":
+            item = {
+                "id": "001",
+                "name": "pc-wi-03",
+                "status": "active",
+                "os": {"platform": "windows"},
+            }
+            return httpx.Response(
+                200, json={"data": {"affected_items": [item], "total_affected_items": 1}}
+            )
+        return httpx.Response(200, json={"aggregations": {}})
+
+    assert list(make(httpx.MockTransport(handler)).collect(NOW)) == []
+    assert "/wazuh-states-vulnerabilities-*/_search" not in paths
 
 
 def test_healthcheck() -> None:
@@ -251,8 +277,42 @@ def test_truncated_aggregations_and_failed_shards(tmp_path: Path) -> None:
         {"vuln_severities": ["Urgent"]},
         {"vuln_severities": []},
         {"alerts_index": "*"},
+        {"ca_bundle": "/etc/vigie/ca/wazuh.pem"},
+        {"verify_hostname": False},
+        {"verify_hostname": False, "api_ca_bundle": "api.pem"},
     ],
 )
 def test_invalid_configuration(settings: dict[str, Any]) -> None:
     with pytest.raises(ConnectorConfigError, match=r"\[sources.wazuh\] invalide"):
         make(**settings)
+
+
+def _real(**settings: Any) -> WazuhConnector:
+    # Sans transport simulé : clients httpx réels (contexte TLS inspectable), aucun appel.
+    ctx = ConnectorContext(
+        settings={**SETTINGS, **settings}, secret=lambda name: SecretStr("x"), transport=None
+    )
+    return WazuhConnector.from_context(ctx)
+
+
+def _tls(client: Any) -> Any:
+    return client._client._transport._pool._ssl_context
+
+
+def test_pinned_certificates_one_anchor_per_api(tmp_path: Path) -> None:
+    from tests.security.test_safeclient import _self_signed
+
+    api, indexer = _self_signed(tmp_path, "api.test"), _self_signed(tmp_path, "indexer.test")
+    c = _real(api_ca_bundle=str(api), indexer_ca_bundle=str(indexer), verify_hostname=False)
+    for client, name in ((c.manager, "api.test"), (c.indexer, "indexer.test")):
+        ctx = _tls(client)
+        assert ctx.check_hostname is False
+        assert [dict(x[0] for x in ca["subject"])["commonName"] for ca in ctx.get_ca_certs()] == [
+            name
+        ]
+
+
+def test_hostname_checked_by_default() -> None:
+    c = _real()
+    assert _tls(c.manager).check_hostname is True
+    assert _tls(c.indexer).check_hostname is True

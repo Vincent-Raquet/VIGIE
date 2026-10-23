@@ -197,8 +197,13 @@ class WazuhConfig(_Strict):
     indexer_url: str = Field(pattern=_HTTPS_URL)
     username: str = Field("svc-vigie", min_length=1, max_length=128)
     indexer_username: str = Field("svc-vigie", min_length=1, max_length=128)
-    # root-ca.pem de l'installation : seul approuvé pour cette source (manager et indexer).
-    ca_bundle: Path | None = None
+    # Ancre de chaque API, seule approuvée pour elle : certificat de l'API (auto-signé
+    # d'origine) et root-ca.pem de l'installation pour l'indexer.
+    api_ca_bundle: Path | None = None
+    indexer_ca_bundle: Path | None = None
+    # false : certificats épinglés dont le nom ne correspond pas (OVA : localhost, 127.0.0.1) ;
+    # exige les deux bundles (SafeClient refuse sinon).
+    verify_hostname: bool = True
     min_rule_level: int = Field(10, ge=1, le=16)
     alert_window_hours: int = Field(24, ge=1, le=168)
     disconnected_hours: float = Field(1, gt=0, le=720)
@@ -208,10 +213,17 @@ class WazuhConfig(_Strict):
     )
     max_vulns_per_company: int = Field(10, ge=1, le=100)
 
-    @field_validator("ca_bundle")
+    @field_validator("api_ca_bundle", "indexer_ca_bundle")
     @classmethod
     def _expand(cls, value: Path | None) -> Path | None:
         return value.expanduser() if value is not None else None  # « ~/vigie-ca/… » en dev
+
+    @model_validator(mode="after")
+    def _pinned(self) -> WazuhConfig:
+        pinned = self.api_ca_bundle is not None and self.indexer_ca_bundle is not None
+        if not self.verify_hostname and not pinned:
+            raise ValueError("verify_hostname = false exige api_ca_bundle et indexer_ca_bundle")
+        return self
 
 
 # --- Utilitaires ------------------------------------------------------------------------
@@ -365,21 +377,25 @@ class WazuhConnector:
         try:
             config = WazuhConfig.model_validate(dict(ctx.settings))
         except ValidationError as exc:
-            fields = sorted({".".join(str(p) for p in e["loc"]) for e in exc.errors()})
+            # Champ fautif, ou message de la règle croisée (verify_hostname) sans champ.
+            fields = sorted(
+                {".".join(str(p) for p in e["loc"]) or str(e["msg"]) for e in exc.errors()}
+            )
             raise ConnectorConfigError(f"[sources.wazuh] invalide : {', '.join(fields)}") from None
 
-        def client(base: str, allowlist: Sequence[AllowedCall]) -> SafeClient:
+        def client(base: str, allowlist: Sequence[AllowedCall], ca: Path | None) -> SafeClient:
             return SafeClient(
                 source=SOURCE,
                 base_url=base,
                 allowlist=allowlist,
-                ca_bundle=config.ca_bundle or ctx.ca_bundle,
+                ca_bundle=ca or ctx.ca_bundle,
                 transport=ctx.transport,
+                check_hostname=config.verify_hostname,
             )
 
         clients = {
-            "manager": client(config.api_url, MANAGER_ALLOWLIST),
-            "indexer": client(config.indexer_url, INDEXER_ALLOWLIST),
+            "manager": client(config.api_url, MANAGER_ALLOWLIST, config.api_ca_bundle),
+            "indexer": client(config.indexer_url, INDEXER_ALLOWLIST, config.indexer_ca_bundle),
         }
         passwords = {
             "manager": ctx.secret(API_PASSWORD_SECRET),
@@ -584,12 +600,18 @@ class WazuhConnector:
         return out
 
     def _vuln_signals(self, agents: Mapping[str, Agent], now: datetime) -> list[RawSignal]:
+        # Agents Linux seulement, filtrés par l'indexer : les postes Windows (Defender) portent
+        # l'essentiel des CVE et satureraient l'agrégation (capture réelle du 2026-10-23).
+        linux = sorted(a.id for a in agents.values() if a.is_linux)
+        if not linux:
+            return []
         body = {
             "size": 0,
             "query": {
                 "bool": {
                     "filter": [
-                        {"terms": {"vulnerability.severity": list(self.config.vuln_severities)}}
+                        {"terms": {"vulnerability.severity": list(self.config.vuln_severities)}},
+                        {"terms": {"agent.id": linux}},
                     ]
                 }
             },

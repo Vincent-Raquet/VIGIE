@@ -1,0 +1,595 @@
+{
+  "took": 100,
+  "timed_out": false,
+  "_shards": {
+    "total": 303,
+    "successful": 303,
+    "skipped": 297,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1285,
+      "relation": "eq"
+    },
+    "max_score": null,
+    "hits": []
+  },
+  "aggregations": {
+    "rules": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "60205",
+          "doc_count": 839,
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "003",
+                "doc_count": 621,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 621,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "WMQXaaEBAhp4jlb6N2i7",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-01",
+                            "id": "003"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows audit failure events",
+                            "groups": [
+                              "windows",
+                              "windows_security"
+                            ],
+                            "id": "60205"
+                          },
+                          "timestamp": "2026-10-23T14:08:10.674+0000"
+                        },
+                        "sort": [
+                          1792764490674
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759210964.0,
+                  "value_as_string": "2026-10-23T12:40:10.964Z"
+                }
+              },
+              {
+                "key": "002",
+                "doc_count": 218,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 218,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "KT4UaaEBYfcXcWO3Fre2",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-02",
+                            "id": "002"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows audit failure events",
+                            "groups": [
+                              "windows",
+                              "windows_security"
+                            ],
+                            "id": "60205"
+                          },
+                          "timestamp": "2026-10-23T14:04:44.800+0000"
+                        },
+                        "sort": [
+                          1792764284800
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759159402.0,
+                  "value_as_string": "2026-10-23T12:39:19.402Z"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "key": "60204",
+          "doc_count": 261,
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "003",
+                "doc_count": 195,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 195,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "pMQXaaEBAhp4jlb6fXKh",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-01",
+                            "id": "003"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows Logon Failures",
+                            "groups": [
+                              "windows",
+                              "windows_security",
+                              "authentication_failures"
+                            ],
+                            "id": "60204"
+                          },
+                          "timestamp": "2026-10-23T14:08:27.892+0000"
+                        },
+                        "sort": [
+                          1792764507892
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759479385.0,
+                  "value_as_string": "2026-10-23T12:44:39.385Z"
+                }
+              },
+              {
+                "key": "001",
+                "doc_count": 60,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 60,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "fC7GaKEBYfcXcWO3Iht1",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-fs-01",
+                            "id": "001"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows Logon Failures",
+                            "groups": [
+                              "windows",
+                              "windows_security",
+                              "authentication_failures"
+                            ],
+                            "id": "60204"
+                          },
+                          "timestamp": "2026-10-23T12:39:36.469+0000"
+                        },
+                        "sort": [
+                          1792759176469
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759124258.0,
+                  "value_as_string": "2026-10-23T12:38:44.258Z"
+                }
+              },
+              {
+                "key": "002",
+                "doc_count": 6,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 6,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "0TTdaKEBYfcXcWO34jp4",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-02",
+                            "id": "002"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows Logon Failures",
+                            "groups": [
+                              "windows",
+                              "windows_security",
+                              "authentication_failures"
+                            ],
+                            "id": "60204"
+                          },
+                          "timestamp": "2026-10-23T13:05:32.591+0000"
+                        },
+                        "sort": [
+                          1792760732591
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759205068.0,
+                  "value_as_string": "2026-10-23T12:40:05.068Z"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "key": "61110",
+          "doc_count": 176,
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "002",
+                "doc_count": 166,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 166,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "5i7FaKEBYfcXcWO39A1q",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-02",
+                            "id": "002"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple System error events",
+                            "groups": [
+                              "windows",
+                              "windows_system"
+                            ],
+                            "id": "61110"
+                          },
+                          "timestamp": "2026-10-23T12:39:25.570+0000"
+                        },
+                        "sort": [
+                          1792759165570
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759025217.0,
+                  "value_as_string": "2026-10-23T12:37:05.217Z"
+                }
+              },
+              {
+                "key": "003",
+                "doc_count": 10,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 10,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "yC7FaKEBYfcXcWO38wwp",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-01",
+                            "id": "003"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple System error events",
+                            "groups": [
+                              "windows",
+                              "windows_system"
+                            ],
+                            "id": "61110"
+                          },
+                          "timestamp": "2026-10-23T12:39:24.436+0000"
+                        },
+                        "sort": [
+                          1792759164436
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759089445.0,
+                  "value_as_string": "2026-10-23T12:38:09.445Z"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "key": "61061",
+          "doc_count": 6,
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "003",
+                "doc_count": 4,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 4,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "rC7GaKEBYfcXcWO3Ghgl",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-01",
+                            "id": "003"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows error application events.",
+                            "groups": [
+                              "windows",
+                              "windows_application"
+                            ],
+                            "id": "61061"
+                          },
+                          "timestamp": "2026-10-23T12:39:33.870+0000"
+                        },
+                        "sort": [
+                          1792759173870
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759067238.0,
+                  "value_as_string": "2026-10-23T12:37:47.238Z"
+                }
+              },
+              {
+                "key": "002",
+                "doc_count": 2,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 2,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "Ui7FaKEBYfcXcWO3ywBc",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-02",
+                            "id": "002"
+                          },
+                          "rule": {
+                            "level": 10,
+                            "description": "Multiple Windows error application events.",
+                            "groups": [
+                              "windows",
+                              "windows_application"
+                            ],
+                            "id": "61061"
+                          },
+                          "timestamp": "2026-10-23T12:39:13.659+0000"
+                        },
+                        "sort": [
+                          1792759153659
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759083617.0,
+                  "value_as_string": "2026-10-23T12:38:03.617Z"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "key": "204",
+          "doc_count": 3,
+          "agents": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+              {
+                "key": "001",
+                "doc_count": 1,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 1,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "YC3EaKEBYfcXcWO3ZJmB",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-fs-01",
+                            "id": "001"
+                          },
+                          "rule": {
+                            "level": 12,
+                            "description": "Agent event queue is flooded. Check the agent configuration.",
+                            "groups": [
+                              "wazuh",
+                              "agent_flooding"
+                            ],
+                            "id": "204"
+                          },
+                          "timestamp": "2026-10-23T12:37:42.968+0000"
+                        },
+                        "sort": [
+                          1792759062968
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759062968.0,
+                  "value_as_string": "2026-10-23T12:37:42.968Z"
+                }
+              },
+              {
+                "key": "002",
+                "doc_count": 1,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 1,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "5i3EaKEBYfcXcWO3EYCD",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-02",
+                            "id": "002"
+                          },
+                          "rule": {
+                            "level": 12,
+                            "description": "Agent event queue is flooded. Check the agent configuration.",
+                            "groups": [
+                              "wazuh",
+                              "agent_flooding"
+                            ],
+                            "id": "204"
+                          },
+                          "timestamp": "2026-10-23T12:37:21.021+0000"
+                        },
+                        "sort": [
+                          1792759041021
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759041021.0,
+                  "value_as_string": "2026-10-23T12:37:21.021Z"
+                }
+              },
+              {
+                "key": "003",
+                "doc_count": 1,
+                "last": {
+                  "hits": {
+                    "total": {
+                      "value": 1,
+                      "relation": "eq"
+                    },
+                    "max_score": null,
+                    "hits": [
+                      {
+                        "_index": "wazuh-alerts-4.x-2026.10.23",
+                        "_id": "PC3EaKEBYfcXcWO3IYWx",
+                        "_score": null,
+                        "_source": {
+                          "agent": {
+                            "name": "srv-spl-01",
+                            "id": "003"
+                          },
+                          "rule": {
+                            "level": 12,
+                            "description": "Agent event queue is flooded. Check the agent configuration.",
+                            "groups": [
+                              "wazuh",
+                              "agent_flooding"
+                            ],
+                            "id": "204"
+                          },
+                          "timestamp": "2026-10-23T12:37:25.030+0000"
+                        },
+                        "sort": [
+                          1792759045030
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "first": {
+                  "value": 1792759045030.0,
+                  "value_as_string": "2026-10-23T12:37:25.030Z"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
