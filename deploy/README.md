@@ -449,3 +449,50 @@ IP) : Vigie l'appelle par ce nom, que `compose.yaml` déclare dans les conteneur
 4. **Renouvellement du certificat du FAZ** (nouvelle VM, nouveau certificat) : refaire 1, vérifier
    l'empreinte sur la console du FAZ, relancer le playbook.
 
+
+## 16. Renuméroter les réseaux Docker (passage à 10.10.100.0/22)
+
+Les réseaux Docker à sous-réseau fixe (edge, vigie_*, sources) et `docker0` ne peuvent pas
+changer de plage en place : il faut arrêter les projets compose, supprimer les réseaux,
+puis relancer les playbooks, qui les recréent avec le plan d'adressage de
+`group_vars/vigie.yml`. Coupure de Vigie **et** de Portal : environ 15 minutes.
+
+1. **Avant** : vérifier que `10.10.100.0/22` n'est routé nulle part dans l'entreprise, et
+   noter les timers actifs (les `vigie-notify@*` sont volontairement arrêtés pendant le
+   rodage : ne relancer que ceux de la liste) :
+   ```sh
+   systemctl list-timers 'vigie-*' --no-legend | awk '{print $NF}' | tee ~/timers-actifs.txt
+   ```
+2. **Arrêt** (Portal, Vigie, puis le proxy d'entrée, propriétaire du réseau `edge`) :
+   ```sh
+   sudo systemctl stop $(cat ~/timers-actifs.txt)
+   sudo systemctl stop portal-compose vigie-compose
+   sudo docker compose --project-directory /srv/portal down
+   sudo docker compose --project-directory /srv/vigie down
+   sudo docker compose --project-directory /srv/edge down
+   sudo docker network ls          # plus aucun réseau edge / vigie_* ; sinon docker network rm
+   ```
+3. **Vigie** (le rôle docker pose `bip` et le pool, puis redémarre le démon ; nftables,
+   edge et vigie suivent avec les nouvelles plages) :
+   ```sh
+   cd ~/projets/vigie/deploy
+   uv run --group deploy ansible-playbook site.yml --check --diff -K
+   uv run --group deploy ansible-playbook site.yml -K
+   ```
+4. **Portal** (adresses edge de `deploy/ansible/group_vars/portal.yml`, déjà alignées) :
+   ```sh
+   cd ~/projets/portal && deploy/build.sh
+   cd deploy/ansible && uv run --group deploy ansible-playbook site.yml -K
+   ```
+5. **Contrôles** :
+   ```sh
+   ip -4 -o addr | grep -E 'docker0|br-'      # 10.10.100.x uniquement, plus de 172.x
+   sudo nft list set inet vigie vigie_subnets  # sous-réseaux 10.10.100.x
+   sudo systemctl start $(cat ~/timers-actifs.txt)
+   systemctl list-timers 'vigie-*'
+   ```
+   Puis Vigie et Portal dans le navigateur, un « Tester la connexion » par source dans
+   Vigie, et `journalctl -t vigie-squid -n 20` (Squid accepte bien les nouveaux réseaux).
+
+Retour arrière : revenir au commit précédent de `group_vars/vigie.yml` (et de
+`portal.yml`) et refaire la même procédure.
