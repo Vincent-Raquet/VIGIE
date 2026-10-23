@@ -15,7 +15,7 @@
 </div>
 <div class="panel"><h2>En bref</h2>
   <ol>
-    <li>À intervalles réguliers (15 minutes en général), Vigie <strong>lit</strong> les alertes des sources (Zabbix, Veeam, NinjaOne, Defender, FortiAnalyzer…).</li>
+    <li>À intervalles réguliers (15 minutes en général), Vigie <strong>lit</strong> les alertes des sources (Zabbix, Veeam, NinjaOne, Defender, FortiAnalyzer, Wazuh…).</li>
     <li>Il les regroupe en <strong>incidents</strong> et calcule une <strong>priorité P1 à P4</strong>, toujours expliquée.</li>
     <li>Chaque jour ouvré à {{ cfg.plans.daily_at.strftime("%H:%M") }}, il construit le <strong>plan du jour</strong> ; le {{ weekly_day }} à {{ cfg.plans.weekly_at.strftime("%H:%M") }}, le <strong>plan de la semaine</strong>.</li>
     <li>L'IA reformule et commente le plan ; un <strong>validateur</strong> écarte toute proposition non conforme.</li>
