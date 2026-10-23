@@ -71,8 +71,15 @@ asset_rules:
   - {source: defender, match: agent_group, pattern: "WG",  company: WG}
   - {source: defender, match: agent_group, pattern: "CC",  company: CC}
   - {source: defender, match: agent_group, pattern: "FWD", company: FWD}
-  # Wazuh : groupe d'agents, un par société (le groupe « default » est ignoré). À défaut,
-  # préfixe du nom d'agent (devname_prefix). TODO verify : noms des groupes sur l'instance.
+  # Wazuh : groupe d'agents, un par société (le groupe « default » est ignoré ; un agent dans
+  # deux groupes de société n'est rattaché à aucune). Groupes créés le 2026-10-23 :
+  # wallindustries, splifar, wallglass ; noms courts acceptés aussi. À défaut, préfixe du nom
+  # d'agent (devname_prefix).
+  - {source: wazuh, match: agent_group, pattern: "wallindustries", company: WI}
+  - {source: wazuh, match: agent_group, pattern: "splifar",        company: SPL}
+  - {source: wazuh, match: agent_group, pattern: "wallglass",      company: WG}
+  - {source: wazuh, match: agent_group, pattern: "constructcenter", company: CC}
+  - {source: wazuh, match: agent_group, pattern: "fairwind",       company: FWD}
   - {source: wazuh, match: agent_group, pattern: "wi",  company: WI}
   - {source: wazuh, match: agent_group, pattern: "spl", company: SPL}
   - {source: wazuh, match: agent_group, pattern: "wg",  company: WG}
