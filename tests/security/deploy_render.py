@@ -33,6 +33,7 @@ def native_env() -> NativeEnvironment:
     env.filters["unique"] = lambda seq: list(dict.fromkeys(seq))  # liste, comme Ansible
     env.filters["to_json"] = json.dumps
     env.filters["strftime"] = time.strftime
+    env.filters["zip"] = lambda *seqs: list(zip(*seqs, strict=False))
     return env
 
 

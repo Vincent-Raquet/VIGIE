@@ -326,6 +326,29 @@
   when: vigie_run_seed | bool
   changed_when: true
 
+# Un réseau dont la plage ou la passerelle change est recréé par `up`, mais Squid y est
+# seulement redémarré, sans ses IP fixes (« Cannot assign requested address », 2026-10-23) :
+# down d'abord, pour que tout soit recréé, Squid le premier (deploy/README.md §18).
+- name: Plage et passerelle actuelles des réseaux de Squid
+  ansible.builtin.command:
+    cmd: >-
+      docker network inspect vigie_{{ item }}
+      --format '{{ "{{range .IPAM.Config}}{{.Subnet}} {{.Gateway}} {{.IPRange}}{{end}}" }}'
+  loop: "{{ vigie_networks.keys() | list }}"
+  register: vigie_networks_actual
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Réseaux de Squid recréés (plage ou passerelle changée)
+  ansible.builtin.command:
+    cmd: docker compose --project-directory {{ vigie_compose_dir }} down
+  when: >-
+    vigie_secrets_ok and not ansible_check_mode
+    and vigie_networks_actual.results | selectattr('rc', 'equalto', 0)
+    | rejectattr('stdout', 'in', vigie_networks_expected) | list | length > 0
+  changed_when: true
+
 # Recrée les conteneurs dont l'image ou la définition a changé (nouvelle version).
 - name: Services permanents à jour
   community.docker.docker_compose_v2:
@@ -334,6 +357,18 @@
     state: present
     pull: never
     remove_orphans: true
+  when: vigie_secrets_ok and not ansible_check_mode
+
+- name: Squid a ses IP fixes
+  ansible.builtin.command:
+    cmd: >-
+      docker inspect vigie-squid-1
+      --format '{{ "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}" }}'
+  register: vigie_squid_ips
+  changed_when: false
+  failed_when: >-
+    vigie_squid_ips.rc != 0 or vigie_networks.values() | map(attribute='squid')
+    | reject('in', vigie_squid_ips.stdout.split()) | list | length > 0
   when: vigie_secrets_ok and not ansible_check_mode
 
 - name: Discussion avec l'IA arrêtée (IA désactivée)

@@ -263,6 +263,40 @@ def test_web_reached_by_caddy_only_through_a_fixed_address() -> None:
     assert ctx["vigie_web_edge_ip"] != ctx["edge_caddy_ip"]
 
 
+def test_squid_fixed_ips_are_outside_the_dynamic_range(ctx: dict[str, Any]) -> None:
+    # Sans ip_range, Docker distribue d'abord .34 et .66 : au redémarrage de la machine, web et
+    # chat repartent avant Squid, qui ne redémarre plus (incidents des 2026-10-23 et 2026-10-26).
+    # Passerelle explicite : avec ip_range seul, Docker la met au début de la plage.
+    import ipaddress
+
+    nets = compose(ctx)["networks"]
+    for key, spec in ctx["vigie_networks"].items():
+        (ipam,) = nets[key]["ipam"]["config"]
+        assert ipam == {
+            "subnet": spec["subnet"],
+            "gateway": spec["gateway"],
+            "ip_range": spec["range"],
+        }
+        subnet = ipaddress.ip_network(spec["subnet"])
+        dynamic = ipaddress.ip_network(spec["range"])
+        gateway = ipaddress.ip_address(spec["gateway"])
+        squid = ipaddress.ip_address(spec["squid"])
+        assert dynamic.subnet_of(subnet), key  # type: ignore[arg-type]
+        assert gateway == next(subnet.hosts()), key
+        assert squid in subnet and squid != gateway, key
+        assert squid not in dynamic and gateway not in dynamic, key
+
+
+def test_network_migration_compares_what_docker_reports(ctx: dict[str, Any]) -> None:
+    # La tâche « Réseaux de Squid recréés » compare la sortie de `docker network inspect`
+    # (« sous-réseau passerelle plage ») à vigie_networks_expected.
+    tasks = (DEPLOY / "roles/vigie/tasks/main.yml").read_text()
+    assert "{{.Subnet}} {{.Gateway}} {{.IPRange}}" in tasks
+    assert ctx["vigie_networks_expected"] == [
+        f"{n['subnet']} {n['gateway']} {n['range']}" for n in ctx["vigie_networks"].values()
+    ]
+
+
 def test_fixed_subnets_do_not_overlap_each_other_or_the_lan() -> None:
     import ipaddress
 

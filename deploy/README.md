@@ -561,15 +561,25 @@ que vers 192.168.240.148, ports 55000 et 9200 (`port: [55000, 9200]` dans `vigie
 
 ## 18. Squid ne redémarre plus (« Address already in use » ou « Cannot assign requested address »)
 
-Symptôme : `vigie-squid-1` arrêté ou redémarrant en boucle ; connexion Entra, IA, NinjaOne et
-Defender coupées. Cause (incident du 2026-10-23) : les IP fixes de Squid (`.34`, `.66`, `.50`)
-sont les premières adresses distribuées par Docker ; si Squid est arrêté pendant qu'un autre
-conteneur démarre, celui-ci les reçoit. Une plage automatique (`ip_range`) a été essayée le
-même jour : Docker créait alors Squid sans ses IP fixes (« Cannot assign requested address »),
-d'où le retour arrière. Rétablissement : recréer le projet pour que Squid démarre le premier
-(coupure de Vigie seul, quelques minutes ; `edge` et Portal ne sont pas touchés). Ne pas
-arrêter les timers : un `systemctl start` sur la colonne ACTIVATES de `list-timers` lancerait
-les services eux-mêmes (plans compris).
+Symptôme : `vigie-squid-1` arrêté ou redémarrant en boucle ; erreur interne juste après la
+connexion Entra, IA, NinjaOne et Defender coupées. Causes connues :
+- **IP fixes prises** (incidents des 2026-10-23 et 2026-10-26, au redémarrage de la machine :
+  Docker relance web et chat avant Squid) : sans plage automatique, Docker distribuait d'abord
+  `.34`, `.66`, `.50`. Depuis, chaque réseau de Squid a une plage (`range` de
+  `vigie_networks`, `ip_range` de `compose.yaml`) qui exclut ces adresses, et une passerelle
+  explicite (`gateway` ; sinon Docker la mettrait au début de la plage) ;
+  `tests/security/test_compose.py` le vérifie.
+- **Réseau recréé, Squid seulement redémarré** : quand la plage ou la passerelle d'un réseau
+  change, `compose up` recrée le réseau mais y rebranche Squid sans ses IP fixes (première
+  adresse de la plage). Le rôle compare donc les réseaux à `vigie_networks` et fait un
+  `compose down` avant `up` en cas d'écart (tâche « Réseaux de Squid recréés »), puis vérifie
+  les IP de Squid (« Squid a ses IP fixes »). Le jour de la migration, coupure de Vigie seul,
+  quelques minutes ; `edge` et Portal ne sont pas touchés. Si une tâche tourne pendant le
+  `down`, celui-ci échoue (réseau occupé) : relancer le playbook.
+
+Rétablissement à la main (Squid recréé le premier). Ne pas arrêter les timers : un
+`systemctl start` sur la colonne ACTIVATES de `list-timers` lancerait les services eux-mêmes
+(plans compris).
 ```sh
 sudo systemctl stop vigie-compose
 sudo docker compose --project-directory /srv/vigie down

@@ -76,3 +76,11 @@ vigie_timers:
      timer_calendar: "{{ vigie_schedule.housekeeping }}", timer_jitter: 10min, enabled: true}
   - {name: vigie-selfcheck.timer, timer_unit: vigie-selfcheck.service, timer_every: 5min,
      enabled: true}
+
+# « sous-réseau passerelle plage » de chaque réseau de Squid, tel que l'affiche
+# `docker network inspect` : un écart fait recréer le projet (tâche « Réseaux de Squid recréés »).
+vigie_networks_expected: >-
+  {{ vigie_networks.values() | map(attribute='subnet')
+     | zip(vigie_networks.values() | map(attribute='gateway'),
+           vigie_networks.values() | map(attribute='range'))
+     | map('join', ' ') | list }}
