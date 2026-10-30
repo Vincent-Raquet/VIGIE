@@ -537,6 +537,11 @@ def test_edge_proxy_is_the_only_published_port_and_trusted_by_web() -> None:
     assert "tls internal" in site
     caddyfile = (DEPLOY / "roles" / "edge" / "templates" / "Caddyfile.j2").read_text()
     assert "admin off" in caddyfile
+    # Journal par défaut filtré : les tokens de Portal (chemin de ses API) n'atteignent pas
+    # journald, même par le journal d'erreurs du proxy (502 pendant un redémarrage).
+    options = caddyfile.split("import ")[0]
+    assert "log {" in options and "format filter" in options
+    assert 'request>uri regexp "^/api/v1/(ping|jobs)/[^/?]+" "/api/v1/$1/***"' in options
 
 
 def test_legacy_purge_removes_the_old_ca_private_key() -> None:

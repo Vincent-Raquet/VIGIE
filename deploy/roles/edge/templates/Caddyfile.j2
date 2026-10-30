@@ -8,6 +8,18 @@
 	servers {
 		protocols h1 h2
 	}
+	# Journal par défaut (erreurs du proxy comprises) : les tokens de Portal, portés par le
+	# chemin de ses API de ping et de jobs, sont masqués comme dans le journal d'accès du
+	# site portal.caddy. Sans ce filtre, un 502 pendant un redémarrage de Portal inscrivait
+	# l'URL complète, token compris, dans journald (revue Portal du 2026-10-30, C29).
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "^/api/v1/(ping|jobs)/[^/?]+" "/api/v1/$1/***"
+			}
+		}
+	}
 }
 
 # Un fichier par application (vigie.caddy…).
